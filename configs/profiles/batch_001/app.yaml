@@ -1,0 +1,11 @@
+schema_version: 1
+mode: research
+starting_capital: 10000.0
+random_seed: 42
+costs:
+  trading_fee_pct: 0.05
+  slippage_pct: 0.02
+  spread_pct: 0.01
+markets_file: markets.yaml
+risk_file: risk.yaml
+strategies_dir: strategies

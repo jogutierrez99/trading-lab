@@ -1,0 +1,8 @@
+# Independent continuous post-gap request. No March 2023 source month is touched.
+provider: binance
+market_type: spot
+symbol: BTC/USDT
+timeframe: 1h
+start: 2023-05-03T00:00:00Z
+end: 2026-01-01T00:00:00Z
+warmup_bars: 768

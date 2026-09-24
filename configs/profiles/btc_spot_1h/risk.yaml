@@ -1,0 +1,6 @@
+risk_per_trade_pct: 0.5
+max_position_pct: 100.0
+max_exposure_pct: 100.0
+stop_method: atr
+atr_multiplier: 2.0
+risk_reward: 2.0

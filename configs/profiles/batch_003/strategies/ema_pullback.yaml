@@ -1,0 +1,11 @@
+name: ema_pullback
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  pullback_period: 20
+risk:
+  max_holding_bars: 120

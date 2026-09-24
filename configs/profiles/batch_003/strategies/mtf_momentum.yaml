@@ -1,0 +1,13 @@
+name: mtf_momentum
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  breakout_hours: 24
+risk:
+  atr_multiplier: 2.5
+  trailing_atr_multiplier: 3.0
+  trailing_basis: close

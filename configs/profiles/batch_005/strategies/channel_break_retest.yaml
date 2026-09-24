@@ -1,0 +1,13 @@
+name: channel_break_retest
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  channel_hours: 24
+risk:
+  stop_method: structure
+  atr_multiplier: 2.5
+  max_holding_bars: 168

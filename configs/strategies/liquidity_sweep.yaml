@@ -1,0 +1,8 @@
+# Reserved family, implemented in Phase 4. Empty parameters are intentional.
+name: liquidity_sweep
+version: 1.0.0
+enabled: false
+market: {provider: binance, symbol: BTC/USDT, timeframe: 1h}
+parameters: {}
+risk:
+  stop_method: sweep

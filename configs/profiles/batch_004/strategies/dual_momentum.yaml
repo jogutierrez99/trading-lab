@@ -1,0 +1,12 @@
+name: dual_momentum
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  short_days: 7
+  long_days: 30
+risk:
+  atr_multiplier: 2.0

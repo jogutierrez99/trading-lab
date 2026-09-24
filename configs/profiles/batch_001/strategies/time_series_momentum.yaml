@@ -1,0 +1,9 @@
+name: time_series_momentum
+version: 1.0.0
+enabled: true
+market: {provider: binance, symbol: BTC/USDT, timeframe: 1h}
+parameters: {lookback_days: 14}
+risk:
+  sizing_method: fixed_notional
+  position_pct: 25.0
+  stop_enabled: false

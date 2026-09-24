@@ -1,0 +1,11 @@
+name: regime_trend
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  adx_threshold: 18
+risk:
+  atr_multiplier: 2.5

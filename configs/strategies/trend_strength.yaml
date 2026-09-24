@@ -1,0 +1,9 @@
+# Scaffold only; implement rules and behavioral tests before enabling.
+name: trend_strength
+version: 1.0.0
+enabled: false
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters: {}

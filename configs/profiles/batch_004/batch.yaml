@@ -1,0 +1,109 @@
+app_file: app.yaml
+execution_file: execution.yaml
+history_file: history.yaml
+dataset_dir: ../../../data/history/5810d644e2ff492d1a4f0ed9c5327561418be3c20f920c9520d28920f46bf54b
+legacy_history_file: history_legacy.yaml
+legacy_dataset_dir: ../../../data/history/2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b
+output_dir: ../../../results/batch_004
+warmup_bars: 1536
+train:
+  start: 2023-06-04 00:00:00+00:00
+  end: 2024-07-01 00:00:00+00:00
+validation:
+  start: 2024-07-01 00:00:00+00:00
+  end: 2025-01-01 00:00:00+00:00
+test:
+  start: 2025-01-01 00:00:00+00:00
+  end: 2025-07-01 00:00:00+00:00
+final_holdout:
+  start: 2025-07-01 00:00:00+00:00
+  end: 2026-01-01 00:00:00+00:00
+folds:
+- train:
+    start: 2023-07-01 00:00:00+00:00
+    end: 2024-07-01 00:00:00+00:00
+  test:
+    start: 2024-07-01 00:00:00+00:00
+    end: 2024-10-01 00:00:00+00:00
+- train:
+    start: 2023-10-01 00:00:00+00:00
+    end: 2024-10-01 00:00:00+00:00
+  test:
+    start: 2024-10-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+- train:
+    start: 2024-01-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  test:
+    start: 2025-01-01 00:00:00+00:00
+    end: 2025-04-01 00:00:00+00:00
+- train:
+    start: 2024-04-01 00:00:00+00:00
+    end: 2025-04-01 00:00:00+00:00
+  test:
+    start: 2025-04-01 00:00:00+00:00
+    end: 2025-07-01 00:00:00+00:00
+candidates:
+- id: regime_trend_a18
+  strategy: regime_trend
+  baseline: true
+  parameters:
+    adx_threshold: 18
+- id: regime_trend_b22
+  strategy: regime_trend
+  baseline: false
+  parameters:
+    adx_threshold: 22
+- id: regime_trend_c25
+  strategy: regime_trend
+  baseline: false
+  parameters:
+    adx_threshold: 25
+- id: dual_momentum_a7_30
+  strategy: dual_momentum
+  baseline: true
+  parameters:
+    short_days: 7
+    long_days: 30
+- id: dual_momentum_b14_60
+  strategy: dual_momentum
+  baseline: false
+  parameters:
+    short_days: 14
+    long_days: 60
+- id: dual_momentum_c7_60
+  strategy: dual_momentum
+  baseline: false
+  parameters:
+    short_days: 7
+    long_days: 60
+- id: vol_expansion_trend_a50
+  strategy: vol_expansion_trend
+  baseline: true
+  parameters:
+    percentile_pct: 50
+- id: vol_expansion_trend_b60
+  strategy: vol_expansion_trend
+  baseline: false
+  parameters:
+    percentile_pct: 60
+- id: vol_expansion_trend_c70
+  strategy: vol_expansion_trend
+  baseline: false
+  parameters:
+    percentile_pct: 70
+- id: low_vol_pullback_a30
+  strategy: low_vol_pullback
+  baseline: true
+  parameters:
+    percentile_pct: 30
+- id: low_vol_pullback_b40
+  strategy: low_vol_pullback
+  baseline: false
+  parameters:
+    percentile_pct: 40
+- id: low_vol_pullback_c50
+  strategy: low_vol_pullback
+  baseline: false
+  parameters:
+    percentile_pct: 50

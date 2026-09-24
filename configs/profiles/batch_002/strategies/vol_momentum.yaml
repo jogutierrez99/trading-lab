@@ -1,0 +1,11 @@
+name: vol_momentum
+version: 1.0.0
+enabled: true
+market: {provider: binance, symbol: BTC/USDT, timeframe: 1h}
+parameters: {lookback_days: 14}
+risk:
+  sizing_method: volatility_target
+  volatility_period: 720
+  target_volatility_pct: 20.0
+  min_position_pct: 5.0
+  stop_enabled: false

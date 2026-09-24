@@ -1,0 +1,7 @@
+risk_per_trade_pct: 0.5
+max_position_pct: 25.0
+max_exposure_pct: 25.0
+stop_method: atr
+atr_period: 14
+atr_multiplier: 2.0
+take_profit_enabled: false

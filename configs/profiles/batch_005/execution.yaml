@@ -1,0 +1,7 @@
+market_mode: spot
+direction: long
+quantity_step: 0.00001
+min_quantity: 0.00001
+min_notional: 10.0
+filter_assumption: "Research assumptions; historical Binance filters not verified"
+liquidate_at_end: true

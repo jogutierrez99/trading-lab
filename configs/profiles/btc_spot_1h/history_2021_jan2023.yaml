@@ -1,0 +1,9 @@
+# Alternative data validation request, including all of January 2023.
+# Preserves the original 2022-2025 request. End is exclusive; dates are UTC.
+provider: binance
+market_type: spot
+symbol: BTC/USDT
+timeframe: 1h
+start: 2021-01-01T00:00:00Z
+end: 2023-02-01T00:00:00Z
+warmup_bars: 200

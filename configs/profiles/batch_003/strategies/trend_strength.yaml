@@ -1,0 +1,11 @@
+name: trend_strength
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  short_days: 7
+  long_days: 30
+risk: {}

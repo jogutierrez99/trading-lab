@@ -1,0 +1,9 @@
+# Proposed parameters only; implementation and parameter validation are pending.
+name: trend_following
+version: 1.0.0
+enabled: false
+market: {provider: binance, symbol: BTC/USDT, timeframe: 1h}
+parameters:
+  fast_sma_period: 50
+  slow_sma_period: 200
+  atr_period: 14

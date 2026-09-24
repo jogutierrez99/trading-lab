@@ -1,0 +1,11 @@
+name: rsi_momentum_reset
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  reset_threshold: 40
+risk:
+  atr_multiplier: 2.0

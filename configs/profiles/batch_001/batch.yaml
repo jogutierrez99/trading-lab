@@ -1,0 +1,27 @@
+app_file: app.yaml
+execution_file: execution.yaml
+history_file: ../btc_spot_1h/history_2022_jan2023.yaml
+dataset_dir: ../../../data/history/77a55251e86f4034b317dd312b3bad06bb95c36f6540c74c4b8121793425b6da
+output_dir: ../../../results/batch_001
+train: {start: 2022-02-01T00:00:00Z, end: 2022-09-01T00:00:00Z}
+validation: {start: 2022-09-01T00:00:00Z, end: 2022-11-01T00:00:00Z}
+test: {start: 2022-11-01T00:00:00Z, end: 2023-02-01T00:00:00Z}
+walk_forward:
+  - {start: 2022-07-01T00:00:00Z, end: 2022-08-01T00:00:00Z}
+  - {start: 2022-08-01T00:00:00Z, end: 2022-09-01T00:00:00Z}
+  - {start: 2022-09-01T00:00:00Z, end: 2022-10-01T00:00:00Z}
+  - {start: 2022-10-01T00:00:00Z, end: 2022-11-01T00:00:00Z}
+candidates:
+  - {id: trend_base, strategy: trend_following, baseline: true}
+  - {id: trend_dc10, strategy: trend_following, parameters: {donchian_period: 10}}
+  - {id: trend_dc30, strategy: trend_following, parameters: {donchian_period: 30}}
+  - {id: trend_trail2, strategy: trend_following, risk: {trailing_atr_multiplier: 2.0}}
+  - {id: trend_trail4, strategy: trend_following, risk: {trailing_atr_multiplier: 4.0}}
+  - {id: meanrev_base, strategy: mean_reversion, baseline: true}
+  - {id: meanrev_std15, strategy: mean_reversion, parameters: {bollinger_std: 1.5}}
+  - {id: meanrev_std25, strategy: mean_reversion, parameters: {bollinger_std: 2.5}}
+  - {id: meanrev_rsi25, strategy: mean_reversion, parameters: {rsi_long: 25.0, rsi_short: 75.0}}
+  - {id: meanrev_time20, strategy: mean_reversion, risk: {max_holding_bars: 20}}
+  - {id: momentum_base, strategy: time_series_momentum, baseline: true}
+  - {id: momentum_7d, strategy: time_series_momentum, parameters: {lookback_days: 7}}
+  - {id: momentum_30d, strategy: time_series_momentum, parameters: {lookback_days: 30}}

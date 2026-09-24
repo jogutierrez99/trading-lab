@@ -1,0 +1,6 @@
+name: trend_following
+version: 1.0.0
+enabled: true
+market: {provider: binance, symbol: BTC/USDT, timeframe: 1h}
+parameters: {donchian_period: 20, ema_period: 200}
+risk: {trailing_atr_multiplier: 3.0}

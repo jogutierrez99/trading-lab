@@ -1,0 +1,106 @@
+app_file: app.yaml
+execution_file: execution.yaml
+history_file: history.yaml
+dataset_dir: ../../../data/history/5810d644e2ff492d1a4f0ed9c5327561418be3c20f920c9520d28920f46bf54b
+legacy_history_file: history_legacy.yaml
+legacy_dataset_dir: ../../../data/history/2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b
+output_dir: ../../../results/batch_005
+warmup_bars: 1536
+train:
+  start: 2023-06-04 00:00:00+00:00
+  end: 2024-07-01 00:00:00+00:00
+validation:
+  start: 2024-07-01 00:00:00+00:00
+  end: 2025-01-01 00:00:00+00:00
+test:
+  start: 2025-01-01 00:00:00+00:00
+  end: 2025-07-01 00:00:00+00:00
+final_holdout:
+  start: 2025-07-01 00:00:00+00:00
+  end: 2026-01-01 00:00:00+00:00
+folds:
+- train:
+    start: 2023-07-01 00:00:00+00:00
+    end: 2024-07-01 00:00:00+00:00
+  test:
+    start: 2024-07-01 00:00:00+00:00
+    end: 2024-10-01 00:00:00+00:00
+- train:
+    start: 2023-10-01 00:00:00+00:00
+    end: 2024-10-01 00:00:00+00:00
+  test:
+    start: 2024-10-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+- train:
+    start: 2024-01-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  test:
+    start: 2025-01-01 00:00:00+00:00
+    end: 2025-04-01 00:00:00+00:00
+- train:
+    start: 2024-04-01 00:00:00+00:00
+    end: 2025-04-01 00:00:00+00:00
+  test:
+    start: 2025-04-01 00:00:00+00:00
+    end: 2025-07-01 00:00:00+00:00
+candidates:
+- id: channel_break_retest_a24
+  strategy: channel_break_retest
+  baseline: true
+  parameters:
+    channel_hours: 24
+- id: channel_break_retest_b48
+  strategy: channel_break_retest
+  baseline: false
+  parameters:
+    channel_hours: 48
+- id: channel_break_retest_c72
+  strategy: channel_break_retest
+  baseline: false
+  parameters:
+    channel_hours: 72
+- id: trend_acceleration_a12
+  strategy: trend_acceleration
+  baseline: true
+  parameters:
+    fast_hours: 12
+- id: trend_acceleration_b24
+  strategy: trend_acceleration
+  baseline: false
+  parameters:
+    fast_hours: 24
+- id: trend_acceleration_c48
+  strategy: trend_acceleration
+  baseline: false
+  parameters:
+    fast_hours: 48
+- id: rsi_momentum_reset_a40
+  strategy: rsi_momentum_reset
+  baseline: true
+  parameters:
+    reset_threshold: 40
+- id: rsi_momentum_reset_b35
+  strategy: rsi_momentum_reset
+  baseline: false
+  parameters:
+    reset_threshold: 35
+- id: rsi_momentum_reset_c30
+  strategy: rsi_momentum_reset
+  baseline: false
+  parameters:
+    reset_threshold: 30
+- id: vol_contraction_expansion_a6
+  strategy: vol_contraction_expansion
+  baseline: true
+  parameters:
+    contraction_bars: 6
+- id: vol_contraction_expansion_b12
+  strategy: vol_contraction_expansion
+  baseline: false
+  parameters:
+    contraction_bars: 12
+- id: vol_contraction_expansion_c18
+  strategy: vol_contraction_expansion
+  baseline: false
+  parameters:
+    contraction_bars: 18

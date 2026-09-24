@@ -1,0 +1,34 @@
+app_file: app.yaml
+execution_file: execution.yaml
+history_file: history.yaml
+dataset_dir: ../../../data/history/5810d644e2ff492d1a4f0ed9c5327561418be3c20f920c9520d28920f46bf54b
+legacy_history_file: history_legacy.yaml
+legacy_dataset_dir: ../../../data/history/2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b
+output_dir: ../../../results/batch_002
+warmup_bars: 768
+train: {start: 2023-05-03T00:00:00Z, end: 2024-07-01T00:00:00Z}
+validation: {start: 2024-07-01T00:00:00Z, end: 2025-01-01T00:00:00Z}
+test: {start: 2025-01-01T00:00:00Z, end: 2025-07-01T00:00:00Z}
+final_holdout: {start: 2025-07-01T00:00:00Z, end: 2026-01-01T00:00:00Z}
+folds:
+  - train: {start: 2023-07-01T00:00:00Z, end: 2024-07-01T00:00:00Z}
+    test: {start: 2024-07-01T00:00:00Z, end: 2024-10-01T00:00:00Z}
+  - train: {start: 2023-10-01T00:00:00Z, end: 2024-10-01T00:00:00Z}
+    test: {start: 2024-10-01T00:00:00Z, end: 2025-01-01T00:00:00Z}
+  - train: {start: 2024-01-01T00:00:00Z, end: 2025-01-01T00:00:00Z}
+    test: {start: 2025-01-01T00:00:00Z, end: 2025-04-01T00:00:00Z}
+  - train: {start: 2024-04-01T00:00:00Z, end: 2025-04-01T00:00:00Z}
+    test: {start: 2025-04-01T00:00:00Z, end: 2025-07-01T00:00:00Z}
+candidates:
+  - {id: volmom_b14, strategy: vol_momentum, baseline: true}
+  - {id: volmom_a7, strategy: vol_momentum, parameters: {lookback_days: 7}}
+  - {id: volmom_c30, strategy: vol_momentum, parameters: {lookback_days: 30}}
+  - {id: donadx_a20_20, strategy: donchian_adx, baseline: true}
+  - {id: donadx_b40_20, strategy: donchian_adx, parameters: {donchian_period: 40}}
+  - {id: donadx_c20_25, strategy: donchian_adx, parameters: {adx_threshold: 25.0}}
+  - {id: squeeze_a20, strategy: bb_squeeze, baseline: true}
+  - {id: squeeze_b15, strategy: bb_squeeze, parameters: {squeeze_percentile_pct: 15.0}}
+  - {id: squeeze_c25, strategy: bb_squeeze, parameters: {squeeze_percentile_pct: 25.0}}
+  - {id: regmean_a30, strategy: regime_meanrev, baseline: true}
+  - {id: regmean_b25, strategy: regime_meanrev, parameters: {rsi_entry: 25.0}}
+  - {id: regmean_c35, strategy: regime_meanrev, parameters: {rsi_entry: 35.0}}

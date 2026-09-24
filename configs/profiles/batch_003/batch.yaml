@@ -1,0 +1,109 @@
+app_file: app.yaml
+execution_file: execution.yaml
+history_file: history.yaml
+dataset_dir: ../../../data/history/5810d644e2ff492d1a4f0ed9c5327561418be3c20f920c9520d28920f46bf54b
+legacy_history_file: history_legacy.yaml
+legacy_dataset_dir: ../../../data/history/2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b
+output_dir: ../../../results/batch_003
+warmup_bars: 1536
+train:
+  start: 2023-06-04 00:00:00+00:00
+  end: 2024-07-01 00:00:00+00:00
+validation:
+  start: 2024-07-01 00:00:00+00:00
+  end: 2025-01-01 00:00:00+00:00
+test:
+  start: 2025-01-01 00:00:00+00:00
+  end: 2025-07-01 00:00:00+00:00
+final_holdout:
+  start: 2025-07-01 00:00:00+00:00
+  end: 2026-01-01 00:00:00+00:00
+folds:
+- train:
+    start: 2023-07-01 00:00:00+00:00
+    end: 2024-07-01 00:00:00+00:00
+  test:
+    start: 2024-07-01 00:00:00+00:00
+    end: 2024-10-01 00:00:00+00:00
+- train:
+    start: 2023-10-01 00:00:00+00:00
+    end: 2024-10-01 00:00:00+00:00
+  test:
+    start: 2024-10-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+- train:
+    start: 2024-01-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  test:
+    start: 2025-01-01 00:00:00+00:00
+    end: 2025-04-01 00:00:00+00:00
+- train:
+    start: 2024-04-01 00:00:00+00:00
+    end: 2025-04-01 00:00:00+00:00
+  test:
+    start: 2025-04-01 00:00:00+00:00
+    end: 2025-07-01 00:00:00+00:00
+candidates:
+- id: ema_pullback_a20
+  strategy: ema_pullback
+  baseline: true
+  parameters:
+    pullback_period: 20
+- id: ema_pullback_b30
+  strategy: ema_pullback
+  baseline: false
+  parameters:
+    pullback_period: 30
+- id: ema_pullback_c50
+  strategy: ema_pullback
+  baseline: false
+  parameters:
+    pullback_period: 50
+- id: mtf_momentum_a24
+  strategy: mtf_momentum
+  baseline: true
+  parameters:
+    breakout_hours: 24
+- id: mtf_momentum_b48
+  strategy: mtf_momentum
+  baseline: false
+  parameters:
+    breakout_hours: 48
+- id: mtf_momentum_c72
+  strategy: mtf_momentum
+  baseline: false
+  parameters:
+    breakout_hours: 72
+- id: atr_breakout_a10
+  strategy: atr_breakout
+  baseline: true
+  parameters:
+    expansion_k: 1.0
+- id: atr_breakout_b15
+  strategy: atr_breakout
+  baseline: false
+  parameters:
+    expansion_k: 1.5
+- id: atr_breakout_c20
+  strategy: atr_breakout
+  baseline: false
+  parameters:
+    expansion_k: 2.0
+- id: trend_strength_a7_30
+  strategy: trend_strength
+  baseline: true
+  parameters:
+    short_days: 7
+    long_days: 30
+- id: trend_strength_b14_30
+  strategy: trend_strength
+  baseline: false
+  parameters:
+    short_days: 14
+    long_days: 30
+- id: trend_strength_c7_60
+  strategy: trend_strength
+  baseline: false
+  parameters:
+    short_days: 7
+    long_days: 60

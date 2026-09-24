@@ -1,0 +1,12 @@
+name: trend_acceleration
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  fast_hours: 12
+risk:
+  atr_multiplier: 2.0
+  max_holding_bars: 240

@@ -1,0 +1,6 @@
+# Reserved family, implemented in Phase 5.
+name: breakout_retest
+version: 1.0.0
+enabled: false
+market: {provider: binance, symbol: BTC/USDT, timeframe: 1h}
+parameters: {}

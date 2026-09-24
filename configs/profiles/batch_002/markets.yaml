@@ -1,0 +1,2 @@
+markets:
+  - {provider: binance, symbol: BTC/USDT, timeframe: 1h}

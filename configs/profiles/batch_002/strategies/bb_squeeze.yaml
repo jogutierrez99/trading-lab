@@ -1,0 +1,6 @@
+name: bb_squeeze
+version: 1.0.0
+enabled: true
+market: {provider: binance, symbol: BTC/USDT, timeframe: 1h}
+parameters: {squeeze_percentile_pct: 20.0}
+risk: {max_holding_bars: 120}

@@ -1,0 +1,6 @@
+name: donchian_adx
+version: 1.0.0
+enabled: true
+market: {provider: binance, symbol: BTC/USDT, timeframe: 1h}
+parameters: {donchian_period: 20, adx_threshold: 20.0}
+risk: {trailing_atr_multiplier: 3.0, trailing_basis: close}

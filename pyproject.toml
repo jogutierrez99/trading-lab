@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quant-trading-lab"
+version = "0.1.0"
+description = "Modular, configuration-driven quantitative research foundations"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.7,<3", "PyYAML>=6.0.1,<7", "pandas>=2.2,<3", "numpy>=1.26,<2.4", "pyarrow>=18,<24"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
+reports = ["matplotlib>=3.9,<4"]
+
+[project.scripts]
+quant-create-strategy = "quant_lab.scaffolding:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

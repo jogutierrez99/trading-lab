@@ -1,0 +1,6 @@
+markets:
+  - {provider: binance, symbol: BTC/USDT, timeframe: 5m}
+  - {provider: binance, symbol: BTC/USDT, timeframe: 15m}
+  - {provider: binance, symbol: BTC/USDT, timeframe: 1h}
+  - {provider: binance, symbol: BTC/USDT, timeframe: 4h}
+  - {provider: binance, symbol: BTC/USDT, timeframe: 1d}

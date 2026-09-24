@@ -1,0 +1,12 @@
+name: low_vol_pullback
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  percentile_pct: 30
+risk:
+  atr_multiplier: 1.5
+  max_holding_bars: 120

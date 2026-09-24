@@ -1,0 +1,8 @@
+# Dedicated phase-2 request; end exclusive. Unquoted YAML dates parse as UTC datetimes.
+provider: binance
+market_type: spot
+symbol: BTC/USDT
+timeframe: 1h
+start: 2022-01-01T00:00:00Z
+end: 2026-01-01T00:00:00Z
+warmup_bars: 200

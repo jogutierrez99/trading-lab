@@ -1,0 +1,14 @@
+# Research proposal only; no downloader or backtest engine exists yet.
+# Dates, spot/long-only constraints and execution rules: docs/btc-spot-1h.md.
+schema_version: 1
+mode: research
+starting_capital: 10000.0
+random_seed: 42
+# Percentage units. Simulation assumptions, not verified account fee rates.
+costs:
+  trading_fee_pct: 0.10
+  slippage_pct: 0.03
+  spread_pct: 0.02
+markets_file: markets.yaml
+risk_file: risk.yaml
+strategies_dir: strategies
