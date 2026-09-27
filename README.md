@@ -300,3 +300,8 @@ python scripts/run_execution_refinement.py
 [Protocolo y criterios previos](docs/execution-refinement-design.md).
 La etiqueta operativa de paper es independiente de las clasificaciones históricas;
 este batch termina con el informe y no inicia paper trading.
+
+Completado: 1.344 backtests, 335 tests y 672 reproducciones exactas del baseline.
+V2.1 no mejora BASE/ADVERSE; Bollinger V4.1 reduce costes pero empeora expectancy.
+Ninguna configuración cumple los criterios operativos para paper.
+[Resultados y conclusiones por configuración](docs/execution-refinement-results.md).
