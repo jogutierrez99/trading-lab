@@ -4,7 +4,7 @@ A modular quantitative research laboratory for reproducible strategy experiments
 The initial target is BTC/USDT using public Binance OHLCV data. No private exchange
 credentials are required. Historical profitability is not evidence of future returns.
 
-**Current status: historical execution, Batch 001A and Batch 002 implemented.** The reference engine
+**Original Batch 001/002 scope (preserved below).** The reference engine
 supports costs, risk sizing, fixed notional, optional targets, causal ATR trailing and
 time stops. Donchian trend, Bollinger/RSI mean reversion and hourly momentum are available
 in a dedicated profile. The batch records all trials, temporal holdouts, walk-forward
@@ -15,11 +15,16 @@ See its [frozen design](docs/batch-002-design.md) and
 [executed results](docs/batch-002-results.md).
 The full 2022–2025 request still has a source gap. Batch 002 uses independently validated
 pre-gap and post-gap bundles; it never bridges the discontinuity. No dashboard,
-perpetual funding, live trading or withdrawals are implemented.
+live trading or withdrawals are implemented. Independent perpetual research with
+historical funding is described under Batch 006 below.
 
 An alternative **January 2022–January 2023 inclusive** dataset has passed data and
 indicator checks (9,504 study hours plus 200 warmup hours). See its
 [test record](docs/data-test-2022-jan2023.md), including the resolved Windows cache access issue.
+
+Current independent extensions: [cross-market study](docs/cross-market-timeframe-study-001.md)
+and [Batch 006 perpetual Bollinger long/short](docs/batch-006-design.md). Earlier
+phase limitations below describe their original scope, not the independent runners.
 
 ## Setup
 
@@ -243,3 +248,55 @@ writes a unique directory under `results/cross_market_timeframe_study_001/`, inc
 the complete comparison matrix, `summary.md`, `4h_analysis.md`, charts and a SQLite
 ledger. Six unsupported combinations are explicit exclusions; no timeframe winner
 is selected for investment. A dashboard and live trading are not implemented here.
+
+## Batch 006: Bollinger long/short
+
+Experimento independiente en futuros perpetuos, con funding histórico y supuestos
+explícitos de margen aislado. Tres variantes, tres modos y comparación BTC/ETH
+en 1h/4h/1d. Protocolo, limitaciones y comandos en
+[docs/batch-006-design.md](docs/batch-006-design.md). Sin ejecución real de órdenes.
+
+Ejecución completada: 7.952 backtests, 280 tests aprobados y ninguna configuración
+clasificada como prometedora bajo los criterios congelados. Véanse los
+[resultados del Batch 006](docs/batch-006-results.md).
+
+## Serie MTF 01–04
+
+Cuatro familias nuevas con baseline 1h, filtro 4h, alineación 4h/1h/15m y
+recuperación tras retroceso. MTF01–02 conservan el dataset original; una cohorte
+adicional compara V1–V4 excluyendo simétricamente los 18 días con discrepancias
+de mark price. MTF04 aplica los criterios de supervivencia ya existentes.
+Definiciones, adaptación de ejecución y limitaciones en el
+[protocolo MTF](docs/mtf-series-design.md).
+
+```powershell
+python scripts/preflight_mtf_series.py
+python scripts/run_mtf_series.py
+```
+
+El preflight queda ligado al código exacto. Cada ejecución crea artefactos nuevos
+en `results/mtf_series/` y en las carpetas de cada fase, con comparación maestra,
+operaciones, equity, costes, diagnósticos, hashes y ledger.
+
+La ejecución MTF ha completado 7.200 backtests y 318 tests. Ninguna configuración
+cumple todos los criterios heredados para MTF04; los modos direccionales están
+implementados, pero esa fase queda excluida por falta de supervivientes.
+Véase el [informe de resultados MTF](docs/mtf-series-results.md), con comparación
+del histórico original y la cohorte común, y el estado de verificación final.
+
+## Refinamiento de ejecución V2.1 / V4.1
+
+Batch de confirmación de cuatro parejas concretas, LONG_ONLY, sobre la cohorte
+MTF03 intacta. Añade señales congeladas, consumo único, cooldown y filtro de
+extensión; V4.1 permite que 15m ejecute únicamente oportunidades originadas en 1h.
+Los indicadores y costes mantienen sus valores anteriores. Los baselines se
+reproducen comparando hashes exactos de trades/equity con MTF03.
+
+```powershell
+python scripts/preflight_execution_refinement.py
+python scripts/run_execution_refinement.py
+```
+
+[Protocolo y criterios previos](docs/execution-refinement-design.md).
+La etiqueta operativa de paper es independiente de las clasificaciones históricas;
+este batch termina con el informe y no inicia paper trading.

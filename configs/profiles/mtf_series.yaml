@@ -1,0 +1,33 @@
+source_run: results/batch_006_bollinger_long_short/20260926T103758Z-dd7672b4fa25
+capital: 10000.0
+risk:
+  risk_per_trade_pct: 0.5
+  max_position_pct: 25.0
+  max_exposure_pct: 25.0
+  stop_method: atr
+  atr_multiplier: 2.0
+  risk_reward: 2.0
+  atr_period: 14
+  sizing_method: stop_risk
+  position_pct: 25.0
+  stop_enabled: true
+  take_profit_enabled: false
+  trailing_atr_multiplier: null
+  max_holding_bars: 72
+  trailing_basis: high_low
+  volatility_period: 720
+  target_volatility_pct: 20.0
+  min_position_pct: 5.0
+costs:
+  zero:
+    trading_fee_pct: 0.0
+    slippage_pct: 0.0
+    spread_pct: 0.0
+  base:
+    trading_fee_pct: 0.05
+    slippage_pct: 0.02
+    spread_pct: 0.01
+  adverse:
+    trading_fee_pct: 0.1
+    slippage_pct: 0.1
+    spread_pct: 0.02

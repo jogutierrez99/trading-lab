@@ -1,0 +1,13 @@
+# Implemented; enabled through the independent MTF research runner.
+name: mtf_bollinger
+version: 1.0.0
+enabled: false
+market: {provider: binance_usdm, symbol: BTC/USDT, timeframe: 1h}
+parameters: {architecture: V1, trade_mode: LONG_ONLY}
+risk:
+  risk_per_trade_pct: 0.5
+  max_position_pct: 25.0
+  max_exposure_pct: 25.0
+  atr_multiplier: 2.0
+  take_profit_enabled: false
+  max_holding_bars: 72

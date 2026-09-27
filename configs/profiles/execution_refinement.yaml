@@ -1,0 +1,5 @@
+cooldown_hours: 1
+extension_atr: 1.5
+validity_quarters: 4
+dynamic_spread_enabled: false
+max_spread_pct: null

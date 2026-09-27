@@ -27,25 +27,37 @@ class BollingerRegimeReversalStrategy(BaseStrategy[Parameters]):
     parameter_model = Parameters
 
     def prepare_features(self, candles: pd.DataFrame) -> pd.DataFrame:
-        f = candles.copy().join(bollinger(candles.close, 20, VARIANTS[self.parameters.variant]["width"]))
+        f = candles.copy().join(
+            bollinger(candles.close, 20, VARIANTS[self.parameters.variant]["width"])
+        )
         f["rsi"] = rsi(f.close, 14)
         f["adx"] = adx(f, 14)
         f["atr"] = atr(f, 14)
         f["ema200"] = ema(f.close, 200)
-        f["distance_ema"] = (f.close-f.ema200).abs()/f.ema200
+        f["distance_ema"] = (f.close - f.ema200).abs() / f.ema200
         return f
 
     def generate_long_entries(self, f) -> list[bool]:
         if self.parameters.trade_mode == "SHORT_ONLY":
-            return [False]*len(f)
+            return [False] * len(f)
         p = VARIANTS[self.parameters.variant]
-        return ((f.close < f.lower) & (f.rsi < p["rsi_long"]) & (f.adx < p["adx"]) & (f.distance_ema < .08)).tolist()
+        return (
+            (f.close < f.lower)
+            & (f.rsi < p["rsi_long"])
+            & (f.adx < p["adx"])
+            & (f.distance_ema < 0.08)
+        ).tolist()
 
     def generate_short_entries(self, f) -> list[bool]:
         if self.parameters.trade_mode == "LONG_ONLY":
-            return [False]*len(f)
+            return [False] * len(f)
         p = VARIANTS[self.parameters.variant]
-        return ((f.close > f.upper) & (f.rsi > p["rsi_short"]) & (f.adx < p["adx"]) & (f.distance_ema < .08)).tolist()
+        return (
+            (f.close > f.upper)
+            & (f.rsi > p["rsi_short"])
+            & (f.adx < p["adx"])
+            & (f.distance_ema < 0.08)
+        ).tolist()
 
     def generate_long_exits(self, f) -> list[bool]:
         return ((f.close >= f.middle) | (f.rsi >= 55)).tolist()
