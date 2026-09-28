@@ -17,6 +17,7 @@ class Parameters(StrictModel):
 
 
 class MeanReversion(BaseStrategy[Parameters]):
+    lab_timeframes = ("1h", "4h", "1d")  # Periods are bars, not elapsed hours.
     name = "mean_reversion"
     parameter_model = Parameters
 

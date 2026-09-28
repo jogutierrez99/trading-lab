@@ -1,0 +1,20 @@
+schema_version: 1
+source_run: results/new_mtf_strategies/20260927T174926Z-38873feafe95
+source_manifest_sha256: f6d21b7f5940422506a262beac16443bf5f45a1b723b238a1e8994b200ce0525
+configurations:
+  - asset: ETHUSDT
+    family: supertrend_pullback
+    architecture: V2
+    execution_policy: TIMING_15M_SUPERTREND
+  - asset: ETHUSDT
+    family: roc_momentum
+    architecture: V2
+    execution_policy: TIMING_15M_ROC
+  - asset: ETHUSDT
+    family: roc_momentum
+    architecture: V1
+    execution_policy: TIMING_15M_ROC
+expiry_bars: 4
+max_extension_atr: 1.5
+consolidation_bars: 3
+consolidation_atr_multiple: 2.0

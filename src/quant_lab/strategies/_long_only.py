@@ -4,6 +4,8 @@ from quant_lab.strategies.base import BaseStrategy
 
 
 class LongOnlyStrategy(BaseStrategy):
+    lab_modes = ("LONG_ONLY",)
+
     def generate_short_entries(self, features) -> list[bool]:
         return [False] * len(features)
 

@@ -4,6 +4,17 @@ A modular quantitative research laboratory for reproducible strategy experiments
 The initial target is BTC/USDT using public Binance OHLCV data. No private exchange
 credentials are required. Historical profitability is not evidence of future returns.
 
+## Local experiment workflow
+
+New ordinary experiments run from YAML without Codex:
+`python scripts/lab.py strategies`, `experiments`, `validate latest-experiment`,
+`run latest-experiment`, `report latest`, and `status`.
+See [PowerShell workflow and examples](docs/lab-workflow.md) and the
+[architecture/reuse audit](docs/lab-architecture-audit.md).
+Each run freezes configuration/data identities and produces `leaderboard.csv` and
+`ai_summary.md`. Existing batch/MTF/perpetual runners and results remain intact.
+Codex implements and tests; the user launches long research locally.
+
 **Original Batch 001/002 scope (preserved below).** The reference engine
 supports costs, risk sizing, fixed notional, optional targets, causal ATR trailing and
 time stops. Donchian trend, Bollinger/RSI mean reversion and hourly momentum are available

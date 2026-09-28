@@ -1,0 +1,35 @@
+schema_version: 1
+experiment_id: trend_btc_1h_001
+created_at: 2026-09-27T12:00:00Z
+description: Small ordinary trend experiment on a pinned continuous BTC spot bundle.
+app: ../app.yaml
+strategy:
+  id: trend_following
+  config: ../profiles/lab_trend.yaml
+markets:
+  - symbol: BTCUSDT
+    timeframe: 1h
+    dataset: ../../data/history/2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b
+    warmup_bars: 240
+modes: [LONG_ONLY]
+strategy_parameters:
+  donchian_period: [20, 40]
+initial_cash: 10000.0
+# Costs inherit app.yaml: percentages, NOT fractions. 0.05 = 5 bps.
+execution:
+  market_mode: spot
+  quantity_step: 0.000001
+  min_quantity: 0.000001
+  min_notional: 10.0
+  filter_assumption: Fixed research filters, not historical exchange filter reconstruction.
+validation:
+  train: {start: 2022-02-01T00:00:00Z, end: 2022-04-01T00:00:00Z}
+  validation: {start: 2022-04-01T00:00:00Z, end: 2022-05-01T00:00:00Z}
+  test: {start: 2022-05-01T00:00:00Z, end: 2022-06-01T00:00:00Z}
+  walk_forward: []
+  cost_stress:
+    adverse: {trading_fee_pct: 0.10, slippage_pct: 0.06, spread_pct: 0.02}
+filters:
+  minimum_trades: 1
+  maximum_drawdown_pct: 25.0
+ranking: {metric: sharpe, descending: true, top_n: 5}

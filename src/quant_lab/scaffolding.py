@@ -3,6 +3,7 @@
 import argparse
 import keyword
 import re
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -31,6 +32,11 @@ class Parameters(StrictModel):
 class {class_name}(BaseStrategy[Parameters]):
     name = "{name}"
     version = "1.0.0"
+    description = "Implement and describe the research hypothesis"
+    status = "experimental"
+    created_at = "{datetime.now(UTC).isoformat()}"
+    lab_timeframes = ("1h",)
+    lab_modes = ("LONG_ONLY", "SHORT_ONLY", "LONG_SHORT")
     parameter_model = Parameters
 
     def prepare_features(self, candles: FeatureFrame) -> FeatureFrame:

@@ -1,0 +1,8 @@
+# Explicit opt-in for NEW ordinary experiments; original strategy YAML is preserved.
+name: trend_following
+version: 1.0.0
+enabled: true
+parameters:
+  donchian_period: 20
+  ema_period: 200
+# Unspecified risk fields inherit risk.yaml referenced by app.yaml.

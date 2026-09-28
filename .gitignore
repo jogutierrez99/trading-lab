@@ -15,5 +15,8 @@ dist/
 *.key
 data/
 experiments/
+!configs/experiments/
+configs/experiments/*
+!configs/experiments/*.yaml
 reports/
 results/

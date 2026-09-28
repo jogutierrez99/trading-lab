@@ -1,0 +1,5 @@
+schema_version: 1
+reference_plan: results/mtf_series/20260926T231005Z-328815f654cb/plan.json
+reference_sha256: 645a83b740ff506fb25858bd97912ee89dfb3bbef589d8a53dccc3bbba7a3aba
+matched_plan: results/batch_mtf_03_architectures/20260926T231820Z-44cc4dedd4ab/plan.json
+matched_sha256: 5806646c9948bb10bf1e74764903881d757db5821d330eef59a926f08e4529af

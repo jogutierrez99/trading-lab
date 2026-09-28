@@ -22,6 +22,7 @@ class Parameters(StrictModel):
 
 
 class BollingerRegimeReversalStrategy(BaseStrategy[Parameters]):
+    lab_execution = "legacy_batch_006"
     name = "bollinger_regime_reversal"
     version = "1.0.0"
     parameter_model = Parameters

@@ -4,6 +4,7 @@ import importlib
 import inspect
 import pkgutil
 import re
+from datetime import datetime, timedelta
 
 from quant_lab.config import StrategyConfig, StrictModel
 from quant_lab.strategies.base import BaseStrategy
@@ -22,6 +23,18 @@ class StrategyRegistry:
             raise ValueError("Strategy must declare a valid name")
         if not re.fullmatch(r"\d+\.\d+\.\d+", strategy.version):
             raise ValueError("Strategy version must be MAJOR.MINOR.PATCH")
+        if strategy.status not in {
+            "experimental",
+            "research",
+            "promising",
+            "validated",
+            "rejected",
+            "deprecated",
+        }:
+            raise ValueError("Invalid strategy status metadata")
+        if strategy.created_at is not None:
+            if datetime.fromisoformat(strategy.created_at).utcoffset() != timedelta(0):
+                raise ValueError("Strategy created_at must be timezone-aware UTC")
         model = getattr(strategy, "parameter_model", None)
         if not inspect.isclass(model) or not issubclass(model, StrictModel):
             raise TypeError("Strategy must declare a StrictModel parameter_model")
@@ -49,6 +62,30 @@ class StrategyRegistry:
 
     def names(self) -> tuple[str, ...]:
         return tuple(sorted(self._strategies))
+
+    def implementation(self, name: str) -> type[BaseStrategy]:
+        try:
+            return self._strategies[name]
+        except KeyError as exc:
+            raise ValueError(f"Unknown strategy: {name}") from exc
+
+    def catalogue(self) -> list[dict]:
+        return [
+            {
+                "strategy_id": name,
+                "version": cls.version,
+                "description": cls.description or inspect.getmodule(cls).__doc__ or name,
+                "implementation": f"{cls.__module__}.{cls.__name__}",
+                "config": f"configs/strategies/{name}.yaml",
+                "status": cls.status,
+                "created_at": cls.created_at,
+                "timeframes": cls.lab_timeframes,
+                "modes": cls.lab_modes,
+                "execution": cls.lab_execution,
+            }
+            for name in self.names()
+            for cls in [self.implementation(name)]
+        ]
 
     def create(self, config: StrategyConfig) -> BaseStrategy:
         if not config.enabled:

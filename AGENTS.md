@@ -13,8 +13,28 @@ storage and exploratory temporal validation; see docs/batch-001-implementation.m
 Batch 002 adds four long-only modules and independent validated pre/post-gap datasets,
 entry-time volatility sizing, close-based trailing and a final holdout. See
 docs/batch-002-design.md. Preserve Batch 001 strategies/configs/artifacts unchanged.
-Funding, perpetuals, multi-leg portfolios, a dashboard and Monte Carlo remain unavailable.
+Dedicated later runners implement audited perpetual/funding, MTF and execution refinement.
+See their design/results documents; the paragraphs above describe earlier phase boundaries.
+The ordinary lab CLI uses spot/synthetic OHLCV execution; dedicated runners retain their
+specialized assumptions. No live trading is available.
 Follow the user's requested phase boundaries and test before advancing.
+
+## AI EXECUTION POLICY
+
+Codex MAY inspect repositories, implement code/configs/strategies, add tests, run unit
+tests and targeted synthetic smoke tests, run Ruff/format checks and fast verification.
+
+Codex MUST NOT by default run full research batches, large parameter sweeps, thousands
+of backtests, long MTF/cross-market/refinement studies, wait for long simulations, or
+analyze thousands of generated artifacts. Long research workloads are executed locally
+by the user. Do not interpret a routine "implement" or "continue" as permission to run
+those workloads. A specific user instruction may override this default.
+
+Finish strategy/experiment implementation with the exact local command, for example:
+`python scripts/lab.py run trend_btc_1h_001`. Use targeted tests for orchestration changes;
+do not require the full suite for every ordinary YAML validation. `validate` is fast;
+`validate --full` checks dataset integrity without running backtests. `run` performs
+full data checks before execution. See docs/lab-workflow.md.
 
 ## Architecture and principles
 

@@ -56,8 +56,10 @@ def complete_bars(frame: pd.DataFrame, source_tf: str, target_tf: str) -> pd.Dat
     return result.loc[grouped.size() == required]
 
 
-def closed_features(frame: pd.DataFrame, source_tf: str, target_tf: str) -> pd.DataFrame:
-    higher = features(complete_bars(frame, source_tf, target_tf))
+def closed_features(
+    frame: pd.DataFrame, source_tf: str, target_tf: str, calculator=features
+) -> pd.DataFrame:
+    higher = calculator(complete_bars(frame, source_tf, target_tf))
     higher.index = higher.index + STEPS[target_tf]
     higher["available_at"] = higher.index
     aligned = higher.reindex(frame.index + STEPS[source_tf], method="ffill")

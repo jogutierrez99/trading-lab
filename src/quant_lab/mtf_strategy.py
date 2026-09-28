@@ -24,6 +24,7 @@ class MtfParameters(StrictModel):
 
 
 class MtfStrategy(BaseStrategy[MtfParameters]):
+    lab_execution = "legacy_mtf"
     parameter_model = MtfParameters
 
     @property

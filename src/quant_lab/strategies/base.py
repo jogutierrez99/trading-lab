@@ -31,6 +31,12 @@ class Signals:
 class BaseStrategy[P: StrictModel](ABC):
     name: ClassVar[str]
     version: ClassVar[str] = "1.0.0"
+    description: ClassVar[str] = ""
+    status: ClassVar[str] = "research"
+    created_at: ClassVar[str | None] = None  # Unknown for legacy implementations.
+    lab_timeframes: ClassVar[tuple[str, ...]] = ("1h",)
+    lab_modes: ClassVar[tuple[str, ...]] = ("LONG_ONLY", "SHORT_ONLY", "LONG_SHORT")
+    lab_execution: ClassVar[str] = "ohlcv"
     parameter_model: ClassVar[type[StrictModel]]
 
     def __init__(self, config: StrategyConfig):

@@ -14,6 +14,7 @@ class Parameters(StrictModel):
 
 
 class TrendFollowing(BaseStrategy[Parameters]):
+    lab_timeframes = ("1h", "4h", "1d")  # Periods are bars, not elapsed hours.
     name = "trend_following"
     parameter_model = Parameters
 
