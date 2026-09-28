@@ -1,5 +1,17 @@
 # Project instructions
 
+Before modifying research or relevant code, read in order:
+
+1. [README.md](README.md)
+2. [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md)
+3. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+4. [docs/WORKFLOW.md](docs/WORKFLOW.md)
+5. [docs/RESEARCH_RULES.md](docs/RESEARCH_RULES.md)
+
+Then read the affected runner's frozen protocol. Current code/configuration defines
+available commands; historical phase notes describe their original scope. Do not expand
+a documentation task into strategy, parameter, engine, dataset or result changes.
+
 ## Purpose and current scope
 
 Build a modular quantitative research laboratory, initially BTC/USDT on public Binance
@@ -42,8 +54,8 @@ full data checks before execution. See docs/lab-workflow.md.
 - `strategies/base.py`: causal features and long/short decisions, no execution.
 - `strategies/registry.py`: trusted module discovery, no hardcoded strategy list.
 - `scaffolding.py`: exclusive creation of module/YAML/test triplets.
-- Later layers: providers, validation/cache, reusable features, risk, execution,
-  experiments, statistical validation, reporting and dashboard. Keep these separate.
+- Implemented layers: providers, validation/cache, reusable features, risk, execution,
+  experiments and reporting. Keep these separate; dashboard remains deferred.
 - Favor deterministic rules, explicit configuration, type hints, focused modules and
   meaningful errors. No LLM dependency in the core. Avoid heavy unused dependencies.
 
@@ -52,8 +64,9 @@ full data checks before execution. See docs/lab-workflow.md.
 Install with `python -m pip install -e ".[dev]"`, then run
 `python scripts/create_strategy.py new_strategy`. Implement its `Parameters` schema,
 feature preparation and four signal methods. Add causal and long/short behavioral tests.
-Enable its YAML only when implemented. The four reserved family YAMLs already exist;
-implement their modules directly in the corresponding phase instead of overwriting.
+Enable its YAML only when implemented. Existing family YAMLs must not be overwritten;
+liquidity_sweep and breakout_retest still reserve unimplemented families. Inspect the
+current registry before scaffolding or implementing a reserved family.
 
 Do not modify the backtesting engine merely to add a strategy. Ordinary additions require
 only a strategy file, configuration and tests. The registry discovers concrete local
@@ -71,19 +84,20 @@ Inspect `git diff` and untracked files. Do not commit credentials or generated d
 
 ## Backtests and validation
 
-No backtest or validation CLI is implemented in Phase 1. Planned commands are documented
-in README, clearly marked unavailable. Future backtests must support independent long,
-short and combined results, costs on both sides, risk sizing and capped exposure. Keep
+The ordinary CLI is scripts/lab.py; Phase 1's no-backtest limitation is historical.
+Preserve independent long, short and combined results where supported, costs on both
+sides, risk sizing and capped exposure. Spot is long-only; synthetic shorts do not
+model funding. Specialized perpetual/MTF runners retain their own assumptions. Keep
 parameter selection confined to training data. Walk-forward summaries use test results
 only; Monte Carlo analysis records seeds and assumptions. Never imply historical profits
 prove future profitability. Separate backtest, out-of-sample and future paper results.
 
 ## Data safety and no look-ahead requirement
 
-Use public historical endpoints without private trading credentials. Future providers
+Use public historical endpoints without private trading credentials. Providers
 must validate UTC timestamps, sorting, duplicates, missing candles and OHLC consistency.
 Cache valid data deterministically and retain dataset fingerprints. Never silently replace
-historical experiment artifacts. Planned storage is SQLite plus immutable JSON/Parquet,
+historical experiment artifacts. Existing storage uses SQLite plus immutable JSON/Parquet,
 unique experiment IDs, resolved config, costs, dataset identity, code revision and environment.
 
 Signals are decisions at close; earliest market entry is next open. Every feature at T
@@ -91,7 +105,7 @@ must depend only on observations available at T. No centered rolling windows or 
 future data. Swing confirmation is timestamped when confirmed. Higher-timeframe values
 become available only when that candle closes. Explicitly document intrabar ambiguity,
 gap fills and conservative stop/target ordering. Add prefix-invariance tests per strategy
-and dedicated multi-timeframe and execution tests when those capabilities arrive.
+and preserve dedicated multi-timeframe and execution regressions.
 
 ## No live trading
 
@@ -103,9 +117,58 @@ and its calendar/availability semantics through an independent future provider.
 ## Configuration and quality
 
 `*_pct` always means percentage units: 0.05 = 0.05% = 5 bps. Never mix with fractions.
-Config paths resolve relative to app.yaml; explicit strategy risk overrides global risk.
+Experiment paths resolve relative to the experiment YAML; app references resolve relative
+to app.yaml. Explicit strategy risk overrides global risk; experiment capital/costs can
+override app defaults. Do not confuse dedicated profile schemas with lab experiments.
 Parameter models must reject unknown values. No hidden network activity on import.
 Structured operational logging belongs with data/experiment workflows as implemented;
 never log secrets. Keep `.env`, secrets and local data/results ignored.
 Document phase changes, verification evidence and remaining phases. Do not proceed on
 broken foundations or add empty pretend implementations of future functionality.
+
+## Strategy / experiment boundary
+
+A strategy defines reusable causal features and signal rules. Asset, timeframe, period,
+capital, mode, costs, parameter grids and filters belong in experimental configuration
+where supported. Do not clone or change strategy Python just to test another value.
+Use configs/experiments for the ordinary strict lab schema, configs/profiles for
+dedicated protocols. Check catalogue capabilities; do not bypass unsupported modes,
+hourly volatility sizing or legacy_mtf/legacy_batch_006 adapter guards.
+
+## Research evidence and immutable results
+
+Preserve run/backtest IDs, original and resolved config, dataset fingerprints and file
+hashes, code hash, Git revision/status, strategy version, timestamps, environment and
+seeds when applicable. Record missing provenance as unknown rather than inventing it.
+Keep Batch 001 and other frozen configurations/results unchanged. New hypotheses get
+new experiment IDs; analyses of old runs get separate uniquely named reports.
+
+Never optimize on final holdout or use its outcome to reselect parameters while calling
+it independent validation. Lab has train/validation/test, with test as final holdout;
+dedicated runners may additionally have final_holdout. WF selection uses TRAIN only.
+Respect each classifier exactly: generic PASS is a filter result, RESEARCH_PASS is a
+research gate, and NEAR_PASS grants no V4/paper/live eligibility. Never automatically
+mark strategy metadata promising/validated from a backtest or alter thresholds to pass.
+
+## Skills del repositorio
+
+These project-local skills use name/description YAML frontmatter in SKILL.md. No prior
+skill system existed here. They live under skills/ and are routed by this contract;
+do not assume a client automatically discovers that folder or that global skills were
+installed. When the request matches, read the corresponding file (or invoke by path):
+
+- New reusable signal logic: [create-strategy](skills/create-strategy/SKILL.md).
+- New market/mode/parameter/period configuration: [create-experiment](skills/create-experiment/SKILL.md).
+- An already executed run: [analyze-results](skills/analyze-results/SKILL.md).
+- A stricter candidate validation protocol: [validate-strategy](skills/validate-strategy/SKILL.md).
+
+Use one agent workflow; do not introduce a multi-agent research/orchestration system.
+Skills do not authorize long computations beyond the AI EXECUTION POLICY.
+
+## Maintaining operational memory
+
+When a change significantly affects architecture, available strategies, backend,
+datasets, workflow, experiment types, supported modes or MTF, evaluate and update
+docs/PROJECT_STATE.md if needed. Keep it compact; ordinary runs belong in results,
+manifests and Git history, not an ever-growing state log. State the scope of verification
+and distinguish implementation, historical evidence and newly verified results.

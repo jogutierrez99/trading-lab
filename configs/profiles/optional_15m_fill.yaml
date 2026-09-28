@@ -1,0 +1,20 @@
+schema_version: 1
+execution_policy: OPTIONAL_15M_FILL
+fallback_mode: causal_deadline_market
+window_minutes: 60
+sources:
+  new_mtf:
+    path: results/new_mtf_strategies/20260927T174926Z-38873feafe95
+    manifest_sha256: f6d21b7f5940422506a262beac16443bf5f45a1b723b238a1e8994b200ce0525
+    batch: phase_a/20260927T174928Z-1dbed0737abd
+  legacy_mtf:
+    path: results/batch_mtf_03_architectures/20260926T231820Z-44cc4dedd4ab
+    manifest_sha256: f6a76ceef2533221e943c71059d002f92b12c76d33a358e2c667fda9c13e4387
+    batch: .
+configurations:
+  - {asset: ETHUSDT, family: ema_adx, architecture: V2, source: legacy_mtf}
+  - {asset: ETHUSDT, family: roc_momentum, architecture: V2, source: new_mtf}
+  - {asset: ETHUSDT, family: supertrend_pullback, architecture: V2, source: new_mtf}
+  - {asset: ETHUSDT, family: keltner_breakout, architecture: V2, source: new_mtf}
+  - {asset: BTCUSDT, family: supertrend_pullback, architecture: V2, source: new_mtf}
+  - {asset: ETHUSDT, family: trend_pullback, architecture: V1, source: legacy_mtf}

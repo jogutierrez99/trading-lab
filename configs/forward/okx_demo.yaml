@@ -1,0 +1,17 @@
+environment: demo
+data_protocol: eth_v1_required_1h_15m
+mode: signal_only
+broker: okx
+trading_enabled: false
+allow_live_trading: false
+instruments:
+  ETH: ETH-USD_UM_XPERP-310328
+  BTC: BTC-USD_UM_XPERP-310328
+strategies:
+  - eth_trend_pullback_v1
+  - eth_trend_pullback_v1_optional_15m_fill
+inherited_profile: ../profiles/mtf_series.yaml
+output: ../../results/forward
+warmup_bars: 800
+heartbeat_seconds: 30
+max_reconnects: 8

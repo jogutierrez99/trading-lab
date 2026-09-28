@@ -13,6 +13,7 @@ dependencies = ["pydantic>=2.7,<3", "PyYAML>=6.0.1,<7", "pandas>=2.2,<3", "numpy
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
 reports = ["matplotlib>=3.9,<4"]
+forward = ["websockets>=14,<17"]
 
 [project.scripts]
 quant-create-strategy = "quant_lab.scaffolding:main"
