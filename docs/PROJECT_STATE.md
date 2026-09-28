@@ -152,12 +152,21 @@ Verificación del recovery: 554 tests, Ruff (285 archivos) y pip check correctos
 Recibo técnico `reports/forward/preflight/20260928T185408Z-327ead927c70.json`;
 la recuperación real de incidentes antiguos queda pendiente del siguiente arranque.
 
+Alertas Telegram implementadas como proceso observacional independiente:
+`scripts/notification_watcher.py`, events/sessions SQLite read-only, cursor externo
+atómico, primer arranque from-now, replay/dry-run y retries HTTP acotados.
+Carga las cuatro variables Telegram desde `.env` del proyecto al iniciar, con prioridad
+del entorno de la terminal; no carga variables OKX/trading ni lee `.env` al importar. Ver
+[operación y límites de entrega](telegram-notifications.md). Sin cambios a runner,
+Store, señales, riesgo ni configuración de trading. Verificación con mocks y journals
+temporales; entrega Telegram real pendiente, sin activar un watcher operativo.
+
 Implementados: datos, indicadores, estrategias, backends, persistencia, CLI y protocolos
 especializados. Research sigue siendo experimental: holdouts ya consultados no constituyen
 nueva evidencia independiente. Legacy significa contrato histórico conservado, no eliminado.
 
 Pendientes documentados: resolver la cobertura histórica original, familias reservadas,
-dashboard e integración VectorBT; paper/monitorización/alertas son extensiones futuras,
+dashboard e integración VectorBT; paper y otras interfaces de monitorización son futuras,
 sin routing live. Monte Carlo existe en cross-market, no es una capacidad genérica de lab.
 No hay una siguiente fase autorizada por el mero hecho de aparecer en esta lista.
 

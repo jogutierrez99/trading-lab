@@ -135,6 +135,12 @@ acepta GET de una allowlist; las mutaciones lanzan TradingDisabled. No cambia el
 backend histórico. Contratos, causalidad, recuperación y límites del estado shadow:
 [forward-signal-only](forward-signal-only.md).
 
+Observador separado: `scripts/notification_watcher.py` → `notifications/forward_watcher.py`
+→ SQLite events/sessions read-only → formatter → Telegram sendMessage (urllib).
+Estado/cursor atómico y lock propios, sin dependencias desde forward/brokers/estrategias.
+No retiene transacciones SQLite durante HTTP; no envía órdenes. Semántica de fallos,
+replay y entrega en [telegram-notifications](telegram-notifications.md).
+
 Scripts download/import preparan fuentes explícitamente. `run_backtest.py` usa el
 motor de referencia; `run_batch*.py`, `run_cross_market_study.py`, `run_mtf_series.py`,
 `run_execution_refinement.py`, `run_new_mtf_strategies.py`, `run_entry_timing_15m.py`

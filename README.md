@@ -13,6 +13,23 @@ y WebSocket real pendientes. DEMO_EXECUTION y live continúan bloqueados.
 ETH 1h/15m son obligatorios para V1; BTC y 4h son monitorización. La vela histórica
 ETH 4h no confirmada se registra como aviso, sin rellenarla ni bloquear estas variantes.
 
+## Telegram notifications
+
+El [watcher Telegram](docs/telegram-notifications.md) es un proceso separado que lee
+el journal forward en modo READ ONLY. No ejecuta operaciones; el forward continúa
+aunque Telegram falle. Configurar `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` y
+`TELEGRAM_NOTIFICATIONS_ENABLED=true` en el `.env` de la raíz del proyecto.
+El watcher lo carga al arrancar; las variables exportadas en la terminal tienen prioridad.
+
+```powershell
+python scripts/notification_watcher.py
+# Previsualización sin Telegram ni cambios del cursor:
+python scripts/notification_watcher.py --dry-run --replay-last 3 --once
+```
+
+El primer arranque omite histórico; los reinicios retoman el cursor persistido aparte.
+La guía documenta reintentos, fallos y límites de entrega/deduplicación.
+
 ## Guía de lectura
 
 | Documento | Uso |
