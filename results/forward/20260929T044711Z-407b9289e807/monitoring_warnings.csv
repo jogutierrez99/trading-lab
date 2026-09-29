@@ -1,0 +1,2 @@
+blocks_eth_v1,instrument,key,kind,reason,timeframe
+False,ETH-USD_UM_XPERP-310328,b9c5065c4f6ae0678c2c7b26b9d50d98d3e1c51dfb6612e3a84b01963a833458,MONITORING_WARNING,REST history has a gap: ETH-USD_UM_XPERP-310328 4h; first missing open=2026-07-02T04:00:00+00:00; next confirmed open=2026-07-02T08:00:00+00:00; OKX confirm=0. Refusing to generate signals without continuous confirmed warmup.,4h
