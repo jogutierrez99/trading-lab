@@ -69,7 +69,10 @@ No se traducen silenciosamente las estrategias congeladas que usan horas/días. 
 catálogo muestra `timeframes`, `modes` y `execution`. Las estrategias long-only rechazan
 SHORT_ONLY/LONG_SHORT. MTF V1–V4 y Bollinger Batch 006 requieren sus runners dedicados.
 Los bundles admitidos son `history_cache` y `study_data`, siempre con manifiesto y Parquet.
-BTCUSDT/ETHUSDT, 1h/4h/1d son los mercados admitidos por el adaptador actual.
+BTCUSDT/ETHUSDT admiten 1h/4h/1d en esos bundles. La ampliación 15m requiere
+`dataset_format: mtf_quarters`, `dataset_id` explícito y ejecución synthetic sobre
+precios USD-M. La estrategia debe declarar 15m: actualmente Trend RSI Pullback.
+Véase [su protocolo](trend-rsi-pullback.md); no habilita adapters legacy_mtf.
 
 ## YAML pequeño funcional
 
@@ -253,3 +256,10 @@ python -m ruff check .
 python -m ruff format --check .
 python -m pip check
 ```
+
+## Comparar runs completos
+
+`python scripts/lab.py compare ID1 ID2 ...` lee el último run COMPLETE de cada ID
+(rechaza si su último run está incompleto). Escribe comparison.csv/json, fuentes/hashes,
+ejemplos ordenados solo por TRAIN y summary.md/ai_summary.md en una nueva carpeta
+reports/lab-comparison. No recalcula operaciones ni modifica clasificaciones.

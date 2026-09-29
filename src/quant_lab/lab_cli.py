@@ -34,6 +34,8 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("strategies", "experiments", "status"):
         commands.add_parser(name)
+    comparison = commands.add_parser("compare", help="Compare completed lab runs without backtests")
+    comparison.add_argument("experiments", nargs="+")
     for name in ("validate", "run", "report"):
         command = commands.add_parser(name)
         command.add_argument("experiment")
@@ -88,6 +90,10 @@ def main(argv: list[str] | None = None) -> int:
                 summary = Path(history[-1]["path"]) / "summary.json"
                 if summary.exists():
                     result["counts"] = json.loads(summary.read_text(encoding="utf-8"))
+        elif args.command == "compare":
+            from quant_lab.lab_comparison import compare
+
+            result = {"comparison_directory": str(compare(root, args.experiments))}
         elif args.command == "report":
             result = locate(root, args.experiment)
         elif args.command == "experiment":

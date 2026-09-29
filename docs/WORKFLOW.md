@@ -64,8 +64,9 @@ Editar el nuevo YAML, sin alterar la definición histórica:
 Cambiar 1h a 4h cambia la duración física de ventanas medidas en barras. Comprobar el
 catálogo: estrategias horarias no se traducen automáticamente; volatility sizing en lab
 es 1h. Un ETH/4h necesita realmente un bundle ETH/4h, no solo un ID de nombre diferente.
-No se permite MTF 15m arbitrario en `Experiment`: usar perfiles/runners especializados
-y sus fuentes fijadas. No clonar una estrategia por cambiar capital, modo o activo.
+No se permite MTF 15m arbitrario en `Experiment`. Trend RSI Pullback declara soporte
+15m con fuente mtf_quarters, identidad fijada y tendencia 1h derivada causalmente; ver
+[protocolo](trend-rsi-pullback.md). Las demás familias MTF conservan sus runners. No clonar una estrategia por cambiar capital, modo o activo.
 
 ## 4. Validar y entregar ejecución local
 

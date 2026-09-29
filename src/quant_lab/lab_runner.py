@@ -26,10 +26,17 @@ from quant_lab.lab_data import check_periods, inspect_bundle, load_bundle
 from quant_lab.lab_schema import Experiment
 from quant_lab.metrics import summarize
 from quant_lab.strategies.registry import StrategyRegistry
-from quant_lab.study_backend import Segment, StudyBackend, validate_segment
-from quant_lab.study_data import HOURS
+from quant_lab.study_backend import Segment, StudyBackend, candle_step, validate_segment
 
 DIRECTIONS = {"LONG_ONLY": "long", "SHORT_ONLY": "short", "LONG_SHORT": "combined"}
+
+
+def parameter_risk(cls, risk, parameters):
+    """Explicit strategy opt-in; never changes global defaults or sizing semantics."""
+    return RiskConfig.model_validate(
+        risk.model_dump()
+        | {field: parameters[param] for param, field in cls.lab_risk_parameters.items()}
+    )
 
 
 def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
@@ -67,6 +74,7 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         if key in seen:
             raise ValueError("Duplicate resolved parameter combinations")
         seen.add(key)
+        parameter_risk(cls, risk, resolved)
         configs.append(resolved)
     for mode in experiment.modes:
         if mode not in cls.lab_modes:
@@ -75,6 +83,16 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
     for market in experiment.markets:
         if market.timeframe not in cls.lab_timeframes:
             raise ValueError(f"Strategy requires timeframes {cls.lab_timeframes}")
+        minimum = max(cls.required_warmup(p, market.timeframe) for p in configs)
+        if market.warmup_bars < minimum:
+            raise ValueError(f"Strategy requires at least {minimum} warmup bars")
+        if (
+            market.dataset_format == "mtf_quarters"
+            and experiment.execution.market_mode != "synthetic"
+        ):
+            raise ValueError(
+                "USD-M quarter prices require explicit synthetic execution; no funding"
+            )
         if risk.sizing_method == "volatility_target" and market.timeframe != "1h":
             raise ValueError("Volatility sizing is hourly; use cross-market runner for translation")
         info = inspect_bundle(base, market)
@@ -86,7 +104,7 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
                 view, segment = window(frame, market, period)
                 validate_segment(view, segment)
                 if len(view) != market.warmup_bars + int(
-                    (segment.end - segment.start) / pd.Timedelta(hours=HOURS[market.timeframe])
+                    (segment.end - segment.start) / candle_step(market.timeframe)
                 ):
                     raise ValueError(f"Incomplete warmup for {label}")
             frames.append(frame)
@@ -119,7 +137,7 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
 
 
 def window(frame, market, period):
-    step = pd.Timedelta(hours=HOURS[market.timeframe])
+    step = candle_step(market.timeframe)
     start, end = pd.Timestamp(period.start), pd.Timestamp(period.end)
     view = frame.loc[(frame.index >= start - market.warmup_bars * step) & (frame.index < end)]
     return view, Segment(market.symbol, market.timeframe, start, end)
@@ -132,6 +150,11 @@ def evaluate(context, frame, market, mode, parameters, period, costs):
                 symbol=market.symbol.replace("USDT", "/USDT"), timeframe=market.timeframe
             ),
             "parameters": parameters,
+            "risk": parameter_risk(
+                context["registry"].implementation(context["template"].name),
+                context["template"].risk,
+                parameters,
+            ),
         }
     )
     strategy = context["registry"].create(config)
@@ -188,6 +211,16 @@ def run(path: Path, experiment: Experiment, root: Path, output: Path | None = No
             "app": context["app"].model_dump(mode="json"),
             "strategy": context["template"].model_dump(mode="json"),
             "parameters": context["parameters"],
+            "parameter_risks": [
+                parameter_risk(
+                    context["registry"].implementation(context["template"].name),
+                    context["template"].risk,
+                    p,
+                ).model_dump(mode="json")
+                for p in context["parameters"]
+            ]
+            if context["registry"].implementation(context["template"].name).lab_risk_parameters
+            else None,
             "datasets": context["datasets"],
             "backend": "study_backend_v1",
             "execution": experiment.execution.model_dump(),
@@ -225,6 +258,12 @@ def run(path: Path, experiment: Experiment, root: Path, output: Path | None = No
             "scenario": scenario,
             "costs": costs.model_dump(),
         }
+        if context["registry"].implementation(context["template"].name).lab_risk_parameters:
+            meta["resolved_risk"] = parameter_risk(
+                context["registry"].implementation(context["template"].name),
+                context["template"].risk,
+                params,
+            ).model_dump(mode="json")
         record = store.start(meta)
         try:
             result = evaluate(context, frame, market, mode, params, period, costs)
@@ -238,6 +277,8 @@ def run(path: Path, experiment: Experiment, root: Path, output: Path | None = No
                     "short_contribution": sum(
                         t.net_pnl for t in result.trades if t.side == "short"
                     ),
+                    "long_trades": sum(t.side == "long" for t in result.trades),
+                    "short_trades": sum(t.side == "short" for t in result.trades),
                 }
             )
             pd.DataFrame({"equity": result.equity, "exposure": result.exposure}).to_parquet(

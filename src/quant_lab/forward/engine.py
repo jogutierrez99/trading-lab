@@ -14,7 +14,7 @@ from quant_lab.execution_config import ExecutionConfig
 from quant_lab.execution_policies.optional_15m_fill import BaselineEntry
 from quant_lab.forward.store import identity
 from quant_lab.forward.strategy import IncrementalTiming, StrategyAdapter
-from quant_lab.market_data.okx import Bar, CandleBook
+from quant_lab.market_data.okx import Bar, CandleBook, QuoteUnavailable
 from quant_lab.mtf_features import STEPS, complete_bars
 from quant_lab.optional_fill_execution import quarter_features
 from quant_lab.risk import CostModel, size_entry
@@ -303,7 +303,31 @@ class ForwardEngine:
             if not signal and not self.timing.policy.pending:
                 self.save()
                 return
-            quote, observed = quote_provider(self.eth, boundary)
+            try:
+                quote, observed = quote_provider(self.eth, boundary)
+            except QuoteUnavailable as exc:
+                self.store.event("QUOTE_UNAVAILABLE", bar.key, exc.details)
+                if signal:
+                    self.store.event(
+                        "SIGNAL_REJECTED",
+                        signal_id,
+                        {
+                            "reason": "quote_unavailable",
+                            "quote_reason": str(exc),
+                            "timestamp": boundary,
+                        },
+                    )
+                # A missing timing observation cannot be retried at a later candle.
+                # Keep the original policy, explicitly cancel affected pending entries.
+                for item in self.timing.policy.pending:
+                    self.store.event(
+                        "TIMING_NOT_EXECUTED",
+                        item["entry"].signal_id,
+                        {"reason": "quote_unavailable"},
+                    )
+                self.timing.policy.finalize(boundary, "quote_unavailable")
+                self.save()
+                return
             if not boundary <= observed <= boundary + pd.Timedelta(seconds=90):
                 raise ValueError("Quote is not causally available within the decision window")
             # Older pending opportunities always precede a new hourly signal.

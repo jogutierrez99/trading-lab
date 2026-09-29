@@ -16,6 +16,10 @@ from quant_lab.strategies.base import Signals
 from quant_lab.study_data import HOURS, audit
 
 
+def candle_step(timeframe):
+    return pd.Timedelta(minutes=15) if timeframe == "15m" else pd.Timedelta(hours=HOURS[timeframe])
+
+
 @dataclass(frozen=True)
 class Segment:
     symbol: str
@@ -25,10 +29,15 @@ class Segment:
 
 
 def validate_segment(candles, history):
-    report = audit(candles, history.symbol, history.timeframe)
+    if history.timeframe == "15m":
+        from quant_lab.mtf_data import quarter_audit
+
+        report = quarter_audit(candles, history.symbol)
+    else:
+        report = audit(candles, history.symbol, history.timeframe)
     if report["status"] != "VALID":
         raise ValueError("Execution requires a continuous valid segment")
-    step = pd.Timedelta(hours=HOURS[history.timeframe])
+    step = candle_step(history.timeframe)
     if history.start not in candles.index or candles.index[-1] + step != history.end:
         raise ValueError("Segment boundaries mismatch")
 
@@ -48,7 +57,7 @@ class StudyBackend:
         entry_fractions: pd.Series | None = None,
     ) -> BacktestResult:
         validate_segment(candles, history)
-        step = pd.Timedelta(hours=HOURS[history.timeframe])
+        step = candle_step(history.timeframe)
         arrays = (
             signals.long_entries,
             signals.long_exits,

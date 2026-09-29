@@ -1,4 +1,5 @@
 import os
+
 import requests
 from dotenv import load_dotenv
 
@@ -11,10 +12,7 @@ url = f"https://api.telegram.org/bot{token}/sendMessage"
 
 response = requests.post(
     url,
-    json={
-        "chat_id": chat_id,
-        "text": "✅ Trading Lab conectado correctamente con Telegram."
-    },
+    json={"chat_id": chat_id, "text": "✅ Trading Lab conectado correctamente con Telegram."},
     timeout=10,
 )
 

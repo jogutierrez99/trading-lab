@@ -69,7 +69,7 @@ No hacen falta `.env` ni credenciales privadas; imports y catálogo no descargan
 ```text
 trading-lab/
 ├── src/quant_lab/            configuración, datos, motores, métricas, runners
-│   ├── strategies/          BaseStrategy, registro y 28 implementaciones
+│   ├── strategies/          BaseStrategy, registro y 29 implementaciones
 │   ├── execution_policies/  políticas de timing separadas de señales
 │   └── lab_*.py             schema, datos, CLI, orquestación y reporting ordinario
 ├── scripts/                 entrypoints; lab.py vive aquí
@@ -141,7 +141,9 @@ Comandos: `strategies`, `experiments`, `status`, `experiment create ID --from ID
 
 ## Configuración y límites
 
-Lab admite BTCUSDT/ETHUSDT y 1h/4h/1d, restringidos además por estrategia. Spot exige
+Lab admite BTCUSDT/ETHUSDT y 1h/4h/1d, restringidos además por estrategia.
+La familia [Trend RSI Pullback](docs/trend-rsi-pullback.md) añade 15m con fuente
+`mtf_quarters` explícita y variantes de tendencia 15m/1h completamente cerrada. Spot exige
 `LONG_ONLY`; `SHORT_ONLY`/`LONG_SHORT` requieren `market_mode: synthetic` y una
 estrategia compatible. Los cortos sintéticos no modelan préstamo ni funding.
 Perpetuos y timing 15m usan protocolos dedicados, no claves MTF inventadas en lab.
@@ -217,3 +219,12 @@ incluyen reproducciones históricas: no son validadores rápidos de YAML.
 `scripts/run_backtest.py --help` documenta la interfaz offline anterior de un backtest
 (`--app`, `--history`, `--execution`, `--strategy`), que permanece disponible.
 Dashboard, integración VectorBT y paper/live siguen sin implementarse.
+
+## Trend RSI Pullback
+
+[Protocolo, grids y comandos](docs/trend-rsi-pullback.md): una familia para V1 15m,
+V2 con tendencia 1h cerrada y V3 con slope SMA. Video Reference tiene una configuración;
+cada grid tiene 486, antes de activos/modos/periodos/costes. Ejecución por lab.py,
+sintética sobre precios USD-M, sin funding/liquidaciones; no integrada al forward.
+`lab.py compare ID1 ID2 ...` genera nuevos resúmenes comparativos de runs completos
+sin ejecutar backtests ni reescribir resultados.

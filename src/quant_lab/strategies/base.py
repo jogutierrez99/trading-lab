@@ -37,7 +37,13 @@ class BaseStrategy[P: StrictModel](ABC):
     lab_timeframes: ClassVar[tuple[str, ...]] = ("1h",)
     lab_modes: ClassVar[tuple[str, ...]] = ("LONG_ONLY", "SHORT_ONLY", "LONG_SHORT")
     lab_execution: ClassVar[str] = "ohlcv"
+    # Opt-in mapping only; execution and sizing remain in RiskConfig/StudyBackend.
+    lab_risk_parameters: ClassVar[dict[str, str]] = {}
     parameter_model: ClassVar[type[StrictModel]]
+
+    @classmethod
+    def required_warmup(cls, parameters: dict, timeframe: str) -> int:
+        return 0
 
     def __init__(self, config: StrategyConfig):
         if config.name != self.name or config.version != self.version:

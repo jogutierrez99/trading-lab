@@ -64,6 +64,7 @@ def test_implemented_discovery_is_idempotent():
         "time_series_momentum",
         "trend_acceleration",
         "trend_following",
+        "trend_rsi_pullback_v1",
         "trend_strength",
         "vol_contraction_expansion",
         "vol_expansion_trend",

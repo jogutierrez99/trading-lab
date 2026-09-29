@@ -152,3 +152,16 @@ Unit tests cubren schemas, registro, estrategias, reloj MTF y clasificación;
 regresiones cubren indicadores, causalidad y fills. Integración usa CLI real,
 scaffolds en checkouts temporales, CSV y reporting sintético. No hace falta repetir
 miles de backtests históricos para comprobar documentación.
+
+## Extensión ordinaria 15m / Trend RSI Pullback
+
+Market declara dataset_format=mtf_quarters y dataset_id fijo para datos 15m ya
+existentes. lab_data verifica formato/identidad/hash/contenido; StudyBackend reutiliza
+quarter_audit y una duración de 15 min, conservando el bucle de ejecución anterior.
+La matriz histórica study_data.HOURS no cambia.
+
+BaseStrategy añade contratos opt-in required_warmup y lab_risk_parameters, vacíos por
+defecto. La nueva familia vincula ATR/RR a RiskConfig; no implementa otro sizing ni
+otro motor de protección. MTF reutiliza complete_bars/closed_features.
+lab_comparison lee únicamente artefactos compactos de runs COMPLETE y escribe un
+reporte nuevo, llamado por lab.py compare. Detalles en [protocolo](trend-rsi-pullback.md).

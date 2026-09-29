@@ -72,9 +72,21 @@ class Validation(StrictModel):
 
 class Market(StrictModel):
     symbol: Literal["BTCUSDT", "ETHUSDT"]
-    timeframe: Literal["1h", "4h", "1d"]
+    timeframe: Literal["15m", "1h", "4h", "1d"]
     dataset: str = Field(min_length=1)
+    dataset_format: Literal["bundle", "mtf_quarters"] = "bundle"
+    dataset_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     warmup_bars: int = Field(default=200, ge=0, le=10000)
+
+    @model_validator(mode="after")
+    def source_contract(self):
+        if self.timeframe == "15m" and self.dataset_format != "mtf_quarters":
+            raise ValueError("Lab 15m currently requires explicit mtf_quarters dataset format")
+        if self.dataset_format == "mtf_quarters" and (
+            self.timeframe != "15m" or self.dataset_id is None
+        ):
+            raise ValueError("mtf_quarters requires 15m and an explicit dataset_id")
+        return self
 
 
 class Strategy(StrictModel):

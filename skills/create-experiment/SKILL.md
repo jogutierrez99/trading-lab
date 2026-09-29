@@ -25,7 +25,10 @@ Leer [AGENTS](../../AGENTS.md) y sus cinco documentos, luego
    compatible en lugar de alterar uno histórico compartido.
 4. Editar descripción/hipótesis, `strategy.id/config`, `markets.symbol/timeframe/dataset`,
    `warmup_bars`, `modes`, listas `strategy_parameters`, capital, costes y execution.
-   Lab solo BTCUSDT/ETHUSDT, 1h/4h/1d, además de restricciones de estrategia.
+   Lab admite BTCUSDT/ETHUSDT, 1h/4h/1d, además de restricciones de estrategia.
+   15m requiere una estrategia que lo declare, dataset_format=mtf_quarters y dataset_id
+   fijado; precios USD-M con ejecución synthetic, sin funding/liquidaciones. Ver
+   [Trend RSI Pullback](../../docs/trend-rsi-pullback.md).
    Spot exige LONG_ONLY; cortos compatibles exigen synthetic, sin funding/préstamo.
    Dejar execution.direction en long: `modes` controla las direcciones.
 5. Usar un bundle real con manifest, hash e identidad coincidente. Verificar cobertura

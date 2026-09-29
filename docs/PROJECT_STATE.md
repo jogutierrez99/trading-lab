@@ -49,7 +49,7 @@ no prueba una descarga 5m ni soporte de ese timeframe en lab.
 
 ## Estrategias implementadas
 
-Catálogo real: **28**, todas versión **1.0.0**, estado de metadata **research**.
+Catálogo real: **29**, todas versión **1.0.0**, estado de metadata **research**.
 `L` = LONG_ONLY; `L/S/LS` = LONG_ONLY, SHORT_ONLY, LONG_SHORT. Son capacidades declaradas
 del adaptador, no resultados de validación económica ni garantía de YAML habilitado.
 Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones explícitas.
@@ -80,6 +80,7 @@ Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones e
 | time_series_momentum | 1.0.0 | L/S/LS | 1h | ohlcv / research |
 | trend_acceleration | 1.0.0 | L | 1h | ohlcv / research |
 | trend_following | 1.0.0 | L/S/LS | 1h, 4h, 1d | ohlcv / research |
+| trend_rsi_pullback_v1 | 1.0.0 | L/S/LS | 15m | ohlcv, V1/V2/V3 causales / research |
 | trend_strength | 1.0.0 | L | 1h | ohlcv / research |
 | vol_contraction_expansion | 1.0.0 | L | 1h | ohlcv / research |
 | vol_expansion_trend | 1.0.0 | L | 1h | ohlcv / research |
@@ -119,6 +120,22 @@ Evidencia local seleccionada, leída sin repetir estudios:
   1008 ejecuciones y 504 baselines reproducidos. Su `ai_summary.md` clasifica las tres
   variantes TIMING_WORSE / ARCHIVE_TIMING_VARIANT. No se han reauditado sus operaciones aquí.
 
+## Trend RSI Pullback (2026-09-29)
+
+Nueva familia `trend_rsi_pullback_v1`: SMA/RSI, ATR y RR mediante RiskConfig existente,
+V1 15m, V2 tendencia 1h cerrada y V3 slope 5h. Lab admite explícitamente 15m con
+formato local mtf_quarters, hash fijado y auditoría quarter existente. Cortos synthetic,
+sin funding/liquidaciones, aunque los precios fuente sean USD-M. Legacy guards intactos.
+Cuatro experimentos: referencia de una configuración y tres grids de 486; BTC/ETH,
+tres modos, 1004 barras warmup. Reutilizan periodos/filtros/costes de trend_btc_1h_001;
+TEST es su holdout final. Validación FULL de los cuatro correcta, sin ejecutar grids.
+`lab.py compare` genera comparación inmutable de resultados existentes por periodo,
+coste y modo, con ejemplos ordenados solo por TRAIN. No promoción de research/paper.
+[Protocolo y comandos](trend-rsi-pullback.md). Catálogo deshabilitado y perfil propio
+habilitado; sin cambios a estrategias previas, configuración global ni forward.
+Verificación: 653 tests completos aprobados (33 nuevos), Ruff/format de 300 archivos
+y pip check correctos. Grids históricos no ejecutados; solo fixtures sintéticos.
+
 ## Límites y continuación
 
 Forward SIGNAL_ONLY: capas separadas brokers/market_data/forward, OKX EU demo GET-only,
@@ -151,6 +168,11 @@ BTC/4h mantienen monitorización no bloqueante. Protocolo y verificación en
 Verificación del recovery: 554 tests, Ruff (285 archivos) y pip check correctos.
 Recibo técnico `reports/forward/preflight/20260928T185408Z-327ead927c70.json`;
 la recuperación real de incidentes antiguos queda pendiente del siguiente arranque.
+
+Cotizaciones forward: reintentos GET acotados, refresh de reloj ante timestamps
+aparentemente futuros y rechazo explícito sin detener el runner cuando no hay precio
+causal válido. QUOTE_UNAVAILABLE/quote_events.csv conservan diagnóstico; se cancelan
+pendientes afectados sin inventar fills. Límites 30/90 s y estrategia conservados.
 
 Alertas Telegram implementadas como proceso observacional independiente:
 `scripts/notification_watcher.py`, events/sessions SQLite read-only, cursor externo

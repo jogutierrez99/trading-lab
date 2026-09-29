@@ -211,6 +211,7 @@ class Store:
         events = self.rows("events", True)
         gaps = self.gaps()
         tables = {
+            "quote_events.csv": [r for r in events if r["kind"] == "QUOTE_UNAVAILABLE"],
             "bars.csv": self.rows("bars", True),
             "signals.csv": self.rows("signals", True),
             "order_intents.csv": self.rows("order_intents", True),
@@ -270,6 +271,7 @@ class Store:
         )
         if (
             readiness == "NEEDS_REVIEW"
+            and not counts.get("QUOTE_UNAVAILABLE")
             and self.metadata.get("parity_receipt")
             and intents
             and self.metadata["config"].get("instruments")

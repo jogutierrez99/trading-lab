@@ -1,0 +1,22 @@
+name: trend_rsi_pullback_v1
+version: 1.0.0
+enabled: false
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 15m
+parameters:
+  variant: V1
+  sma_length: 185
+  rsi_length: 25
+  rsi_oversold: 30
+  atr_length: 14
+  atr_multiplier: 2.0
+  reward_risk: 1.5
+  sma_slope_lookback: 5
+risk:
+  stop_method: atr
+  stop_enabled: true
+  take_profit_enabled: true
+  trailing_atr_multiplier: null
+  max_holding_bars: null

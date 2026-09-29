@@ -1,0 +1,83 @@
+schema_version: 1
+experiment_id: trend_rsi_pullback_v1_mtf
+created_at: 2026-09-29 00:00:00+00:00
+description: SMA/RSI pullback v1_mtf; frozen ordinary lab periods; USD-M prices with
+  synthetic execution, no funding/liquidations.
+app: ../app.yaml
+strategy:
+  id: trend_rsi_pullback_v1
+  config: ../profiles/lab_trend_rsi_pullback.yaml
+markets:
+- symbol: BTCUSDT
+  timeframe: 15m
+  dataset: ../../data/mtf_15m/BTCUSDT/klines
+  dataset_format: mtf_quarters
+  dataset_id: 0a6032afe6c1e90ece9fe7f09ad8e7630860343b8433ca7f0d720102b54ffa97
+  warmup_bars: 1004
+- symbol: ETHUSDT
+  timeframe: 15m
+  dataset: ../../data/mtf_15m/ETHUSDT/klines
+  dataset_format: mtf_quarters
+  dataset_id: 9d4bcb5a0627a70513522de8d967c52697af68220dba52ce626a9915730e35c8
+  warmup_bars: 1004
+modes:
+- LONG_ONLY
+- SHORT_ONLY
+- LONG_SHORT
+strategy_parameters:
+  variant:
+  - V2
+  sma_length:
+  - 150
+  - 185
+  - 200
+  rsi_length:
+  - 14
+  - 20
+  - 25
+  rsi_oversold:
+  - 25
+  - 30
+  - 35
+  atr_length:
+  - 14
+  - 20
+  atr_multiplier:
+  - 1.5
+  - 2.0
+  - 2.5
+  reward_risk:
+  - 1.25
+  - 1.5
+  - 2.0
+initial_cash: 10000.0
+execution:
+  market_mode: synthetic
+  quantity_step: 1.0e-06
+  min_quantity: 1.0e-06
+  min_notional: 10.0
+  filter_assumption: Existing fixed lab research filters; USD-M OHLCV prices, synthetic
+    collateralized execution; no funding or liquidations.
+validation:
+  train:
+    start: 2022-02-01 00:00:00+00:00
+    end: 2022-04-01 00:00:00+00:00
+  validation:
+    start: 2022-04-01 00:00:00+00:00
+    end: 2022-05-01 00:00:00+00:00
+  test:
+    start: 2022-05-01 00:00:00+00:00
+    end: 2022-06-01 00:00:00+00:00
+  walk_forward: []
+  cost_stress:
+    adverse:
+      trading_fee_pct: 0.1
+      slippage_pct: 0.06
+      spread_pct: 0.02
+filters:
+  minimum_trades: 1
+  maximum_drawdown_pct: 25.0
+ranking:
+  metric: sharpe
+  descending: true
+  top_n: 5

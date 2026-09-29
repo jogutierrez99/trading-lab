@@ -307,3 +307,33 @@ Después: `python scripts/run_forward.py --mode signal-only --config configs/for
 Si hay un runner anterior abierto, detenerlo con Ctrl+C antes de iniciar la versión nueva.
 DEMO_EXECUTION continúa BLOCKED_NOT_IMPLEMENTED; no se inició ningún runner operativo
 ni se enviaron órdenes durante esta corrección.
+
+
+## Cotización temporalmente no disponible (2026-09-29)
+
+El error anterior `Invalid or pre-signal quote` abortaba el proceso con ValueError
+sin conservar el detalle temporal ni la señal dentro de la transacción fallida.
+Ahora quote realiza como máximo tres consultas GET con pausas de 250 ms. Si el
+último ticker parece posterior al reloj estimado, actualiza la hora del servidor
+antes de decidir; nunca cambia el timestamp del ticker ni relaja la comparación.
+Se mantienen las ventanas de 30 s de antigüedad y 90 s desde el cierre. Se comprueban
+tras cada respuesta, incluso si una petición tarda demasiado.
+
+Si sigue sin haber ask válido, QuoteUnavailable conserva motivo, decision_close,
+quote_timestamp, checked_at e intentos. El motor guarda QUOTE_UNAVAILABLE, la vela,
+la señal si existe y SIGNAL_REJECTED. Las oportunidades opcionales pendientes se
+cancelan explícitamente con TIMING_NOT_EXECUTED/quote_unavailable usando finalize
+existente: no se inventa un fill ni se arrastra una observación perdida. El proceso
+continúa con las próximas velas y persiste checkpoint para no repetir la decisión.
+Errores de transporte siguen su manejo de desconexión; otros ValueError no se ocultan.
+No cambia la estrategia, sizing, parámetros ni la implementación de OptionalFillPolicy.
+
+quote_events.csv y el contador QUOTE_UNAVAILABLE en Data health permiten revisar
+estas omisiones; la sesión queda como máximo NEEDS_REVIEW. No se clasifica un fallo
+de ticker como DATA_GAP de velas. No se reescribe la sesión que ya terminó con error.
+
+Verificación: 51 pruebas forward dirigidas aprobadas en 48.34 s, incluidas 12 nuevas
+sobre cotizaciones; Ruff check/format de los archivos afectados correctos. No se
+ejecutó preflight completo ni runner operativo. Ruff global detectó I001 en
+scripts/test_telegram.py (imports), fuera de esta corrección. No se consultó OKX
+para reproducir la cotización perdida; el error antiguo no guardaba sus timestamps.

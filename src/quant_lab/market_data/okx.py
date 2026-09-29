@@ -64,6 +64,14 @@ class DataGap(ValueError):
         self.bars = list(bars)
 
 
+class QuoteUnavailable(ValueError):
+    """A decision has no usable quote; never substitute an old or invented price."""
+
+    def __init__(self, details):
+        super().__init__(details["reason"])
+        self.details = details
+
+
 @dataclass(frozen=True)
 class FeedIssue:
     instrument_id: str
@@ -172,15 +180,47 @@ class OKXMarketData:
         return result
 
     def quote(self, instrument, boundary):
-        row = self.broker.get("/api/v5/market/ticker", {"instId": instrument})[0]
-        observed = pd.Timestamp(int(row["ts"]), unit="ms", tz="UTC")
-        now = self.now()
-        price = float(row["askPx"])
-        if not isfinite(price) or price <= 0 or not boundary <= observed <= now:
-            raise ValueError("Invalid or pre-signal quote")
-        if now - observed > pd.Timedelta(seconds=30) or now - boundary > pd.Timedelta(seconds=90):
-            raise ValueError("Stale quote or late decision; no retroactive entry")
-        return price, observed
+        for attempt in range(1, 4):
+            observed, price = None, None
+            reason = "malformed_quote"
+            rows = self.broker.get("/api/v5/market/ticker", {"instId": instrument})
+            try:
+                observed = pd.Timestamp(int(rows[0]["ts"]), unit="ms", tz="UTC")
+                price = float(rows[0]["askPx"])
+            except (IndexError, KeyError, TypeError, ValueError, OverflowError):
+                pass
+            now = self.now()
+            if observed is not None and observed > now:
+                # Cached server time can lag another endpoint: refresh, never relax
+                # the timestamp comparison or replace the quote's own timestamp.
+                self._clock = None
+                now = self.now()
+            if price is not None and observed is not None:
+                if not isfinite(price) or price <= 0:
+                    reason = "invalid_ask"
+                elif observed < boundary:
+                    reason = "pre_signal_quote"
+                elif observed > now:
+                    reason = "future_quote"
+                elif now - observed > pd.Timedelta(seconds=30):
+                    reason = "stale_quote"
+                else:
+                    reason = None
+            if now < boundary or now - boundary > pd.Timedelta(seconds=90):
+                reason = "outside_decision_window"
+            if reason is None:
+                return price, observed
+            details = {
+                "reason": reason,
+                "instrument": instrument,
+                "decision_close": boundary,
+                "quote_timestamp": observed,
+                "checked_at": now,
+                "attempts": attempt,
+            }
+            if reason == "outside_decision_window" or attempt == 3:
+                raise QuoteUnavailable(details)
+            time.sleep(0.25)
 
     def updates(self):
         from websockets.exceptions import ConnectionClosed
