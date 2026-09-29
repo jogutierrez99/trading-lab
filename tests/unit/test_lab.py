@@ -237,6 +237,51 @@ def test_holdout_does_not_change_fold_selection(lab):
     )
 
 
+@pytest.mark.parametrize("candidates", [1, 2])
+def test_walk_forward_undefined_sharpe_fixed_reference_only(lab, candidates, capsys):
+    root, path, raw, frame = lab
+    flat = frame.copy()
+    flat[["open", "close"]] = 100.0
+    flat["high"], flat["low"] = 100.1, 99.9
+    request = HistoryRequest(
+        start=datetime(2022, 1, 2, tzinfo=UTC),
+        end=datetime(2022, 1, 18, tzinfo=UTC),
+        warmup_bars=24,
+    )
+    bundle = save_bundle(root / "data", flat, request, [])
+    raw["markets"][0]["dataset"] = "../../data/" + bundle.name
+    raw["strategy_parameters"] = {"donchian_period": [3, 6][:candidates]}
+    raw["ranking"] = {"metric": "sharpe"}
+    raw["filters"] = {"minimum_trades": 1, "minimum_sharpe": 0.1}
+    raw["execution"]["market_mode"] = "synthetic"
+    raw["modes"] = ["LONG_ONLY", "SHORT_ONLY", "LONG_SHORT"]
+    path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    exp = Experiment.model_validate(raw)
+    if candidates > 1:
+        with pytest.raises(
+            ValueError, match="training ranking metric undefined for all candidates"
+        ):
+            run(path, exp, root)
+        assert locate(root, "latest")["status"] == "FAILED"
+        return
+    out = run(path, exp, root)
+    outcome = json.loads((out / "outcome.json").read_text())
+    assert outcome == {"status": "COMPLETE", "backtests": prepare(path, exp)["backtests"]}
+    metrics = pd.read_csv(out / "metrics.csv")
+    assert metrics.sharpe.isna().all()
+    assert metrics.closed_trades.eq(0).all()
+    assert metrics.filter_status.eq("FAIL").all()
+    assert metrics.filter_reasons.str.contains("sharpe:min=0.1", regex=False).all()
+    assert metrics.filter_reasons.str.contains("closed_trades:min=1", regex=False).all()
+    oos = metrics[metrics.period == "wf_0_test"]
+    assert len(oos) == 6  # All three modes and both costs, no skipped tests.
+    assert set(oos.configuration_id) == set(
+        metrics.loc[metrics.period == "wf_0_train", "configuration_id"]
+    )
+    assert pd.read_csv(out / "leaderboard.csv").filter_status.eq("FAIL").all()
+    assert "fixed single candidate" in capsys.readouterr().err
+
+
 def test_failure_lifecycle(lab, monkeypatch):
     root, path, raw, _ = lab
 

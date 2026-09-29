@@ -46,7 +46,7 @@ los grids ni se declara rentabilidad, robustez o elegibilidad paper.
 11. Lab tiene TRAIN / VALIDATION / TEST. TEST es el holdout FINAL; no se añade una cuarta
     partición artificial ni se cambian las divisiones de runners especializados.
 12. Ranking/selección permanecen en TRAIN/base; walk-forward selecciona TRAIN y reporta
-    solo TEST del ganador. Estos cuatro experimentos heredan walk_forward vacío.
+    solo TEST del ganador. Estos cuatro experimentos usan los cuatro folds de Batch 003.
 13. `failure_reasons` y sus thresholds no cambian. Aquí existen PASS/FAIL, no NEAR_PASS,
     RESEARCH_PASS ni PAPER_TRADING_CANDIDATE. Esas etiquetas son de otros protocolos.
 14. `ExperimentStore`, métricas y reporting existentes producen plan, resolved, hashes,
@@ -84,12 +84,14 @@ no espejo se rechaza. Video Reference = V1 / SMA185 / RSI25 / 30-70 / ATR14 ×2 
 
 | Experimento | Parámetros únicos | × activos × modos | Backtests previstos |
 |---|---:|---:|---:|
-| trend_rsi_pullback_video_reference | 1 | 6 | 36 |
-| trend_rsi_pullback_v1_single_tf | 486 | 2916 | 17496 |
-| trend_rsi_pullback_v1_mtf | 486 | 2916 | 17496 |
-| trend_rsi_pullback_v1_mtf_slope | 486 | 2916 | 17496 |
+| trend_rsi_pullback_video_reference | 1 | 6 | 132 |
+| trend_rsi_pullback_v1_single_tf | 486 | 2916 | 40872 |
+| trend_rsi_pullback_v1_mtf | 486 | 2916 | 40872 |
+| trend_rsi_pullback_v1_mtf_slope | 486 | 2916 | 40872 |
 
-Backtests = parámetros × 2 activos × 3 modos × 3 periodos × 2 escenarios de costes.
+Backtests = 2 activos × 3 modos × 2 costes × [parámetros × (3 periodos principales
++ 4 TRAIN de walk-forward) + 4 TEST de walk-forward del ganador].
+Para cada fold se elige por TRAIN/base; su TEST ejecuta solo esa configuración en ambos costes.
 Cada grid es una carga larga para ejecución local, no una comprobación rápida.
 
 ## Datasets y periodos fijados
@@ -104,10 +106,33 @@ huecos declarados. La validación FULL comprueba bytes/fingerprint, sin fiarse s
 manifiesto. 1h se agrega causalmente de esos mismos precios 15m; no se usan velas mark
 ni se mezcla un OHLCV de otro proveedor.
 
-Periodos copiados literalmente de trend_btc_1h_001, UTC y fin exclusivo:
-TRAIN 2022-02-01 → 2022-04-01; VALIDATION 2022-04-01 → 2022-05-01;
-TEST/holdout final 2022-05-01 → 2022-06-01. Datos previamente usados en investigación:
-no se presentan como un nuevo holdout nunca observado.
+Protocolo largo corregido: UTC, todos los finales exclusivos. TEST es el final holdout
+del backend ordinario; no existe un cuarto periodo principal ni un campo final_holdout.
+
+| Periodo | Inicio | Fin exclusivo |
+|---|---|---|
+| TRAIN | 2023-06-04 | 2024-07-01 |
+| VALIDATION | 2024-07-01 | 2025-01-01 |
+| TEST / final holdout | 2025-07-01 | 2026-09-26 |
+
+Folds copiados exactamente de `configs/profiles/batch_003/batch.yaml`:
+
+| Fold | TRAIN | TEST |
+|---|---|---|
+| 1 | 2023-07-01 → 2024-07-01 | 2024-07-01 → 2024-10-01 |
+| 2 | 2023-10-01 → 2024-10-01 | 2024-10-01 → 2025-01-01 |
+| 3 | 2024-01-01 → 2025-01-01 | 2025-01-01 → 2025-04-01 |
+| 4 | 2024-04-01 → 2025-04-01 | 2025-04-01 → 2025-07-01 |
+
+Cada TRAIN termina antes o en el inicio de su TEST; los TEST de los folds son disjuntos
+y terminan en el inicio del holdout principal. No se utilizan datos desde 2026-09-26.
+Los periodos cortos de 2022 fueron la configuración inicial incorrectamente heredada
+de trend_btc_1h_001. Sus runs y comparaciones ya existentes se conservan con sus snapshots;
+no representan este protocolo largo. Se mantienen los IDs de los cuatro experimentos
+por petición explícita; cada nueva ejecución crea otro run con su configuración congelada.
+La descripción YAML histórica se conserva porque la corrección solo modifica validation.
+Datos previamente usados en investigación no se presentan como holdout nunca observado.
+
 Capital 10000 por backtest, riesgo y límites de risk.yaml. BASE heredado de app.yaml:
 fee 0.05%, slippage 0.03%, spread 0.01%. ADVERSE heredado del experimento ordinario:
 fee 0.10%, slippage 0.06%, spread 0.02%. Mismos filtros: >=1 trade y DD<=25%.
@@ -139,14 +164,13 @@ python scripts/lab.py validate trend_rsi_pullback_v1_mtf --full
 python scripts/lab.py validate trend_rsi_pullback_v1_mtf_slope --full
 ```
 
-Ejecución local, cuando se quiera investigar; no se han ejecutado estos grids:
+Siguiente ejecución local autorizada inicialmente: solo la referencia del protocolo largo:
 
 ```bat
 python scripts/lab.py run trend_rsi_pullback_video_reference
-python scripts/lab.py run trend_rsi_pullback_v1_single_tf
-python scripts/lab.py run trend_rsi_pullback_v1_mtf
-python scripts/lab.py run trend_rsi_pullback_v1_mtf_slope
 ```
+
+Los tres grids completos quedan pendientes de una decisión posterior.
 
 Cada `run` crea automáticamente summary.md y ai_summary.md (sin llamadas a una IA).
 `report` localiza los resúmenes, no recalcula operaciones:
@@ -193,7 +217,9 @@ Los cambios previos de forward, cotizaciones y Telegram se preservan; no pertene
 esta implementación. No se ha añadido integración de esta familia al forward ni órdenes.
 
 
-## Verificación final — 2026-09-29
+## Verificación de la implementación inicial — 2026-09-29
+
+Evidencia histórica anterior a la corrección temporal; sus recuentos corresponden al protocolo corto.
 
 - 33 tests nuevos: 27 unitarios y 6 de integración parametrizados.
 - Grupo relevante: 146 passed en 17.76 s.
@@ -207,3 +233,43 @@ esta implementación. No se ha añadido integración de esta familia al forward 
 - Evidencia de validación local: reports/trend-rsi-implementation/20260929T162400Z-efceeced/validation.json.
 - No se ejecutaron grids históricos, descargas, forward ni órdenes. Tests de integración
   ejecutaron solo simulaciones pequeñas sobre fixtures. No hay resultado económico nuevo.
+
+
+## Verificación de la corrección temporal — 2026-09-29
+
+- Cambiados exclusivamente train/validation/test/walk_forward en los cuatro YAML;
+  cost_stress y todos los campos exteriores a validation conservados frente a Git HEAD.
+- Los cuatro comandos `python scripts/lab.py validate <ID> --full` anteriores: VALID.
+  BTC/ETH tienen cobertura continua de todos los periodos y sus 1004 barras warmup,
+  hasta 2026-09-26 exclusivo; no DATA_GAP. Sin modificar datasets.
+- Recuentos reales de prepare/CLI: referencia 132; V1, V2 y V3 40872 cada uno.
+- `python -m pytest tests/unit/test_trend_rsi_pullback_v1.py tests/integration/test_trend_rsi_lab.py tests/unit/test_lab.py -q --basetemp=reports/temporal-protocol-pytest`:
+  56 passed. Pruebas de fechas exactas, causalidad, folds de Batch 003, grid y supuestos
+  preservados; las simulaciones son fixtures pequeños.
+- `python scripts/lab.py strategies`: correcto, catálogo existente conservado.
+- Ruff check/format globales y git diff --check correctos.
+- Sin cambios en estrategia, schema, runner, StudyBackend, sizing, filtros ni costes;
+  trend_btc_1h_001 y Batch 003 intactos. No ejecutados backtests históricos de referencia
+  ni grids completos para esta corrección. Siguiente comando local: solo video_reference.
+
+
+## Referencia fija con Sharpe TRAIN indefinido
+
+El run 20260929T181029Z-abd68c372a9b se conserva FAILED (8/132): BTC LONG_ONLY
+no operó en el primer TRAIN WF y su Sharpe fue null. FULL certifica datos, no actividad.
+El runner ahora distingue una referencia de un solo candidato de un grid: la referencia
+predeclarada se evalúa en todos los TEST de folds sin selección por ranking. Un aviso
+explica el Sharpe indefinido; métricas null, filtros y clasificación permanecen intactos.
+Con varios candidatos, todos los rankings indefinidos siguen causando fallo explícito.
+No se cambian parámetros usando TEST ni se fabrican operaciones o métricas. COMPLETE
+solo significa ejecución terminada; cero operaciones sigue fallando minimum_trades: 1.
+Esta excepción permite completar la evaluación, pero no aporta evidencia de eficacia
+cuando no hay operaciones. Repetir crea otro run y preserva el fallido.
+
+Regresión sintética: una referencia sin operaciones completa todos los modos/costes,
+con Sharpe null y FAIL; un grid de dos candidatos sin ranking válido sigue fallando.
+La prueba existente de invariancia frente al holdout permanece activa.
+
+Verificación de la excepción: 58 tests aprobados (test_lab, test_trend_rsi_pullback_v1
+y test_trend_rsi_lab), Ruff check/format globales correctos. Referencia FULL VALID,
+132 backtests previstos. Solo fixtures sintéticos; ningún run histórico relanzado.

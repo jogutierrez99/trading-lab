@@ -329,11 +329,23 @@ def run(path: Path, experiment: Experiment, root: Path, output: Path | None = No
                             if scenario == "base":
                                 training.append(row)
                     eligible = [r for r in training if r.get(experiment.ranking.metric) is not None]
-                    if not eligible:
+                    if len(context["parameters"]) == 1:
+                        # A predeclared fixed reference needs no ranking selection.
+                        # Preserve undefined metrics and apply the usual report filters.
+                        chosen = training[0]
+                        if not eligible:
+                            print(
+                                f"wf_{index}: {market.symbol}/{mode}: fixed single candidate; "
+                                f"{experiment.ranking.metric} undefined in TRAIN/base; "
+                                "continuing without ranking, metrics and filters unchanged",
+                                file=sys.stderr,
+                            )
+                    elif not eligible:
                         raise ValueError(
                             f"wf_{index}: training ranking metric undefined for all candidates"
                         )
-                    chosen = min(eligible, key=lambda row: rank_key(row, experiment))
+                    else:
+                        chosen = min(eligible, key=lambda row: rank_key(row, experiment))
                     for scenario, costs in context["scenarios"].items():
                         one(
                             frame,

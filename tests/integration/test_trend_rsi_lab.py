@@ -72,8 +72,22 @@ def save(root, raw):
     return path, Experiment.model_validate(raw)
 
 
-def test_exact_research_grids_and_unchanged_protocol():
+def test_exact_research_grids_and_long_temporal_protocol():
     original = load_yaml(ROOT / "configs/experiments/trend_btc_1h_001.yaml", Experiment)
+    batch = yaml.safe_load((ROOT / "configs/profiles/batch_003/batch.yaml").read_text())
+    expected_periods = [
+        ("2023-06-04", "2024-07-01"),
+        ("2024-07-01", "2025-01-01"),
+        ("2025-07-01", "2026-09-26"),
+        ("2023-07-01", "2024-07-01"),
+        ("2024-07-01", "2024-10-01"),
+        ("2023-10-01", "2024-10-01"),
+        ("2024-10-01", "2025-01-01"),
+        ("2024-01-01", "2025-01-01"),
+        ("2025-01-01", "2025-04-01"),
+        ("2024-04-01", "2025-04-01"),
+        ("2025-04-01", "2025-07-01"),
+    ]
     assert HOURS == {
         "1h": 1,
         "4h": 4,
@@ -85,9 +99,28 @@ def test_exact_research_grids_and_unchanged_protocol():
         context = prepare(path, exp)
         expected = 1 if name == NAMES[0] else 486
         assert exp.combinations == len(context["parameters"]) == expected
-        assert context["backtests"] == expected * 2 * 3 * 3 * 2
-        assert exp.validation == original.validation and exp.filters == original.filters
+        # All candidates in three main periods and four WF trains; one winner per WF test.
+        assert context["backtests"] == 2 * 3 * 2 * (expected * (3 + 4) + 4)
+        assert [(p.start, p.end) for _, p in exp.validation.periods()] == [
+            (pd.Timestamp(start, tz="UTC"), pd.Timestamp(end, tz="UTC"))
+            for start, end in expected_periods
+        ]
+        folds = exp.validation.walk_forward
+        assert len(folds) == 4
+        assert [f.model_dump() for f in folds] == batch["folds"]
+        assert all(f.train.end <= f.test.start for f in folds)
+        assert all(a.test.end <= b.test.start for a, b in zip(folds[:-1], folds[1:], strict=True))
+        assert all(f.test.end <= exp.validation.test.start for f in folds)
+        assert folds[-1].test.end == exp.validation.test.start
+        assert exp.validation.causal() is exp.validation
+        assert exp.filters == original.filters
+        assert exp.validation.cost_stress == original.validation.cost_stress
         assert exp.costs == original.costs and exp.initial_cash == original.initial_cash
+        assert exp.app == original.app
+        assert exp.execution.market_mode == "synthetic"
+        assert exp.execution.model_dump(exclude={"market_mode", "filter_assumption"}) == (
+            original.execution.model_dump(exclude={"market_mode", "filter_assumption"})
+        )
         assert "rsi_overbought" not in exp.strategy_parameters
         assert all(p["rsi_overbought"] == 100 - p["rsi_oversold"] for p in context["parameters"])
         assert all(p["sma_slope_lookback"] == 5 for p in context["parameters"])

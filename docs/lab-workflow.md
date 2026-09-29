@@ -143,7 +143,11 @@ Dentro de `validation` puedes añadir:
 ```
 
 Cada fold selecciona por la métrica TRAIN/base configurada en `ranking`. Los empates
-usan ID determinista; si todas las métricas son indefinidas, el run falla explícitamente.
+usan ID determinista; si hay varios candidatos y todas las métricas son indefinidas,
+el run falla explícitamente. Con una única configuración predeclarada no hay selección:
+se evalúa esa referencia en TEST aunque la métrica TRAIN sea indefinida. Se registra
+un aviso, se conserva null y se aplican todos los filtros habituales; COMPLETE describe
+la ejecución terminada, no una aprobación económica.
 Solo esa configuración se ejecuta en TEST del fold, con los mismos parámetros en stress.
 TEST de distintos folds no puede solaparse y debe terminar antes del holdout final.
 Cada fold reinicia capital; las medianas no representan una cartera compuesta.

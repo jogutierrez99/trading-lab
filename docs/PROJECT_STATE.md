@@ -127,8 +127,14 @@ V1 15m, V2 tendencia 1h cerrada y V3 slope 5h. Lab admite explícitamente 15m co
 formato local mtf_quarters, hash fijado y auditoría quarter existente. Cortos synthetic,
 sin funding/liquidaciones, aunque los precios fuente sean USD-M. Legacy guards intactos.
 Cuatro experimentos: referencia de una configuración y tres grids de 486; BTC/ETH,
-tres modos, 1004 barras warmup. Reutilizan periodos/filtros/costes de trend_btc_1h_001;
-TEST es su holdout final. Validación FULL de los cuatro correcta, sin ejecutar grids.
+tres modos, 1004 barras warmup. Filtros/costes conservados de trend_btc_1h_001;
+protocolo temporal corregido: TRAIN 2023-06-04→2024-07-01, VALIDATION hasta 2025-01-01,
+cuatro folds de Batch 003 y TEST/final holdout 2025-07-01→2026-09-26 (fin exclusivo).
+Previsión: 132 backtests de referencia y 40872 por grid; resultados anteriores conservados.
+Corrección temporal verificada con FULL en los cuatro YAML y 56 tests dirigidos;
+ningún backtest histórico ejecutado para esta corrección.
+WF admite evaluar una referencia única predeclarada con ranking TRAIN indefinido,
+con aviso y sin alterar null/filtros. Grids múltiples siguen fallando sin elegibles.
 `lab.py compare` genera comparación inmutable de resultados existentes por periodo,
 coste y modo, con ejemplos ordenados solo por TRAIN. No promoción de research/paper.
 [Protocolo y comandos](trend-rsi-pullback.md). Catálogo deshabilitado y perfil propio
