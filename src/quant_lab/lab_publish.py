@@ -172,6 +172,21 @@ def publish(root: Path, identifier: str, max_bytes: int = 5_000_000) -> dict:
         payloads["classification.md"] = clean_text(
             class_path.with_suffix(".md").read_text(encoding="utf-8"), root
         ).encode()
+        if document.get("fixed_robustness_source"):
+            from quant_lab.lab_robustness import latest_robustness
+
+            fixed = latest_robustness(root, evidence)
+            payloads["robustness.json"] = json_bytes(fixed[1], root)
+            payloads["robustness_summary.md"] = clean_text(
+                (fixed[0].parent / "summary.md").read_text(encoding="utf-8"), root
+            ).encode()
+            payloads["robustness_metrics_compact.csv"] = (
+                pd.DataFrame(fixed[2], columns=frame.columns)[
+                    [c for c in COMPACT_COLUMNS if c in frame]
+                ]
+                .to_csv(index=False)
+                .encode()
+            )
     if evidence["header"]["kind"] == "lab_challenge_v1":
         compact = frame.copy()
     else:

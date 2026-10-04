@@ -118,11 +118,12 @@ def wf_stage(rows: list[dict], policy: ClassificationPolicy, folds: list[dict]) 
     cells = index_rows(
         [r for r in rows if r["period"].startswith("wf_") and r["period"].endswith("_test")]
     )
-    base, adverse, reasons = [], [], []
+    base, adverse, reasons, details = [], [], [], {}
     if len(folds) != policy.robustness.required_folds:
         reasons.append("required_fold_count")
     for i, fold in enumerate(folds):
         label = f"wf_{i}_test"
+        details[label] = {}
         for scenario, target in (("base", base), (policy.adverse_scenario, adverse)):
             row = cells.get((label, scenario))
             errors = technical(row)
@@ -134,9 +135,25 @@ def wf_stage(rows: list[dict], policy: ClassificationPolicy, folds: list[dict]) 
                 reasons += [f"{label}/{scenario}:{e}" for e in errors]
             else:
                 target.append(row)
+            details[label][scenario] = {
+                "technical_valid": not errors,
+                "reasons": errors,
+                "return_positive": bool(
+                    row is not None and finite(row.get("return_pct")) and row["return_pct"] > 0
+                ),
+                "expectancy_nonnegative": bool(
+                    row is not None and finite(row.get("expectancy")) and row["expectancy"] >= 0
+                ),
+                "backtest_id": row.get("backtest_id") if row else None,
+            }
     g = policy.robustness
     if reasons:
-        return {"pass": False, "reasons": reasons, "folds_available": len(base)}
+        return {
+            "pass": False,
+            "reasons": reasons,
+            "folds_available": len(base),
+            "wf_tests": details,
+        }
     returns = [r["return_pct"] for r in base]
     expectations = [r["expectancy"] for r in base]
     positive = sum(x > 0 for x in returns)
@@ -159,6 +176,7 @@ def wf_stage(rows: list[dict], policy: ClassificationPolicy, folds: list[dict]) 
         "positive_adverse_folds": stressed,
         "median_return_pct": median(returns),
         "median_expectancy": median(expectations),
+        "wf_tests": details,
     }
 
 
@@ -213,6 +231,7 @@ def classify_configuration(
         stage["OOS_PASS"] = not stage["oos_reasons"]
     if stage["OOS_PASS"]:
         stage["robustness"] = wf_stage(rows, policy, folds)
+        stage["robustness"]["evidence_scope"] = "fixed_candidate_robustness"
         stage["ROBUST_PASS"] = stage["robustness"]["pass"]
     if stage["ROBUST_PASS"]:
         stage["oos_evidence"] = oos_count(rows)
@@ -230,7 +249,7 @@ def classify_configuration(
     return stage
 
 
-def classify_evidence(evidence: dict, policy: ClassificationPolicy) -> dict:
+def classify_evidence(evidence: dict, policy: ClassificationPolicy, fixed_rows=None) -> dict:
     if evidence["header"]["kind"] != "lab_experiment_v1":
         raise ValueError(
             "HISTORICAL_CHALLENGE has no TRAIN/VALIDATION/TEST; research gates not applicable"
@@ -241,7 +260,12 @@ def classify_evidence(evidence: dict, policy: ClassificationPolicy) -> dict:
     pretest = evidence | {"metrics": frame[frame.period.isin(["train", "validation"])]}
     data_valid = recorded_data_valid(pretest)
     candidates = []
-    for identity, group in frame.groupby("configuration_id", sort=True):
+    candidate_frame = frame
+    if fixed_rows is not None:
+        from quant_lab.lab_robustness import merge_fixed
+
+        candidate_frame = merge_fixed(evidence, fixed_rows)
+    for identity, group in candidate_frame.groupby("configuration_id", sort=True):
         rows = json.loads(group.to_json(orient="records"))
         first = rows[0]
         result = classify_configuration(rows, policy, folds, data_valid)
@@ -281,6 +305,8 @@ def classify_evidence(evidence: dict, policy: ClassificationPolicy) -> dict:
         "counts": counts,
         "candidates": candidates,
         "adaptive_wf": adaptive,
+        "walk_forward_selection": adaptive,
+        "fixed_candidate_robustness": {c["configuration_id"]: c["robustness"] for c in candidates},
         "legacy_filter_counts": dict(Counter(frame.get("filter_status", []))),
         "scope": "Retrospective diagnostic; recorded dataset/warmup provenance checked, "
         "no new dataset/equity/trade audit. No proof of independent unobserved holdout. "
@@ -298,8 +324,8 @@ def classification_text(document: dict) -> str:
         "",
         "Legacy PASS is only the old filter result; it is not a research or paper gate.",
         "Research gate reads TRAIN/VALIDATION only. TEST never ranks candidates.",
-        "Fixed-candidate robustness requires all prescribed WF TESTs for that same candidate.",
-        "Adaptive winners are reported separately; "
+        "fixed_candidate_robustness requires all prescribed WF TESTs for that same candidate.",
+        "walk_forward_selection reports adaptive winners separately; "
         "their evidence is not pooled into each candidate.",
         "OOS trades count BASE disjoint WF TESTs + TEST, and VALIDATION only if nonoverlapping.",
         "Medians across independently reset folds are descriptive, not compounded returns.",
@@ -310,7 +336,8 @@ def classification_text(document: dict) -> str:
         json.dumps(document["counts"], indent=2),
         "```",
         "",
-        "Per-candidate gates and failure reasons: classification.json.",
+        "Per-candidate gates, per-fold technical validity, return/expectancy flags and "
+        "failure reasons: classification.json.",
         "Historical results do not establish future profitability.",
         "",
     ]
@@ -321,7 +348,13 @@ def classify(root: Path, identifier: str, policy_path: Path | None = None) -> Pa
     policy_path = policy_path or root / "configs/research/lab_classification_v1.yaml"
     policy = load_yaml(policy_path, ClassificationPolicy)
     evidence = completed_run(root, identifier)
-    document = classify_evidence(evidence, policy)
+    from quant_lab.lab_robustness import latest_robustness
+
+    fixed = latest_robustness(root, evidence)
+    document = classify_evidence(evidence, policy, fixed[2] if fixed else None)
+    if fixed:
+        document["fixed_robustness_source"] = portable(fixed[0], root)
+        document["fixed_robustness_sha256"] = sha256(fixed[0])
     document["policy_sha256"] = sha256(policy_path)
     document["implementation_sha256"] = {
         name: sha256(Path(__file__).with_name(name))
@@ -351,4 +384,14 @@ def latest_classification(root: Path, evidence: dict) -> tuple[Path, dict] | Non
     path, document = max(pairs, key=lambda item: (item[1]["created_at"], item[0].parent.name))
     if document["source_sha256"] != evidence["source_sha256"]:
         raise ValueError("Stale classification: source hashes changed; classify again")
+    if document.get("fixed_robustness_source"):
+        from quant_lab.lab_robustness import latest_robustness
+
+        fixed = latest_robustness(root, evidence)
+        if (
+            fixed is None
+            or portable(fixed[0], root) != document["fixed_robustness_source"]
+            or sha256(fixed[0]) != document["fixed_robustness_sha256"]
+        ):
+            raise ValueError("Stale classification: robustness supplement changed; classify again")
     return path, document

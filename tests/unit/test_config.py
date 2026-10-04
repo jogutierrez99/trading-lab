@@ -15,8 +15,8 @@ from quant_lab.config import (
 
 def test_repository_configuration(repo_root):
     config = load_research_config(repo_root / "configs/app.yaml")
-    assert len(config.strategies) == 31
-    assert not any(s.enabled for s in config.strategies)
+    assert len(config.strategies) == 32
+    assert {s.name for s in config.strategies if s.enabled} == {"trend_volatility_breakout_v1"}
     assert {m.timeframe for m in config.markets.markets} == {"5m", "15m", "1h", "4h", "1d"}
     assert config.app.costs.trading_fee_pct == 0.05
     assert config.model_dump(mode="json") == load_research_config(

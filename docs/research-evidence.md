@@ -253,3 +253,26 @@ Comando del grupo ampliado:
 ```bat
 python -m pytest tests/unit/test_lab_classification.py tests/unit/test_lab_research_workflow.py tests/integration/test_lab_challenge.py tests/unit/test_lab.py tests/unit/test_lab_resume.py tests/unit/test_trend_rsi_pullback_v1.py tests/integration/test_trend_rsi_lab.py -q
 ```
+
+## Segunda fase de robustez de candidatos fijos
+
+`python scripts/lab.py robust <experiment_id|run_id>` toma un run completo y congela
+solo candidatos RESEARCH_PASS + OOS_PASS. Ejecuta exclusivamente TEST WF propios
+BASE/ADVERSE faltantes; reutiliza evidencia verificada y celdas completas de fases
+interrumpidas. Exige configuración, código, dataset e identidad compatibles y verifica
+ledger, resultados, equity y hashes. Los runs originales permanecen inmutables.
+Un run con el warmup antiguo no es compatible con la implementación corregida.
+
+El suplemento nuevo `reports/lab-robustness/<run>/<id>/` reclasifica automáticamente.
+La evidencia `walk_forward_selection` sigue siendo adaptativa; nunca se atribuye a
+cada configuración fija. `fixed_candidate_robustness` registra cada fold y sus razones
+sin cambiar los gates existentes. La publicación permite solo `robustness.json`,
+`robustness_summary.md` y `robustness_metrics_compact.csv`; ledgers/equity quedan locales.
+Sin elegibles registra `0 candidates eligible for robustness evaluation` sin simular.
+
+Verificación de la corrección (2026-10-04): suite completa
+`python -m pytest -q -p no:cacheprovider`: **806 passed**, 774 avisos de deprecación
+Matplotlib/Pandas en reporting, 244.34 s. Ruff check/format global sin caché, pip check
+y git diff --check correctos. Preparación offline ETH/BTC verifica bundles existentes;
+ambos experimentos FAST y FULL VALID. Solo fixtures pequeños en tests, sin grids
+históricos, robustez real ni comparación real ejecutados.

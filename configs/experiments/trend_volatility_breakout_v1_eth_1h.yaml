@@ -1,0 +1,106 @@
+schema_version: 1
+experiment_id: trend_volatility_breakout_v1_eth_1h
+created_at: 2026-10-04 00:00:00+00:00
+description: Trend + breakout + ATR expansion; frozen ordinary temporal protocol;
+  USD-M prices, synthetic execution; funding not modelled. Historical research evidence;
+  TEST is strategy OOS, not project-virgin evidence.
+app: ../app.yaml
+strategy:
+  id: trend_volatility_breakout_v1
+  config: ../strategies/trend_volatility_breakout_v1.yaml
+markets:
+- symbol: ETHUSDT
+  timeframe: 1h
+  dataset: ../../data/lab_1h_prices/ETHUSDT/1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4
+  dataset_id: 1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4
+  warmup_bars: 1000
+  dataset_format: bundle
+modes:
+- LONG_ONLY
+- SHORT_ONLY
+- LONG_SHORT
+strategy_parameters:
+  trend_length:
+  - 100
+  - 200
+  breakout_length:
+  - 20
+  - 50
+  atr_length:
+  - 14
+  - 20
+  atr_expansion_threshold:
+  - 1.0
+  - 1.25
+  atr_stop_multiplier:
+  - 1.5
+  - 2.0
+  - 2.5
+  reward_risk:
+  - 1.5
+  - 2.0
+  - 2.5
+  slope_lookback:
+  - 5
+initial_cash: 10000.0
+costs: null
+execution:
+  market_mode: synthetic
+  direction: long
+  quantity_step: 1.0e-06
+  min_quantity: 1.0e-06
+  min_notional: 10.0
+  filter_assumption: Existing fixed lab quantity/exposure assumptions; USD-M prices,
+    synthetic collateralized execution; funding not modelled; no liquidations.
+  liquidate_at_end: true
+validation:
+  train:
+    start: 2023-06-04 00:00:00+00:00
+    end: 2024-07-01 00:00:00+00:00
+  validation:
+    start: 2024-07-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  test:
+    start: 2025-07-01 00:00:00+00:00
+    end: 2026-09-26 00:00:00+00:00
+  walk_forward:
+  - train:
+      start: 2023-07-01 00:00:00+00:00
+      end: 2024-07-01 00:00:00+00:00
+    test:
+      start: 2024-07-01 00:00:00+00:00
+      end: 2024-10-01 00:00:00+00:00
+  - train:
+      start: 2023-10-01 00:00:00+00:00
+      end: 2024-10-01 00:00:00+00:00
+    test:
+      start: 2024-10-01 00:00:00+00:00
+      end: 2025-01-01 00:00:00+00:00
+  - train:
+      start: 2024-01-01 00:00:00+00:00
+      end: 2025-01-01 00:00:00+00:00
+    test:
+      start: 2025-01-01 00:00:00+00:00
+      end: 2025-04-01 00:00:00+00:00
+  - train:
+      start: 2024-04-01 00:00:00+00:00
+      end: 2025-04-01 00:00:00+00:00
+    test:
+      start: 2025-04-01 00:00:00+00:00
+      end: 2025-07-01 00:00:00+00:00
+  cost_stress:
+    adverse:
+      trading_fee_pct: 0.1
+      slippage_pct: 0.06
+      spread_pct: 0.02
+filters:
+  minimum_trades: 1
+  maximum_drawdown_pct: 25.0
+  minimum_profit_factor: null
+  minimum_sharpe: null
+  positive_test: false
+  cost_stress_survival: false
+ranking:
+  metric: sharpe
+  descending: true
+  top_n: 5

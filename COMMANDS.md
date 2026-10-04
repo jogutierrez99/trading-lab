@@ -72,3 +72,31 @@ Situación concreta en la que debe ejecutarse.
 Opcional. Añadir únicamente cuando exista alguna precaución, parámetro importante o comportamiento que convenga recordar.
 
 ---
+
+## Trend Volatility Breakout V1 — investigación local
+
+Protocolo: [docs/trend-volatility-breakout.md](docs/trend-volatility-breakout.md).
+144 configuraciones por mercado/modo; 6072 backtests por experimento completo.
+Preparación/validate no simulan; run es para ejecución local por el usuario.
+
+```powershell
+python scripts/prepare_lab_1h_prices.py ETHUSDT
+python scripts/lab.py validate trend_volatility_breakout_v1_eth_1h
+python scripts/lab.py validate trend_volatility_breakout_v1_eth_1h --full
+python scripts/lab.py run trend_volatility_breakout_v1_eth_1h
+python scripts/lab.py classify trend_volatility_breakout_v1_eth_1h
+python scripts/lab.py robust trend_volatility_breakout_v1_eth_1h
+python scripts/lab.py publish trend_volatility_breakout_v1_eth_1h
+# BTC futuro: misma lógica, sin recalibrar
+python scripts/prepare_lab_1h_prices.py BTCUSDT
+python scripts/lab.py validate trend_volatility_breakout_v1_btc_1h --full
+python scripts/lab.py run trend_volatility_breakout_v1_btc_1h
+python scripts/lab.py classify trend_volatility_breakout_v1_btc_1h
+python scripts/lab.py robust trend_volatility_breakout_v1_btc_1h
+python scripts/lab.py publish trend_volatility_breakout_v1_btc_1h
+python scripts/lab.py compare trend_volatility_breakout_v1_eth_1h trend_volatility_breakout_v1_btc_1h
+python scripts/lab.py publish-comparison latest
+```
+
+Reclasificar crea otro suplemento sin backtests. Publicar no sobrescribe una
+publicación anterior ni hace Git. Ninguno conecta esta familia a forward.

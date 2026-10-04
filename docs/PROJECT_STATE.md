@@ -63,7 +63,7 @@ no prueba una descarga 5m ni soporte de ese timeframe en lab.
 
 ## Estrategias implementadas
 
-Catálogo real: **29**, todas versión **1.0.0**, estado de metadata **research**.
+Catálogo real: **30**, todas versión **1.0.0**, estado de metadata **research**.
 `L` = LONG_ONLY; `L/S/LS` = LONG_ONLY, SHORT_ONLY, LONG_SHORT. Son capacidades declaradas
 del adaptador, no resultados de validación económica ni garantía de YAML habilitado.
 Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones explícitas.
@@ -95,6 +95,7 @@ Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones e
 | trend_acceleration | 1.0.0 | L | 1h | ohlcv / research |
 | trend_following | 1.0.0 | L/S/LS | 1h, 4h, 1d | ohlcv / research |
 | trend_rsi_pullback_v1 | 1.0.0 | L/S/LS | 15m | ohlcv, V1/V2/V3 causales / research |
+| trend_volatility_breakout_v1 | 1.0.1 | L/S/LS | 1h | ohlcv / research |
 | trend_strength | 1.0.0 | L | 1h | ohlcv / research |
 | vol_contraction_expansion | 1.0.0 | L | 1h | ohlcv / research |
 | vol_expansion_trend | 1.0.0 | L | 1h | ohlcv / research |
@@ -227,3 +228,25 @@ nuevo, sin tocar sesión o journal originales. SIGNAL_ONLY y bloqueo demo/live i
 Shadow: preflight técnico final 672 tests aprobados, Ruff/format y dependencias correctos;
 17 pruebas nuevas, cuatro experimentos RSI FULL VALID. Reconstrucción read-only de la
 sesión solicitada documentada en la guía; sin reiniciar el runner externo ni enviar órdenes.
+
+## Trend Volatility Breakout (2026-10-04)
+
+V1 1h: EMA/slope + canal de barras anteriores + ATR actual/media de los 50 ATR
+anteriores. ATR/RR enlazados a RiskConfig; sin nuevo backend/sizing ni filtros extra.
+ETH/BTC separados, mismo grid 144 y protocolo temporal largo vigente: TRAIN desde
+2023-06-04, VALIDATION desde 2024-07-01, TEST 2025-07-01→2026-09-26, cuatro WF.
+Warmup conservador dinámico 5×EMA: 500/1000 barras; máximo del grid 1000.
+BASE app y ADVERSE ordinario conservados. `lab.py robust` completa solo WF TEST
+propios BASE/ADVERSE faltantes de candidatos RESEARCH_PASS + OOS_PASS, con reutilización
+verificada, suplementos inmutables y reclasificación; el WF adaptativo permanece separado.
+`prepare_lab_1h_prices.py` verifica fuentes USD-M fijadas y conserva velas/identidad
+en bundles lab locales; ejecución synthetic, funding not modelled. Sin cambio a
+forward, OKX ni RSI. Hipótesis ETH NEW_HYPOTHESIS, BTC PREPARED_NOT_EXECUTED.
+RSI Single-TF RESEARCH_COMPLETED / NOT_VALIDATED; challenge ETH
+HISTORICAL_CHALLENGE_FAILED_ROBUSTNESS / NOT_VALIDATED según decisión del usuario;
+historial preservado. [Reglas, límites de WF y comandos](trend-volatility-breakout.md).
+Tests sintéticos y validación técnica no equivalen a resultados económicos; los
+grids completos quedan para el usuario. TEST es OOS específico sobre historia ya
+observada a nivel del proyecto, no evidencia independiente futura.
+Verificación de la corrección: suite completa 806 passed; Ruff/format y dependencias
+correctos; ETH/BTC FAST y FULL VALID. Sin grids históricos ni robustez real ejecutados.

@@ -41,6 +41,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     classification.add_argument("identifier")
     classification.add_argument("--policy", type=Path)
+    robustness = commands.add_parser(
+        "robust", help="Complete missing frozen-candidate WF TESTs after OOS_PASS"
+    )
+    robustness.add_argument("identifier")
+    robustness.add_argument("--policy", type=Path)
     for name in ("publish", "publish-comparison"):
         publication = commands.add_parser(
             name, help="Write compact research_results; no Git operations"
@@ -117,6 +122,10 @@ def main(argv: list[str] | None = None) -> int:
                 summary = Path(history[-1]["path"]) / "summary.json"
                 if summary.exists():
                     result["counts"] = json.loads(summary.read_text(encoding="utf-8"))
+        elif args.command == "robust":
+            from quant_lab.lab_robustness import robust
+
+            result = robust(root, args.identifier, args.policy)
         elif args.command == "classify":
             from quant_lab.lab_classification import classify
 

@@ -7,10 +7,10 @@ de rentabilidad. Los run IDs y sus estados COMPLETE se comprobaron leyendo metad
 | Hipótesis | Estado humano | Motivo comunicado | Run de referencia |
 |---|---|---|---|
 | trend_rsi_pullback_video_reference | DISCARDED | Frecuencia de trades insuficiente; sin evidencia estadística robusta. | 20260929T182249Z-beff1dc16a3a |
-| trend_rsi_pullback_v1_single_tf | RESEARCH_CONTINUE | Única rama con una región ETH Single-TF interesante; necesita validación independiente. | 20260930T043029Z-83c8241784a3 |
+| trend_rsi_pullback_v1_single_tf | RESEARCH_COMPLETED / NOT_VALIDATED | La rama no demostró edge histórico robusto tras el challenge; no progresa a paper trading. | 20260930T043029Z-83c8241784a3 |
 | trend_rsi_pullback_v1_mtf | DISCARDED | Turnover elevado y resultados OOS negativos. | 20260930T043058Z-5cbdf1de41df |
 | trend_rsi_pullback_v1_mtf_slope | DISCARDED | Mejora ligera respecto a MTF, sin edge OOS suficiente. | 20260930T043123Z-ec338308439e |
-| trend_rsi_pullback_v1_eth_challenge | NEW_HYPOTHESIS | Falsación histórica de tres candidatos ETH Single-TF congelados. | Pendiente; no ejecutado |
+| trend_rsi_pullback_v1_eth_challenge | HISTORICAL_CHALLENGE_FAILED_ROBUSTNESS / NOT_VALIDATED | Robustez insuficiente según conclusión aportada por el usuario; no progresa a paper trading. | 20261004T105129Z-028cdfe86515 |
 
 Comparación local relacionada: `20260930T085053Z-5e6e952a9c9c`.
 Los candidatos A/B/C proceden de análisis del TEST ya observado. No se puede presentar
@@ -21,3 +21,10 @@ Los estados humanos de esta tabla no alteran metadata de Strategy ni conceden
 PAPER_TRADING_CANDIDATE. Las reglas automáticas, su versión y sus límites están en
 [research-evidence](../../docs/research-evidence.md). Los resultados históricos no
 implican rentabilidad futura. No se habilitan órdenes ni forward automáticamente.
+
+Actualización 2026-10-04: decisión humana comunicada para cerrar la rama RSI como
+edge no validado; no es una nueva auditoría automática de trades. Se conserva la
+decisión previa de continuar Single-TF como antecedente histórico, sustituida aquí
+por RESEARCH_COMPLETED / NOT_VALIDATED tras el challenge. No se alteran candidatos,
+parámetros, runs ni publicaciones anteriores. La [nueva hipótesis breakout](../trend_volatility_breakout/RESEARCH_STATUS.md)
+utiliza otro mecanismo, sin optimización del challenge RSI ni promoción automática.

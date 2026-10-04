@@ -1,0 +1,22 @@
+name: trend_volatility_breakout_v1
+version: 1.0.1
+enabled: true
+market:
+  provider: binance
+  symbol: ETH/USDT
+  timeframe: 1h
+parameters:
+  trend_length: 200
+  breakout_length: 20
+  atr_length: 14
+  atr_reference_length: 50
+  atr_expansion_threshold: 1.0
+  atr_stop_multiplier: 2.0
+  reward_risk: 2.0
+  slope_lookback: 5
+risk:
+  stop_method: atr
+  stop_enabled: true
+  take_profit_enabled: true
+  trailing_atr_multiplier: null
+  max_holding_bars: null

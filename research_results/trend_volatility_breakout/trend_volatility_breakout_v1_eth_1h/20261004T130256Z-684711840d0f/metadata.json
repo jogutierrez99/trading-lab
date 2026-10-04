@@ -1,0 +1,232 @@
+{
+  "experiment": "trend_volatility_breakout_v1_eth_1h",
+  "run_id": "20261004T130256Z-684711840d0f",
+  "strategy": "trend_volatility_breakout_v1",
+  "strategy_version": "1.0.1",
+  "code_hash": "7cd230706e6b2f8e124a219b73159acef8ba8f72ea3d096130a3de5341a95ac4",
+  "git_commit": "d21d532beceb38c5c5b9054e8f540fe05252cdee",
+  "environment": {
+    "python": "3.13.2",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "dependencies": {
+      "pandas": "2.2.3",
+      "numpy": "2.2.4",
+      "pyarrow": "23.0.1",
+      "pydantic": "2.10.6",
+      "PyYAML": "6.0.3"
+    }
+  },
+  "datasets": [
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "1h",
+      "dataset_id": "1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+      "parquet_sha256": "45d54f213f24b4282a4a5ac972431aafb8d303456e4c202b548ec0e9196fb8ec",
+      "start": "2020-01-01 00:00:00+00:00",
+      "end": "2026-09-26 00:00:00+00:00"
+    }
+  ],
+  "markets": [
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "1h",
+      "warmup_bars": 1000
+    }
+  ],
+  "execution_assumptions": {
+    "market_mode": "synthetic",
+    "direction": "long",
+    "quantity_step": 1e-06,
+    "min_quantity": 1e-06,
+    "min_notional": 10.0,
+    "filter_assumption": "Existing fixed lab quantity/exposure assumptions; USD-M prices, synthetic collateralized execution; funding not modelled; no liquidations.",
+    "liquidate_at_end": true
+  },
+  "cost_assumptions": {
+    "base": {
+      "trading_fee_pct": 0.05,
+      "slippage_pct": 0.03,
+      "spread_pct": 0.01
+    },
+    "stress": {
+      "adverse": {
+        "trading_fee_pct": 0.1,
+        "slippage_pct": 0.06,
+        "spread_pct": 0.02
+      }
+    }
+  },
+  "validation": {
+    "train": {
+      "start": "2023-06-04T00:00:00Z",
+      "end": "2024-07-01T00:00:00Z"
+    },
+    "validation": {
+      "start": "2024-07-01T00:00:00Z",
+      "end": "2025-01-01T00:00:00Z"
+    },
+    "test": {
+      "start": "2025-07-01T00:00:00Z",
+      "end": "2026-09-26T00:00:00Z"
+    },
+    "walk_forward": [
+      {
+        "train": {
+          "start": "2023-07-01T00:00:00Z",
+          "end": "2024-07-01T00:00:00Z"
+        },
+        "test": {
+          "start": "2024-07-01T00:00:00Z",
+          "end": "2024-10-01T00:00:00Z"
+        }
+      },
+      {
+        "train": {
+          "start": "2023-10-01T00:00:00Z",
+          "end": "2024-10-01T00:00:00Z"
+        },
+        "test": {
+          "start": "2024-10-01T00:00:00Z",
+          "end": "2025-01-01T00:00:00Z"
+        }
+      },
+      {
+        "train": {
+          "start": "2024-01-01T00:00:00Z",
+          "end": "2025-01-01T00:00:00Z"
+        },
+        "test": {
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2025-04-01T00:00:00Z"
+        }
+      },
+      {
+        "train": {
+          "start": "2024-04-01T00:00:00Z",
+          "end": "2025-04-01T00:00:00Z"
+        },
+        "test": {
+          "start": "2025-04-01T00:00:00Z",
+          "end": "2025-07-01T00:00:00Z"
+        }
+      }
+    ],
+    "cost_stress": {
+      "adverse": {
+        "trading_fee_pct": 0.1,
+        "slippage_pct": 0.06,
+        "spread_pct": 0.02
+      }
+    }
+  },
+  "historical_challenge": null,
+  "selection_context": "unknown; retrospective classification is not independent validation",
+  "candidates": null,
+  "classification": {
+    "counts": {
+      "FAIL": 0,
+      "VALID": 431,
+      "RESEARCH_PASS": 1,
+      "OOS_PASS": 0,
+      "ROBUST_PASS": 0,
+      "PAPER_TRADING_CANDIDATE": 0
+    },
+    "policy": {
+      "classification_schema_version": 1,
+      "policy_id": "lab_research_v1",
+      "adverse_scenario": "adverse",
+      "train": {
+        "minimum_trades": 15,
+        "minimum_profit_factor": 1.1,
+        "minimum_sharpe": 0.25,
+        "minimum_expectancy": 0.0,
+        "expectancy_strict": false,
+        "minimum_return_pct": null,
+        "return_strict": false,
+        "maximum_drawdown_pct": 15.0
+      },
+      "validation": {
+        "minimum_trades": 5,
+        "minimum_profit_factor": 1.05,
+        "minimum_sharpe": 0.15,
+        "minimum_expectancy": 0.0,
+        "expectancy_strict": false,
+        "minimum_return_pct": null,
+        "return_strict": false,
+        "maximum_drawdown_pct": 15.0
+      },
+      "validation_adverse": {
+        "minimum_trades": 1,
+        "minimum_profit_factor": 1.0,
+        "minimum_sharpe": null,
+        "minimum_expectancy": 0.0,
+        "expectancy_strict": false,
+        "minimum_return_pct": 0.0,
+        "return_strict": true,
+        "maximum_drawdown_pct": 100.0
+      },
+      "test": {
+        "minimum_trades": 10,
+        "minimum_profit_factor": 1.1,
+        "minimum_sharpe": 0.3,
+        "minimum_expectancy": 0.0,
+        "expectancy_strict": true,
+        "minimum_return_pct": 0.0,
+        "return_strict": true,
+        "maximum_drawdown_pct": 15.0
+      },
+      "test_adverse": {
+        "minimum_trades": 1,
+        "minimum_profit_factor": 1.0,
+        "minimum_sharpe": null,
+        "minimum_expectancy": 0.0,
+        "expectancy_strict": false,
+        "minimum_return_pct": 0.0,
+        "return_strict": true,
+        "maximum_drawdown_pct": 100.0
+      },
+      "robustness": {
+        "required_folds": 4,
+        "positive_return_folds": 3,
+        "nonnegative_expectancy_folds": 3,
+        "positive_adverse_folds": 2,
+        "aggregation": "median"
+      },
+      "minimum_total_oos_trades": 30
+    },
+    "scope": "Retrospective diagnostic; recorded dataset/warmup provenance checked, no new dataset/equity/trade audit. No proof of independent unobserved holdout. PAPER_TRADING_CANDIDATE is a protocol label, never order/forward authorization."
+  },
+  "source": "results/trend_volatility_breakout_v1_eth_1h/20261004T130256Z-684711840d0f",
+  "source_sha256": {
+    "run.json": "d1e1956e5f3e091f92a026c04ba723987d3940b94530bc6284d6397c80a697fd",
+    "outcome.json": "e846eae7ca1449b08349a9c5023e71da294e55b532d446e201bc01fe584fdc1d",
+    "plan.json": "77bcbfc261d17df5e486fb32f3dabdc0ce2aaaf7fda7d9d5547e5fa98940ce19",
+    "resolved.json": "a47211e599e3ae34d755e8eb2d89af7141134292e0b3d28e4fd93591d30275a6",
+    "provenance.json": "b6076840e285a1412d14fdc0e868221590cce369e840c3c01362d878632265e8",
+    "metrics.csv": "89a27f5ec3392f9460e629472381aef29aab45a127bcf946ab8b5d9ee0705a0d",
+    "ai_summary.md": "9f130d3b8f8f3f177a8b02061a7fea7ca873527db18b0bb00e58ca292fd0a5d6",
+    "summary.md": "9f130d3b8f8f3f177a8b02061a7fea7ca873527db18b0bb00e58ca292fd0a5d6",
+    "leaderboard.csv": "2e91c9dc96f1b6aa614fdf6bfe1a4186ad1ab9f93de836afa0bba85bd69abf3a"
+  },
+  "compact_selection": "All challenge rows, or TRAIN-ranked top_n main rows plus all selected WF TEST rows. No TEST ranking.",
+  "compact_rows": 54,
+  "source_rows": 6072,
+  "classification_source": "reports/lab-classification/20261004T130256Z-684711840d0f/20261004T133413Z-90dc44631752/classification.json",
+  "classification_sha256": "0f4e06aa0d6b0d0e0325aae48b340ff93ba18703c15d240ed8450c4be82f8861",
+  "publication_schema_version": 1,
+  "published_at": "2026-10-04T13:34:46.903393+00:00",
+  "max_file_bytes": 5000000,
+  "skipped": {},
+  "artifacts_sha256": {
+    "ai_summary.md": "9dd21ce3a1eb3fcb06ba1eb4e7ec71430a1f61da8e2cd1727adc6992f33c8ddf",
+    "summary.md": "9dd21ce3a1eb3fcb06ba1eb4e7ec71430a1f61da8e2cd1727adc6992f33c8ddf",
+    "leaderboard.csv": "a726853b0e87021bcd463509dc3db0fc26e13c3b9684003f815c57f395ea6f4c",
+    "classification.json": "8310a76918c0875adb913674a16e821ea42cc7fc4ef4044cf14bc52087db7997",
+    "classification.md": "c9983216b1b69cac843f7ce40b43846c55a1d708d669588ef5403374b3142487",
+    "robustness.json": "6d7c552a613bc08bf9de1166418166d744bd7af988517db17fa7c1ee7f5f96e5",
+    "robustness_summary.md": "2bbfadd17584fa02130ccfe11355109c9a711cb0c4d63acd23ac5c6c9bdc8bae",
+    "robustness_metrics_compact.csv": "d941ce7913e739c5ded7f6af885a4567588c82f50e8469f8ba2006f9d3efbfff",
+    "metrics_compact.csv": "464bfa3965ed1de8a8869fe13e86eda69cfc2e3778e2c198aec407df98b6b642"
+  },
+  "note": "Compact research notebook, not full backtest storage. Legacy PASS is not paper eligibility. No Git commit/push performed."
+}

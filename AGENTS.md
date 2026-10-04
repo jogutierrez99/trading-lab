@@ -178,3 +178,12 @@ datasets, workflow, experiment types, supported modes or MTF, evaluate and updat
 docs/PROJECT_STATE.md if needed. Keep it compact; ordinary runs belong in results,
 manifests and Git history, not an ever-growing state log. State the scope of verification
 and distinguish implementation, historical evidence and newly verified results.
+
+## Trend Volatility Breakout V1
+
+Para esta familia leer [el protocolo congelado](docs/trend-volatility-breakout.md).
+Single timeframe 1h, ETH inicial y BTC preparado, mismo grid de 144; no ampliar
+parámetros ni utilizar challenge RSI para selección. Preparación offline explícita
+de precios USD-M con hashes fijados; funding not modelled. Conservar política de
+gaps y clasificación existente, incluidos límites WF de cada configuración fija.
+No ejecutar automáticamente grids ni incorporar esta hipótesis a forward/OKX.

@@ -1,0 +1,84 @@
+{
+  "robustness_schema_version": 1,
+  "created_at": "2026-10-04T13:34:11.493864+00:00",
+  "scope": "fixed_candidate_robustness",
+  "source_run_id": "20261004T130256Z-684711840d0f",
+  "source_sha256": {
+    "run.json": "d1e1956e5f3e091f92a026c04ba723987d3940b94530bc6284d6397c80a697fd",
+    "outcome.json": "e846eae7ca1449b08349a9c5023e71da294e55b532d446e201bc01fe584fdc1d",
+    "plan.json": "77bcbfc261d17df5e486fb32f3dabdc0ce2aaaf7fda7d9d5547e5fa98940ce19",
+    "resolved.json": "a47211e599e3ae34d755e8eb2d89af7141134292e0b3d28e4fd93591d30275a6",
+    "provenance.json": "b6076840e285a1412d14fdc0e868221590cce369e840c3c01362d878632265e8",
+    "metrics.csv": "89a27f5ec3392f9460e629472381aef29aab45a127bcf946ab8b5d9ee0705a0d"
+  },
+  "policy_sha256": "ab5acee432245ff9ec3ad68b958cd12165c765e3f99bcac47a369825841340ac",
+  "policy": {
+    "classification_schema_version": 1,
+    "policy_id": "lab_research_v1",
+    "adverse_scenario": "adverse",
+    "train": {
+      "minimum_trades": 15,
+      "minimum_profit_factor": 1.1,
+      "minimum_sharpe": 0.25,
+      "minimum_expectancy": 0.0,
+      "expectancy_strict": false,
+      "minimum_return_pct": null,
+      "return_strict": false,
+      "maximum_drawdown_pct": 15.0
+    },
+    "validation": {
+      "minimum_trades": 5,
+      "minimum_profit_factor": 1.05,
+      "minimum_sharpe": 0.15,
+      "minimum_expectancy": 0.0,
+      "expectancy_strict": false,
+      "minimum_return_pct": null,
+      "return_strict": false,
+      "maximum_drawdown_pct": 15.0
+    },
+    "validation_adverse": {
+      "minimum_trades": 1,
+      "minimum_profit_factor": 1.0,
+      "minimum_sharpe": null,
+      "minimum_expectancy": 0.0,
+      "expectancy_strict": false,
+      "minimum_return_pct": 0.0,
+      "return_strict": true,
+      "maximum_drawdown_pct": 100.0
+    },
+    "test": {
+      "minimum_trades": 10,
+      "minimum_profit_factor": 1.1,
+      "minimum_sharpe": 0.3,
+      "minimum_expectancy": 0.0,
+      "expectancy_strict": true,
+      "minimum_return_pct": 0.0,
+      "return_strict": true,
+      "maximum_drawdown_pct": 15.0
+    },
+    "test_adverse": {
+      "minimum_trades": 1,
+      "minimum_profit_factor": 1.0,
+      "minimum_sharpe": null,
+      "minimum_expectancy": 0.0,
+      "expectancy_strict": false,
+      "minimum_return_pct": 0.0,
+      "return_strict": true,
+      "maximum_drawdown_pct": 100.0
+    },
+    "robustness": {
+      "required_folds": 4,
+      "positive_return_folds": 3,
+      "nonnegative_expectancy_folds": 3,
+      "positive_adverse_folds": 2,
+      "aggregation": "median"
+    },
+    "minimum_total_oos_trades": 30
+  },
+  "eligible_candidates": [],
+  "evidence_cells": 0,
+  "executed_backtests": 0,
+  "reused_backtests": 0,
+  "references": [],
+  "message": "0 candidates eligible for robustness evaluation"
+}

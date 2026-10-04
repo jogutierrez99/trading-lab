@@ -69,7 +69,7 @@ No hacen falta `.env` ni credenciales privadas; imports y catálogo no descargan
 ```text
 trading-lab/
 ├── src/quant_lab/            configuración, datos, motores, métricas, runners
-│   ├── strategies/          BaseStrategy, registro y 29 implementaciones
+│   ├── strategies/          BaseStrategy, registro y 30 implementaciones
 │   ├── execution_policies/  políticas de timing separadas de señales
 │   └── lab_*.py             schema, datos, CLI, orquestación y reporting ordinario
 ├── scripts/                 entrypoints; lab.py vive aquí
@@ -239,3 +239,16 @@ cada grid tiene 486, antes de activos/modos/periodos/costes. Ejecución por lab.
 sintética sobre precios USD-M, sin funding/liquidaciones; no integrada al forward.
 `lab.py compare ID1 ID2 ...` genera nuevos resúmenes comparativos de runs completos
 sin ejecutar backtests ni reescribir resultados.
+
+## Trend Volatility Breakout V1
+
+[Protocolo y comandos](docs/trend-volatility-breakout.md): EMA trend/slope, ruptura
+del canal anterior y expansión ATR; single timeframe 1h, versión 1.0.0. ETH primero,
+BTC preparado con idéntico grid de 144 configuraciones por mercado/modo. Entrada
+next-open y ATR/RR mediante riesgo/StudyBackend existentes; funding not modelled.
+Preparar precios locales con `python scripts/prepare_lab_1h_prices.py ETHUSDT`,
+validar `python scripts/lab.py validate trend_volatility_breakout_v1_eth_1h` y lanzar
+el run completo solo localmente. Sin RSI/MTF/trailing ni incorporación a forward.
+[Estado inicial](research_results/trend_volatility_breakout/RESEARCH_STATUS.md):
+NEW_HYPOTHESIS; la rama RSI queda NOT_VALIDATED tras fallar robustez histórica,
+según la decisión del usuario. Se conservan sus candidatos, parámetros y resultados.
