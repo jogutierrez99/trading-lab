@@ -1,0 +1,229 @@
+{
+  "experiment": "trend_rsi_pullback_v1_eth_challenge",
+  "run_id": "20261004T105129Z-028cdfe86515",
+  "strategy": "trend_rsi_pullback_v1",
+  "strategy_version": "1.0.0",
+  "code_hash": "8fc7a116baf949362320f0690cc9b21461f0e6696ab379facc47606d3294201b",
+  "git_commit": "2a59cf9c23e839176224ae17ba25879a20c7e85b",
+  "environment": {
+    "python": "3.13.2",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "dependencies": {
+      "pandas": "2.2.3",
+      "numpy": "2.2.4",
+      "pyarrow": "23.0.1",
+      "pydantic": "2.10.6",
+      "PyYAML": "6.0.3"
+    }
+  },
+  "datasets": [
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "15m",
+      "dataset_id": "9d4bcb5a0627a70513522de8d967c52697af68220dba52ce626a9915730e35c8",
+      "parquet_sha256": "81a1a2515b321d29fabe33a1aea83896d8208b063d511438cf09f766357e6e0c",
+      "start": "2020-01-01 00:00:00+00:00",
+      "end": "2026-09-26 00:00:00+00:00"
+    }
+  ],
+  "markets": [
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "15m",
+      "warmup_bars": 1004
+    }
+  ],
+  "execution_assumptions": {
+    "market_mode": "synthetic",
+    "direction": "long",
+    "quantity_step": 1e-06,
+    "min_quantity": 1e-06,
+    "min_notional": 10.0,
+    "filter_assumption": "Existing fixed lab research filters; USD-M OHLCV prices, synthetic collateralized execution; no funding or liquidations.",
+    "liquidate_at_end": true
+  },
+  "cost_assumptions": {
+    "base": {
+      "trading_fee_pct": 0.05,
+      "slippage_pct": 0.03,
+      "spread_pct": 0.01
+    },
+    "stress": {
+      "adverse": {
+        "trading_fee_pct": 0.1,
+        "slippage_pct": 0.06,
+        "spread_pct": 0.02
+      }
+    }
+  },
+  "validation": null,
+  "historical_challenge": {
+    "label": "HISTORICAL_CHALLENGE",
+    "requested": {
+      "start": "2020-01-01T00:00:00Z",
+      "end": "2023-06-04T00:00:00Z"
+    },
+    "warmup_start": "2020-01-01T00:00:00Z",
+    "segments": [
+      {
+        "start": "2020-01-11T11:00:00Z",
+        "end": "2021-01-01T00:00:00Z",
+        "label": "calendar_2020"
+      },
+      {
+        "start": "2021-01-01T00:00:00Z",
+        "end": "2022-01-01T00:00:00Z",
+        "label": "calendar_2021"
+      },
+      {
+        "start": "2022-01-01T00:00:00Z",
+        "end": "2023-01-01T00:00:00Z",
+        "label": "calendar_2022"
+      },
+      {
+        "start": "2023-01-01T00:00:00Z",
+        "end": "2023-06-04T00:00:00Z",
+        "label": "calendar_2023_partial"
+      }
+    ],
+    "cost_stress": {
+      "adverse": {
+        "trading_fee_pct": 0.1,
+        "slippage_pct": 0.06,
+        "spread_pct": 0.02
+      }
+    }
+  },
+  "selection_context": "selected_using_previously_observed_test",
+  "candidates": [
+    {
+      "candidate_id": "candidate_a",
+      "mode": "LONG_SHORT",
+      "parameters": {
+        "variant": "V1",
+        "sma_length": 185,
+        "rsi_length": 25,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "atr_length": 20,
+        "atr_multiplier": 2.5,
+        "reward_risk": 1.25,
+        "sma_slope_lookback": 5
+      },
+      "risk": {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.5,
+        "risk_reward": 1.25,
+        "atr_period": 20,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "high_low",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      }
+    },
+    {
+      "candidate_id": "candidate_b",
+      "mode": "LONG_ONLY",
+      "parameters": {
+        "variant": "V1",
+        "sma_length": 200,
+        "rsi_length": 25,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "atr_length": 20,
+        "atr_multiplier": 2.5,
+        "reward_risk": 1.25,
+        "sma_slope_lookback": 5
+      },
+      "risk": {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.5,
+        "risk_reward": 1.25,
+        "atr_period": 20,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "high_low",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      }
+    },
+    {
+      "candidate_id": "candidate_c",
+      "mode": "LONG_ONLY",
+      "parameters": {
+        "variant": "V1",
+        "sma_length": 150,
+        "rsi_length": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "atr_length": 20,
+        "atr_multiplier": 2.5,
+        "reward_risk": 2.0,
+        "sma_slope_lookback": 5
+      },
+      "risk": {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.5,
+        "risk_reward": 2.0,
+        "atr_period": 20,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "high_low",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      }
+    }
+  ],
+  "classification": null,
+  "source": "results/trend_rsi_pullback_v1_eth_challenge/20261004T105129Z-028cdfe86515",
+  "source_sha256": {
+    "run.json": "09c420e46deea6697f0c59e6dc214d56c60d55be9433bb94c99a7af769b5a7ba",
+    "outcome.json": "eb56c0ce14c03b6ce87d328c3075742228b5389a62ed09dbfd1aaa93e876dfd0",
+    "plan.json": "f46b512ada4ff60680d0b66cc1eadaa2419e6e158decbcd516aa7ab7e5970d6e",
+    "resolved.json": "9696e938f231cda9c28c8099db989cb6f56b776f20614e2bffc42fd2d5428b02",
+    "provenance.json": "290a89e55fe6bde3ec5d44db8fdc2a0ff7682c5f6e584175abef79f43464023e",
+    "metrics.csv": "d4815137c1c9f508353f905cc3cd70b5079c439703dbfc97bb64636aeb777dad",
+    "ai_summary.md": "ce107cdf4d15354d9df2ad8ef7464e31ba2691b7896040b5b76d2805c5b9b141",
+    "summary.md": "ce107cdf4d15354d9df2ad8ef7464e31ba2691b7896040b5b76d2805c5b9b141"
+  },
+  "compact_selection": "All challenge rows, or TRAIN-ranked top_n main rows plus all selected WF TEST rows. No TEST ranking.",
+  "compact_rows": 24,
+  "source_rows": 24,
+  "classification_source": null,
+  "classification_sha256": null,
+  "publication_schema_version": 1,
+  "published_at": "2026-10-04T10:53:50.488482+00:00",
+  "max_file_bytes": 5000000,
+  "skipped": {},
+  "artifacts_sha256": {
+    "ai_summary.md": "806feb96b11a6284d36e8e0168e62ff8f3d3a60c97530d50dd354b6146454f59",
+    "summary.md": "806feb96b11a6284d36e8e0168e62ff8f3d3a60c97530d50dd354b6146454f59",
+    "metrics_compact.csv": "809c84436e648a04e3f58c5156adf4830b5b0d046ab411773be81bb044c1ae47"
+  },
+  "note": "Compact research notebook, not full backtest storage. Legacy PASS is not paper eligibility. No Git commit/push performed."
+}
