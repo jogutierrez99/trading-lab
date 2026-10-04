@@ -132,6 +132,14 @@ conservarse. Estudios especializados mantienen sus propios protocolos de resume.
 
 ## Entrypoints y tests
 
+`lab_evidence` lee artefactos compactos COMPLETE y fija hashes. `lab_classification`
+aplica `lab_classification_policy` por etapas en un suplemento nuevo; TEST no entra
+en el gate research y WF adaptativo se separa de configuración fija. `lab_publish`
+exporta allowlist/tamaños/hashes a `research_results/`, sin órdenes ni Git automático.
+`lab_challenge` usa un schema de candidatos explícitos y periodos HISTORICAL_CHALLENGE;
+reutiliza prepare/evaluate/StudyBackend y ExperimentStore, sin modificar Experiment v1
+ni el motor histórico. [Semántica y limitaciones](research-evidence.md).
+
 Forward aislado: `forward/runner.py` → `market_data/okx.py` (REST/WS demo) →
 `forward/strategy.py` (estrategia original) → riesgo existente → SignalOnlyBroker →
 `forward/store.py` (SQLite/eventos/checkpoint e informes). `brokers/okx_demo.py` solo

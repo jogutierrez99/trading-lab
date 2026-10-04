@@ -1,0 +1,41 @@
+classification_schema_version: 1
+policy_id: lab_research_v1
+adverse_scenario: adverse
+train:
+  minimum_trades: 15
+  minimum_profit_factor: 1.10
+  minimum_sharpe: 0.25
+  minimum_expectancy: 0.0
+  maximum_drawdown_pct: 15.0
+validation:
+  minimum_trades: 5
+  minimum_profit_factor: 1.05
+  minimum_sharpe: 0.15
+  minimum_expectancy: 0.0
+  maximum_drawdown_pct: 15.0
+validation_adverse:
+  minimum_return_pct: 0.0
+  return_strict: true
+  minimum_profit_factor: 1.0
+  minimum_expectancy: 0.0
+test:
+  minimum_trades: 10
+  minimum_return_pct: 0.0
+  return_strict: true
+  minimum_profit_factor: 1.10
+  minimum_sharpe: 0.30
+  minimum_expectancy: 0.0
+  expectancy_strict: true
+  maximum_drawdown_pct: 15.0
+test_adverse:
+  minimum_return_pct: 0.0
+  return_strict: true
+  minimum_profit_factor: 1.0
+  minimum_expectancy: 0.0
+robustness:
+  required_folds: 4
+  positive_return_folds: 3
+  nonnegative_expectancy_folds: 3
+  positive_adverse_folds: 2
+  aggregation: median
+minimum_total_oos_trades: 30

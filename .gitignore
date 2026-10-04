@@ -20,3 +20,11 @@ configs/experiments/*
 !configs/experiments/*.yaml
 reports/
 results/
+
+# Versioned compact research notebook; never publish heavy simulation storage.
+!research_results/
+research_results/**/*.parquet
+research_results/**/*.sqlite
+research_results/**/*.sqlite-*
+research_results/**/data/
+research_results/**/datasets/

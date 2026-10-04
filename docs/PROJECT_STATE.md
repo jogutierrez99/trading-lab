@@ -7,6 +7,14 @@ Datos y resultados están ignorados por Git y pueden faltar en otro checkout.
 
 ## Motor y configuración
 
+Extensión 2026-10-04: `classify` aplica perfil versionado y gates separados de PASS
+legacy, sin rerun; `compare`/`report` enlazan suplementos vigentes. `publish` y
+`publish-comparison` generan un cuaderno Git compacto con límite por archivo, sin
+subir resultados pesados ni ejecutar Git. Challenge ETH Single-TF: tres candidatos
+congelados, 24 backtests previstos, historia anterior con warmup explícito; no ejecutado
+por el agente. Las decisiones humanas de familia se mantienen separadas de gates
+automáticos. [Contrato](research-evidence.md), [cuaderno](../research_results/README.md).
+
 | Ámbito | Estado confirmado |
 |---|---|
 | Paquete | `quant-trading-lab` 0.1.0, Python >=3.12 |

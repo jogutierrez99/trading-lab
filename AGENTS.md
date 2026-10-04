@@ -137,6 +137,12 @@ hourly volatility sizing or legacy_mtf/legacy_batch_006 adapter guards.
 
 ## Research evidence and immutable results
 
+Compact publication is allowed only through the lab allowlist into research_results/;
+keep results/, reports/, datasets, equity and ledgers local. Never commit/push automatically.
+For ordinary classification and frozen historical challenges, read docs/research-evidence.md.
+Legacy PASS remains separate; retrospective labels do not establish unobserved holdout
+independence. Do not assign adaptive WF winners' combined evidence to each fixed candidate.
+
 Preserve run/backtest IDs, original and resolved config, dataset fingerprints and file
 hashes, code hash, Git revision/status, strategy version, timestamps, environment and
 seeds when applicable. Record missing provenance as unknown rather than inventing it.

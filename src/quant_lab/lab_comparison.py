@@ -10,6 +10,8 @@ from uuid import uuid4
 import pandas as pd
 
 from quant_lab.experiments import write_json
+from quant_lab.lab_classification import latest_classification
+from quant_lab.lab_evidence import completed_run
 from quant_lab.lab_reporting import locate
 
 
@@ -26,10 +28,23 @@ def compare(root: Path, experiments: list[str]) -> Path:
         resolved = json.loads((path / "resolved.json").read_text(encoding="utf-8"))
         metrics = pd.read_csv(path / "metrics.csv")
         leaderboard = pd.read_csv(path / "leaderboard.csv")
+        evidence = completed_run(root, run["run_id"])
+        supplemental = latest_classification(root, evidence)
+        classification = None
+        if supplemental:
+            class_path, document = supplemental
+            classification = {
+                "counts": document["counts"],
+                "policy_id": document["policy"]["policy_id"],
+                "policy_sha256": document["policy_sha256"],
+                "path": str(class_path),
+                "sha256": hashlib.sha256(class_path.read_bytes()).hexdigest(),
+            }
         sources.append(
             {
                 "experiment": name,
                 "run_id": run["run_id"],
+                "research_classification": classification,
                 "path": str(path),
                 "validation": plan["validation"],
                 "filters": plan["filters"],
@@ -75,6 +90,13 @@ def compare(root: Path, experiments: list[str]) -> Path:
                 "valid_configurations": valid.configuration_id.nunique(),
                 "PASS": int((group.filter_status == "PASS").sum()),
                 "FAIL": int((group.filter_status == "FAIL").sum()),
+                "legacy_PASS": int((group.filter_status == "PASS").sum()),
+                "legacy_FAIL": int((group.filter_status == "FAIL").sum()),
+                "research_classification_counts_all_periods": json.dumps(
+                    classification["counts"], sort_keys=True
+                )
+                if classification
+                else None,
             }
             for metric in ("return_pct", "max_drawdown_pct", "sharpe", "expectancy"):
                 values = pd.to_numeric(valid[metric], errors="coerce").dropna()
@@ -92,8 +114,10 @@ def compare(root: Path, experiments: list[str]) -> Path:
     pd.DataFrame(rows).to_csv(directory / "comparison.csv", index=False, mode="x")
     text = (
         "# Lab comparison\n\nDescriptive medians; independent markets/modes, not a portfolio.\n"
-        "PASS/FAIL retain the source experiment filters. NEAR_PASS, RESEARCH_PASS and "
-        "PAPER_TRADING_CANDIDATE are not applicable to this backend.\n"
+        "PASS/FAIL columns retain only legacy filters; they are not research or paper eligibility. "
+        "New classifications are shown only when a hash-matched classification supplement exists. "
+        "Counts describe whole configurations, not each period row; do not sum repeated counts. "
+        "See sources.json for policy IDs/hashes; different policies are not interchangeable.\n"
         "TEST is the final holdout; no separate FINAL exists. "
         "No profitability or paper eligibility claim.\n"
         "Compare sources.json for periods, datasets, costs and execution assumptions.\n\n"
@@ -105,4 +129,21 @@ def compare(root: Path, experiments: list[str]) -> Path:
     )
     for name in ("summary.md", "ai_summary.md"):
         (directory / name).write_text(text, encoding="utf-8")
+    write_json(
+        directory / "outcome.json",
+        {
+            "status": "COMPLETE",
+            "sha256": {
+                name: hashlib.sha256((directory / name).read_bytes()).hexdigest()
+                for name in (
+                    "sources.json",
+                    "comparison.json",
+                    "comparison.csv",
+                    "train_ranked_examples.json",
+                    "summary.md",
+                    "ai_summary.md",
+                )
+            },
+        },
+    )
     return directory

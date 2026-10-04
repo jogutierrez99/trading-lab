@@ -36,6 +36,23 @@ def main(argv: list[str] | None = None) -> int:
         commands.add_parser(name)
     comparison = commands.add_parser("compare", help="Compare completed lab runs without backtests")
     comparison.add_argument("experiments", nargs="+")
+    classification = commands.add_parser(
+        "classify", help="Classify COMPLETE evidence without backtests"
+    )
+    classification.add_argument("identifier")
+    classification.add_argument("--policy", type=Path)
+    for name in ("publish", "publish-comparison"):
+        publication = commands.add_parser(
+            name, help="Write compact research_results; no Git operations"
+        )
+        publication.add_argument("identifier")
+        publication.add_argument("--max-file-mb", type=float, default=5.0)
+    challenge = commands.add_parser("challenge").add_subparsers(dest="action", required=True)
+    for name in ("validate", "run"):
+        action = challenge.add_parser(name)
+        action.add_argument("identifier")
+        if name == "validate":
+            action.add_argument("--full", action="store_true")
     for name in ("validate", "run", "report"):
         command = commands.add_parser(name)
         command.add_argument("experiment")
@@ -100,12 +117,46 @@ def main(argv: list[str] | None = None) -> int:
                 summary = Path(history[-1]["path"]) / "summary.json"
                 if summary.exists():
                     result["counts"] = json.loads(summary.read_text(encoding="utf-8"))
+        elif args.command == "classify":
+            from quant_lab.lab_classification import classify
+
+            result = {"classification_directory": str(classify(root, args.identifier, args.policy))}
+        elif args.command in {"publish", "publish-comparison"}:
+            from quant_lab.lab_publish import publish, publish_comparison
+
+            publish_command = publish if args.command == "publish" else publish_comparison
+            result = publish_command(root, args.identifier, int(args.max_file_mb * 1_000_000))
+        elif args.command == "challenge":
+            from quant_lab.lab_challenge import prepare_challenge, resolve_challenge, run_challenge
+
+            path, spec = resolve_challenge(root, args.identifier)
+            if args.action == "validate":
+                context = prepare_challenge(path, spec, full=args.full)
+                result = {
+                    "status": "VALID",
+                    "validation": "FULL" if args.full else "FAST",
+                    "experiment_id": spec.experiment_id,
+                    "backtests": context["backtests"],
+                    "candidates": context["candidates"],
+                    "scope": "HISTORICAL_CHALLENGE; no backtests executed",
+                }
+            else:
+                result = {"run_directory": str(run_challenge(path, spec, root))}
         elif args.command == "compare":
             from quant_lab.lab_comparison import compare
 
             result = {"comparison_directory": str(compare(root, args.experiments))}
         elif args.command == "report":
             result = locate(root, args.experiment)
+            supplements = root / "reports/lab-classification" / result["run_id"]
+            if result["status"] == "COMPLETE" and supplements.exists():
+                from quant_lab.lab_classification import latest_classification
+                from quant_lab.lab_evidence import completed_run
+
+                found = latest_classification(root, completed_run(root, result["run_id"]))
+                if found:
+                    result["classification_json"] = str(found[0])
+                    result["classification_summary"] = str(found[0].with_suffix(".md"))
         elif args.command == "experiment":
             result = {
                 "created": str(create(directory, args.source, args.experiment_id)),

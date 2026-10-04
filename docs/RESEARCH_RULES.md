@@ -88,6 +88,14 @@ ficticia de robustez donde solo hay un activo o timeframe.
 
 ## Clasificaciones exactas y alcance
 
+La nueva capa lab v1 incorpora FAIL/VALID/RESEARCH_PASS/OOS_PASS/ROBUST_PASS/
+PAPER_TRADING_CANDIDATE mediante suplementos separados de PASS legacy. Reglas y
+exclusión de TEST del gate research: [research-evidence](research-evidence.md).
+Los TEST WF de ganadores cambiantes no acreditan robustez de cada configuración;
+no se suman trades de ventanas solapadas ni costes alternativos. Reclasificar no
+deshace una selección previa basada en TEST. HISTORICAL_CHALLENGE es falsación de
+parámetros congelados elegidos con TEST observado, no un holdout independiente.
+
 Las etiquetas no son intercambiables y pueden coexistir. Mantener thresholds originales
 en código/plan; no promover metadata de estrategia automáticamente.
 

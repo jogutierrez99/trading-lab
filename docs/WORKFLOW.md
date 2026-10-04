@@ -142,6 +142,12 @@ ni cambia los criterios RESEARCH_PASS/V4.
 
 ## 6. Iteración y verificación técnica
 
+Nueva capa ordinaria: `lab.py classify ID` produce un suplemento versionado de gates;
+`lab.py compare ID1 ID2` lo incluye cuando existe y coincide por hashes. `lab.py publish ID`
+y `publish-comparison ID` preparan compactos en research_results para revisión y Git manual.
+La falsación de candidatos explícitos usa `lab.py challenge validate|run ID`, sin grids
+ni TEST ficticio. Comandos completos en [research-evidence](research-evidence.md).
+
 RESULTS → ANALYSIS → HYPOTHESIS → NEW EXPERIMENT. Registrar la razón del siguiente
 experimento y todos los intentos; no ajustar hasta encontrar rentabilidad ni reutilizar
 el holdout observado como evidencia independiente. Asset/timeframe robustness requiere

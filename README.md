@@ -112,6 +112,12 @@ de un experimento ordinario ni comparte todas sus opciones.
 
 ## Crear y ejecutar un experimento
 
+Clasificación escalonada sin rerun, challenge ETH de tres candidatos congelados y
+publicación compacta a Git: [research-evidence](docs/research-evidence.md).
+`lab.py classify ID` conserva PASS legacy; `lab.py publish ID` escribe únicamente
+el cuaderno [research_results](research_results/README.md), sin commit/push.
+El nuevo challenge usa `lab.py challenge validate|run ID` y no llama TEST a su historia.
+
 ```powershell
 python scripts/lab.py experiment create trend_btc_1h_002 --from trend_btc_1h_001
 # Editar configs/experiments/trend_btc_1h_002.yaml antes de ejecutarlo.

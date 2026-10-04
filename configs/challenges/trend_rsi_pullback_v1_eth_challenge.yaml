@@ -1,0 +1,91 @@
+schema_version: 1
+experiment_id: trend_rsi_pullback_v1_eth_challenge
+created_at: 2026-10-04 00:00:00+00:00
+description: Frozen ETH Single-TF candidates A/B/C, selected on previously observed
+  TEST; earlier history is falsification, not optimization or independent OOS.
+selection_context: selected_using_previously_observed_test
+freeze_policy: no_parameter_changes_after_challenge
+app: ../app.yaml
+strategy:
+  id: trend_rsi_pullback_v1
+  config: ../profiles/lab_trend_rsi_pullback.yaml
+markets:
+- symbol: ETHUSDT
+  timeframe: 15m
+  dataset: ../../data/mtf_15m/ETHUSDT/klines
+  dataset_format: mtf_quarters
+  dataset_id: 9d4bcb5a0627a70513522de8d967c52697af68220dba52ce626a9915730e35c8
+  warmup_bars: 1004
+candidates:
+- candidate_id: candidate_a
+  mode: LONG_SHORT
+  parameters:
+    variant: V1
+    sma_length: 185
+    rsi_length: 25
+    rsi_oversold: 35
+    rsi_overbought: 65
+    atr_length: 20
+    atr_multiplier: 2.5
+    reward_risk: 1.25
+    sma_slope_lookback: 5
+- candidate_id: candidate_b
+  mode: LONG_ONLY
+  parameters:
+    variant: V1
+    sma_length: 200
+    rsi_length: 25
+    rsi_oversold: 35
+    rsi_overbought: 65
+    atr_length: 20
+    atr_multiplier: 2.5
+    reward_risk: 1.25
+    sma_slope_lookback: 5
+- candidate_id: candidate_c
+  mode: LONG_ONLY
+  parameters:
+    variant: V1
+    sma_length: 150
+    rsi_length: 20
+    rsi_oversold: 35
+    rsi_overbought: 65
+    atr_length: 20
+    atr_multiplier: 2.5
+    reward_risk: 2.0
+    sma_slope_lookback: 5
+initial_cash: 10000.0
+costs:
+  trading_fee_pct: 0.05
+  slippage_pct: 0.03
+  spread_pct: 0.01
+execution:
+  market_mode: synthetic
+  quantity_step: 1.0e-06
+  min_quantity: 1.0e-06
+  min_notional: 10.0
+  filter_assumption: Existing fixed lab research filters; USD-M OHLCV prices, synthetic
+    collateralized execution; no funding or liquidations.
+historical_challenge:
+  label: HISTORICAL_CHALLENGE
+  requested:
+    start: 2020-01-01 00:00:00+00:00
+    end: 2023-06-04 00:00:00+00:00
+  warmup_start: 2020-01-01 00:00:00+00:00
+  segments:
+  - label: calendar_2020
+    start: 2020-01-11 11:00:00+00:00
+    end: 2021-01-01 00:00:00+00:00
+  - label: calendar_2021
+    start: 2021-01-01 00:00:00+00:00
+    end: 2022-01-01 00:00:00+00:00
+  - label: calendar_2022
+    start: 2022-01-01 00:00:00+00:00
+    end: 2023-01-01 00:00:00+00:00
+  - label: calendar_2023_partial
+    start: 2023-01-01 00:00:00+00:00
+    end: 2023-06-04 00:00:00+00:00
+  cost_stress:
+    adverse:
+      trading_fee_pct: 0.1
+      slippage_pct: 0.06
+      spread_pct: 0.02
