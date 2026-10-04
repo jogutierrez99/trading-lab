@@ -11,6 +11,7 @@ Datos y resultados están ignorados por Git y pueden faltar en otro checkout.
 |---|---|
 | Paquete | `quant-trading-lab` 0.1.0, Python >=3.12 |
 | CLI ordinaria | `scripts/lab.py`, `StudyBackend v1`, ejecución serial offline |
+| Recuperación lab | `run ID --resume [RUN_ID]`, auditoría `--check`; continuación nueva con referencias a artefactos verificados, sin cambiar estrategia/protocolo |
 | Motor histórico | `backtest.py` referencia v3 y adaptadores especializados conservados |
 | Mercado lab | Spot LONG_ONLY; cortos/combined sintéticos colateralizados, sin funding/préstamo |
 | Capital base | `configs/app.yaml`: 10000; el experimento puede sobrescribirlo |
@@ -25,6 +26,11 @@ Datos y resultados están ignorados por Git y pueden faltar en otro checkout.
 Estos son defaults, no constantes de todos los estudios. Perfiles, costes ZERO/BASE/ADVERSE
 y sizing especializados están congelados en cada protocolo. Por ejemplo cross-market
 usa slippage BASE 0.02%, distinto del 0.03% de app. Leer `resolved.json`/plan del run.
+
+Recuperación lab implementada el 2026-09-30: validada con fixtures de interrupción,
+corrupción y equivalencia con un run fresco; mantiene TRAIN/WF, filtros y ejecución.
+No se completaron grids históricos durante la implementación. El uso de `--resume`
+exige verificar los artefactos fuente y conservar sus carpetas (referencias sin copia).
 
 ## Datos encontrados
 
@@ -200,3 +206,16 @@ No hay una siguiente fase autorizada por el mero hecho de aparecer en esta lista
 
 Actualizar esta memoria al cambiar arquitectura, datos disponibles, estrategias, modos,
 workflow o MTF; no por cada run. El historial permanece en Git, protocolos y artefactos.
+
+## Observador Shadow PnL (2026-09-30)
+
+Forward incorpora contabilidad observacional separada de la ocupación legacy: posiciones
+persistentes, PnL/costes BASE, MFE/MAE, stops conservadores y límite 72h contado en barras
+completas. No modifica decisiones/sizing ni ejecución histórica. Barras parciales o
+huecos pueden limitar la evidencia; ver [semántica](forward-shadow-pnl.md).
+`python scripts/shadow_pnl.py SESSION` reconstruye con snapshot de lectura en un informe
+nuevo, sin tocar sesión o journal originales. SIGNAL_ONLY y bloqueo demo/live intactos.
+
+Shadow: preflight técnico final 672 tests aprobados, Ruff/format y dependencias correctos;
+17 pruebas nuevas, cuatro experimentos RSI FULL VALID. Reconstrucción read-only de la
+sesión solicitada documentada en la guía; sin reiniciar el runner externo ni enviar órdenes.

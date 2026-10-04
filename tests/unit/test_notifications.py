@@ -457,6 +457,30 @@ def test_cli_environment_absent_disabled_or_invalid(db, monkeypatch, caplog):
     assert not fw.ForwardWatcher(db).state_path.exists()
 
 
+@pytest.mark.parametrize("operation", ["observer_lock", "atomic_state"])
+def test_cli_os_error_diagnostics_preserve_state_and_hide_secrets(
+    db, monkeypatch, caplog, operation
+):
+    watcher = fw.ForwardWatcher(db, notifier())
+    watcher.poll()
+    before = watcher.state_path.read_bytes()
+    add(db)
+    monkeypatch.setattr(fw, "enabled", lambda: True)
+    sender = notifier()
+    monkeypatch.setattr(TelegramNotifier, "from_environment", lambda: sender)
+    error = OSError(13, "private-error-text", "private-path")
+    error.winerror = 32
+    monkeypatch.setattr(fw, operation, Mock(side_effect=error))
+
+    assert fw.main(["--db", str(db), "--once"]) == 2
+    assert "Watcher OS error at " in caplog.text
+    assert "errno=13, winerror=32" in caplog.text
+    assert "private-error-text" not in caplog.text
+    assert "private-path" not in caplog.text
+    assert watcher.state_path.read_bytes() == before
+    sender.send.assert_not_called()
+
+
 def test_invalid_poll_environment_never_echoes_value(monkeypatch, caplog):
     monkeypatch.setenv("TELEGRAM_POLL_SECONDS", "private-invalid-value")
     assert fw.main(["--dry-run", "--once"]) == 2

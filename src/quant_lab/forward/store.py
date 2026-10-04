@@ -314,6 +314,19 @@ class Store:
             "## Readiness",
             readiness,
         ]
+        state = self.restore() or {}
+        if "shadow_positions" in state:
+            from quant_lab.forward.shadow_reporting import render
+
+            shadow = state["shadow_positions"]
+            if counts["data_gaps_unresolved"]:
+                shadow = {
+                    key: row | {"coverage": "DATA_GAP"}
+                    if row["status"] == "OPEN" and row["coverage"] == "CONTINUOUS"
+                    else row
+                    for key, row in shadow.items()
+                }
+            sections.insert(-2, render(self.path, shadow))
         report = "\n\n".join(sections) + "\n"
         for name in ("summary.md", "ai_summary.md"):
             (self.path / name).write_text(report, encoding="utf-8")

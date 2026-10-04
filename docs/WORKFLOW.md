@@ -122,7 +122,10 @@ su lote hijo, no interpretar cualquier carpeta como el formato ordinario.
 No releer miles de operaciones por defecto. Verificar hashes requeridos por el protocolo;
 indicar qué se verificó y qué solo se leyó. Datos ausentes, métricas null y runs parciales
 son límites, nunca ceros ni éxito inferido. Si falta outcome lab, estado INCOMPLETE;
-no hay resume genérico: corregir causa y crear otro run preservando el anterior.
+para recuperar, corregir la causa y usar `lab.py run ID --resume --check` primero.
+Después `lab.py run ID --resume` calcula los pendientes en una continuación nueva;
+conservar el run fuente y todos los directorios referenciados en `reuse.json`.
+Véase [el contrato de recuperación](lab-workflow.md#resultados-y-fallos).
 
 El `ai_summary.md` automático es un artefacto congelado. Para análisis adicional, crear
 `reports/analysis/<experiment-or-study>/<run_id>/<UTC>-<id>/ai_summary.md` en ubicación

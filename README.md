@@ -127,6 +127,11 @@ cambia el activo. `validate` comprueba schema, capacidades, grids y manifiestos;
 `--full` verifica además bytes, fingerprints y OHLCV. Ninguno simula backtests.
 `run` repite FULL antes de simular.
 
+Para recuperar una ejecución interrumpida: `python scripts/lab.py run ID --resume --check`
+audita sin simular; `python scripts/lab.py run ID --resume` reutiliza los resultados
+verificados y calcula los pendientes en otra carpeta. Conserva las carpetas originales:
+`reuse.json` las referencia sin duplicar equity. [Contrato y límites](docs/lab-workflow.md#resultados-y-fallos).
+
 El ejemplo existente se ejecuta con `python scripts/lab.py run trend_btc_1h_001`:
 12 backtests, dos configuraciones × tres periodos × dos costes. Un clon nuevo no
 incluye datos ni resultados: prepara un bundle válido siguiendo [Phase 2](docs/phase-2.md)

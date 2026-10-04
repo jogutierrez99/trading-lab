@@ -123,8 +123,12 @@ El ID de configuración agrupa variantes; el ID de backtest identifica una ejecu
 
 `lab_reporting.runs/locate` lee metadata a dos niveles, solo `kind=lab_experiment_v1`.
 `report` no reconstruye informes ni interpreta historia legacy como lab. Sin outcome:
-`INCOMPLETE (running or interrupted)`. Fallos preservan evidencia; lab no tiene resume
-genérico. Estudios especializados conservan snapshots, recibos y manifests propios.
+`INCOMPLETE (running or interrupted)`. `lab_resume.Recovery` verifica configuración,
+datos, código/entorno y hashes JSON/equity para `run --resume [RUN_ID]`; `--check`
+solo audita. Crea una continuación con nuevo ledger y referencias `reuse.json` a los
+artefactos originales, sin sobrescribirlos ni duplicar Parquet. El bucle reconstruye
+la selección WF en TRAIN y ejecuta solo identidades pendientes. Las fuentes deben
+conservarse. Estudios especializados mantienen sus propios protocolos de resume.
 
 ## Entrypoints y tests
 

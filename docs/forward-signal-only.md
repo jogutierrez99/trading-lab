@@ -337,3 +337,11 @@ sobre cotizaciones; Ruff check/format de los archivos afectados correctos. No se
 ejecutó preflight completo ni runner operativo. Ruff global detectó I001 en
 scripts/test_telegram.py (imports), fuera de esta corrección. No se consultó OKX
 para reproducir la cotización perdida; el error antiguo no guardaba sus timestamps.
+
+## Contabilidad shadow detallada
+
+El observador [Shadow PnL](forward-shadow-pnl.md) añade posiciones, costes desglosados,
+MFE/MAE con límites causales, cierres y comparación de alternativas por signal_id.
+Se persiste en checkpoint y no cambia señales, sizing ni la ocupación legacy.
+Reconstrucción no destructiva, incluso mientras sigue el runner antiguo:
+`python scripts/shadow_pnl.py <SESSION_ID>`. No modifica lab.py ni los experimentos RSI.

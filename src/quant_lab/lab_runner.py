@@ -195,37 +195,56 @@ def rank_key(row: dict, experiment: Experiment):
     )
 
 
-def run(path: Path, experiment: Experiment, root: Path, output: Path | None = None) -> Path:
+def run(
+    path: Path,
+    experiment: Experiment,
+    root: Path,
+    output: Path | None = None,
+    *,
+    resume: str | None = None,
+    check_only: bool = False,
+) -> Path | dict:
     from quant_lab.lab_reporting import reports
 
     context = prepare(path, experiment, full=True)  # All data verified before creating a run.
     context["execution"] = experiment.execution
     code = provenance(root)
     plan = experiment.model_dump(mode="json")
-    store = ExperimentStore((output or root / "results") / experiment.experiment_id, plan, code)
+    resolved = {
+        "app": context["app"].model_dump(mode="json"),
+        "strategy": context["template"].model_dump(mode="json"),
+        "parameters": context["parameters"],
+        "parameter_risks": [
+            parameter_risk(
+                context["registry"].implementation(context["template"].name),
+                context["template"].risk,
+                p,
+            ).model_dump(mode="json")
+            for p in context["parameters"]
+        ]
+        if context["registry"].implementation(context["template"].name).lab_risk_parameters
+        else None,
+        "datasets": context["datasets"],
+        "backend": "study_backend_v1",
+        "execution": experiment.execution.model_dump(),
+    }
+    recovery = None
+    destination = (output or root / "results") / experiment.experiment_id
+    if check_only and resume is None:
+        raise ValueError("--check requires --resume")
+    if resume is not None:
+        from quant_lab.lab_resume import Recovery, select_source
+
+        recovery = Recovery(select_source(destination, resume), plan, resolved, code)
+        if check_only:
+            return recovery.summary()
+        if recovery.already_complete():
+            print("Run already complete and verified; no backtests executed", file=sys.stderr)
+            return recovery.source
+    store = ExperimentStore(destination, plan, code)
     with (store.path / "experiment_snapshot.yaml").open("x", encoding="utf-8") as handle:
         handle.write(path.read_text(encoding="utf-8"))
-    write_json(
-        store.path / "resolved.json",
-        {
-            "app": context["app"].model_dump(mode="json"),
-            "strategy": context["template"].model_dump(mode="json"),
-            "parameters": context["parameters"],
-            "parameter_risks": [
-                parameter_risk(
-                    context["registry"].implementation(context["template"].name),
-                    context["template"].risk,
-                    p,
-                ).model_dump(mode="json")
-                for p in context["parameters"]
-            ]
-            if context["registry"].implementation(context["template"].name).lab_risk_parameters
-            else None,
-            "datasets": context["datasets"],
-            "backend": "study_backend_v1",
-            "execution": experiment.execution.model_dump(),
-        },
-    )
+    write_json(store.path / "resolved.json", resolved)
     write_json(store.path / "environment.json", code)
     write_json(
         store.path / "run.json",
@@ -239,6 +258,8 @@ def run(path: Path, experiment: Experiment, root: Path, output: Path | None = No
     )
     print(f"Run {store.run_id}: {context['backtests']} backtests; {store.path}", file=sys.stderr)
     rows = []
+    if recovery:
+        recovery.attach(store)
 
     def one(frame, market, mode, params, label, period, scenario, costs):
         identity = {
@@ -264,6 +285,11 @@ def run(path: Path, experiment: Experiment, root: Path, output: Path | None = No
                 context["template"].risk,
                 params,
             ).model_dump(mode="json")
+        if recovery and (saved := recovery.take(meta)) is not None:
+            rows.append(saved)
+            if len(rows) % 1000 == 0:
+                print(f"Recovered {len(rows)}/{context['backtests']}", file=sys.stderr)
+            return saved
         record = store.start(meta)
         try:
             result = evaluate(context, frame, market, mode, params, period, costs)
@@ -357,7 +383,23 @@ def run(path: Path, experiment: Experiment, root: Path, output: Path | None = No
                             scenario,
                             costs,
                         )
+        if recovery:
+            recovery.assert_consumed()
         reports(store.path, experiment, rows, context, code)
+        if recovery:
+            note = (
+                "\n## Recovery provenance\n\n"
+                f"Source run: {recovery.source}\n\n"
+                f"Reused verified backtests: {len(recovery.records)}; "
+                f"new backtests: {len(rows) - len(recovery.records)}.\n\n"
+                "Original IDs/hashes retained in ledger.sqlite. reuse.json locates original "
+                "result.json/equity.parquet files; keep all referenced source directories. "
+                "New artifacts use the current environment; source provenance is retained "
+                "in its original directory and hashed in reuse.json.\n"
+            )
+            for filename in ("summary.md", "ai_summary.md"):
+                with (store.path / filename).open("a", encoding="utf-8") as handle:
+                    handle.write(note)
         write_json(store.path / "outcome.json", {"status": "COMPLETE", "backtests": len(rows)})
     except BaseException as exc:
         write_json(

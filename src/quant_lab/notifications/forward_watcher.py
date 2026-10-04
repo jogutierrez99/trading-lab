@@ -332,8 +332,22 @@ def main(argv=None) -> int:
         # All configuration errors originate here and contain no supplied values/secrets.
         LOG.error("%s", str(exc) if not isinstance(exc, json.JSONDecodeError) else "Invalid JSON")
         return 2
-    except OSError:
-        LOG.error("Watcher state/lock unavailable; check permissions or another active watcher")
+    except OSError as exc:
+        # Log numeric diagnostics and our last frame, never exception text/paths:
+        # an OSError may also originate during client setup, before locking.
+        location = "main"
+        frame = exc.__traceback__
+        while frame is not None:
+            if frame.tb_frame.f_code.co_filename == __file__:
+                location = f"{frame.tb_frame.f_code.co_name}:{frame.tb_lineno}"
+            frame = frame.tb_next
+        LOG.error(
+            "Watcher OS error at %s (errno=%s, winerror=%s); "
+            "check the failing operation before changing state or locks",
+            location,
+            exc.errno,
+            getattr(exc, "winerror", None),
+        )
         return 2
 
 

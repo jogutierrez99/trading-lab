@@ -198,8 +198,57 @@ equity/exposición y leaderboard. No modifica ningún resultado antiguo.
 `report latest` o `report <experiment_id>` muestra las rutas; no vuelve a simular ni
 reescribe informes. `status` inspecciona únicamente metadatos de runs, no miles de trades.
 Un run sin outcome es INCOMPLETE (activo o interrumpido), nunca COMPLETE por inferencia.
-Los fallos conservan los resultados terminados y el error. No hay resume genérico en v1:
-corrige la causa y lanza un nuevo run. Los runners legacy mantienen su propio resume.
+Los fallos conservan los resultados terminados y el error. La CLI ordinaria permite
+reanudar tras corregir la causa; los runners legacy mantienen su propio resume.
+
+```powershell
+# Solo auditoría de datos y resultados, sin backtests ni escrituras:
+python scripts/lab.py run trend_rsi_pullback_v1_mtf_slope --resume --check
+# Recuperar el último run del experimento y calcular únicamente lo que falta:
+python scripts/lab.py run trend_rsi_pullback_v1_mtf_slope --resume
+# También acepta --resume <RUN_ID> para elegir explícitamente la fuente.
+```
+
+`--resume` selecciona el último run, no mezcla diferentes protocolos ni busca uno
+antiguo más favorable. Exige igualdad del plan, configuración resuelta (incluidos
+riesgo, costes, parámetros, periodos y datasets), Python y versiones de dependencias.
+Verifica código fuente offline; solo excluye dispatch CLI, recuperación y observadores
+forward. La migración inicial del runner admite una pareja exacta de hashes auditada;
+otros cambios del runner o del cálculo se rechazan. Usa el mismo Python de la ejecución
+original y la misma plataforma: activar otra `.venv` puede cambiar versiones e impedir
+la recuperación.
+
+Cada backtest reutilizado debe tener ledger `completed`, metadata e identidad
+coherentes, SHA256 de result.json coincidente con SQLite y SHA256 de equity.parquet
+coincidente con result.json. Los incompletos o corruptos se vuelven a calcular;
+duplicados de identidad se rechazan. El proceso muestra avance de la auditoría.
+Los datos vuelven a pasar FULL antes de simular. La selección WF se reconstruye
+solo con TRAIN/base y todos los filtros siguen intactos.
+
+La continuación crea **otra carpeta de run**. Conserva los IDs/hashes originales
+en su ledger y `reuse.json` referencia sus archivos; solo escribe nuevos artefactos
+para las pruebas pendientes. No duplica los Parquet ni modifica el run interrumpido.
+**Conserva todas las carpetas fuente que aparecen en reuse.json**; el nuevo run
+depende de ellas. Los informes finales contienen el conjunto completo y explican
+cuántos resultados se reutilizaron. `report` y `compare` usan el nuevo run normalmente.
+Si vuelve a interrumpirse, repite `--resume`: las referencias se conservan sin cadenas
+de copias. Un run COMPLETE verificado se devuelve sin crear otro ni simular de nuevo.
+
+Detén la ejecución original antes de reanudar y ejecuta una sola continuación por
+experimento. La recuperación detecta cambios del ledger durante la auditoría; no es
+un coordinador distribuido de procesos. `--check` puede tardar al leer todos los hashes
+de equity; no ejecuta el grid. El comando `run` sin `--resume` sigue iniciando desde cero.
+
+Verificación de recuperación (2026-09-30): 69 pruebas dirigidas con Python 3.13.2 local
+(lab, recuperación y Trend RSI), con un aviso de permisos de la caché pytest que no
+afectó las pruebas. Tras los últimos ajustes, 12 pruebas de recuperación aprobadas;
+Ruff check/format globales correctos (309 archivos). Incluye equivalencia de métricas
+con un run fresco, corrupción JSON/equity, dos interrupciones consecutivas, identidad
+duplicada, cambios de configuración/código/entorno y fuente modificada durante auditoría.
+Las funciones prepare/evaluate/riesgo/ranking conservan su AST anterior. Sin grids
+históricos ejecutados: referencia local verificada 132/132; inventario SQLite de los
+tres grids y auditoría parcial de 6000 resultados Single TF. La auditoría íntegra de
+los grids se ejecuta al usar `--resume`; no se certificaron aquí todos sus Parquet.
 
 Pasa `ai_summary.md` a ChatGPT. Contiene identidad, datos, fechas, conteos, ranking TRAIN,
 holdouts, WF, stress, contribuciones netas long/short, métricas, filtros y frecuencias de

@@ -39,6 +39,16 @@ def main(argv: list[str] | None = None) -> int:
     for name in ("validate", "run", "report"):
         command = commands.add_parser(name)
         command.add_argument("experiment")
+        if name == "run":
+            command.add_argument(
+                "--resume",
+                nargs="?",
+                const="latest",
+                help="Reuse verified results from latest or RUN_ID",
+            )
+            command.add_argument(
+                "--check", action="store_true", help="Audit resume without backtests or writes"
+            )
         if name == "validate":
             command.add_argument(
                 "--full", action="store_true", help="Verify all dataset bytes/OHLCV"
@@ -113,7 +123,8 @@ def main(argv: list[str] | None = None) -> int:
                     "note": "No backtests executed; run always performs full data preflight",
                 }
             else:
-                result = {"run_directory": str(run(path, experiment, root))}
+                outcome = run(path, experiment, root, resume=args.resume, check_only=args.check)
+                result = outcome if isinstance(outcome, dict) else {"run_directory": str(outcome)}
         print(json.dumps(result, indent=2, default=str, allow_nan=False))
         return 0
     except (ValueError, OSError, RuntimeError, KeyError, TypeError) as exc:

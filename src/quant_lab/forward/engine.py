@@ -12,6 +12,7 @@ from quant_lab.brokers.base import OrderIntent
 from quant_lab.brokers.signal_only import SignalOnlyBroker
 from quant_lab.execution_config import ExecutionConfig
 from quant_lab.execution_policies.optional_15m_fill import BaselineEntry
+from quant_lab.forward.shadow import ShadowTracker, monetary_pnl
 from quant_lab.forward.store import identity
 from quant_lab.forward.strategy import IncrementalTiming, StrategyAdapter
 from quant_lab.market_data.okx import Bar, CandleBook, QuoteUnavailable
@@ -49,6 +50,12 @@ class ForwardEngine:
             self.positions, self.equity = state["positions"], state["equity"]
             self.monitor_latest = state.get("monitor_latest", {})
             self.timing.restore(state["timing"])
+        self.shadow = ShadowTracker(
+            inherited.costs["base"],
+            inherited.risk.max_holding_bars,
+            store.event,
+            state.get("shadow_positions", {}) if state else {},
+        )
 
     def save(self):
         self.store.checkpoint(
@@ -57,6 +64,7 @@ class ForwardEngine:
                 "equity": self.equity,
                 "timing": self.timing.snapshot(),
                 "monitor_latest": self.monitor_latest,
+                "shadow_positions": self.shadow.positions,
             }
         )
 
@@ -175,9 +183,16 @@ class ForwardEngine:
         )
         return intent
 
-    def accept(self, intent, boundary, *, publish=True):
+    def accept(self, intent, boundary, *, publish=True, signal_id=None, signal_timestamp=None):
         if publish:
             self.broker.record_intent(intent)
+            self.shadow.open(
+                intent,
+                self.instruments[intent.instrument_id],
+                self.store.session,
+                signal_id,
+                signal_timestamp or boundary,
+            )
         self.positions[intent.strategy] = asdict(intent) | {"entry_boundary": boundary.isoformat()}
         self.store.event(
             "POSITION_SNAPSHOT",
@@ -207,7 +222,8 @@ class ForwardEngine:
             price = self.costs.price(reference, -1)
             quantity, entry = position["target_quantity"], position["estimated_entry_price"]
             self.equity[strategy] += (
-                quantity * (price - entry) - quantity * (entry + price) * self.costs.fee
+                monetary_pnl("LONG", entry, price, quantity)
+                - quantity * (entry + price) * self.costs.fee
             )
             self.positions[strategy] = None
             self.store.event(
@@ -276,7 +292,9 @@ class ForwardEngine:
                         self.remember(hourly)
             if hourly:
                 self.update_position(BASELINE, hourly)
+                self.shadow.update(hourly)
             self.update_position(OPTIONAL, bar)
+            self.shadow.update(bar)
             if recovering:
                 self.store.event("LATE_CANDLE", bar.key, {"reason": "recovery_context_only"})
                 self.save()
@@ -338,7 +356,13 @@ class ForwardEngine:
                     BASELINE, signal_id, boundary, quote, observed, float(row.risk_atr)
                 )
                 if intent:
-                    self.accept(intent, boundary, publish=BASELINE in self.config.strategies)
+                    self.accept(
+                        intent,
+                        boundary,
+                        publish=BASELINE in self.config.strategies,
+                        signal_id=signal_id,
+                        signal_timestamp=boundary,
+                    )
                     if OPTIONAL in self.config.strategies:
                         entry = BaselineEntry(
                             intent.id,
@@ -390,7 +414,12 @@ class ForwardEngine:
                 OPTIONAL, entry.signal_id, boundary, quote, observed, entry.signal_atr
             )
             if intent:
-                self.accept(intent, boundary)
+                self.accept(
+                    intent,
+                    boundary,
+                    signal_id=entry.signal_id,
+                    signal_timestamp=entry.baseline_signal_time,
+                )
                 self.timing.policy.on_entry(boundary, intent.estimated_entry_price)
                 self.store.event(
                     "TIMING_FILL_SELECTED" if optimized else "TIMING_FALLBACK",
