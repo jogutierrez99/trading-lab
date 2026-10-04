@@ -128,6 +128,12 @@ La dirección la determina `modes`, no `execution.direction`. No se emulan contr
 perpetuos. Stops ATR, riesgo, exposición, fills, comisiones de ambos lados y liquidación
 se delegan a `StudyBackend`, con sus convenciones conservadoras de ambigüedad intrabar.
 No hay posiciones que atraviesen periodos. Warmup aporta features pero no operaciones.
+
+Las [nuevas hipótesis intradía](intraday-strategies-v1.md) añaden niveles absolutos
+opt-in para RANGE (stop estructural y target midpoint) y diagnostic_periods anuales.
+Son segmentos independientes, no WF ni una cartera encadenada; no seleccionan
+parámetros ni afectan gates/filtros agregados. Publicación incluye todas sus filas
+compactas. Se conservan las restricciones de adapters legacy y sizing horario.
 Sizing por volatilidad se limita a 1h porque la función existente anualiza horas.
 
 ## Walk-forward y costes

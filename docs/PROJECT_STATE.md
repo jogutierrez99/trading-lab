@@ -63,7 +63,8 @@ no prueba una descarga 5m ni soporte de ese timeframe en lab.
 
 ## Estrategias implementadas
 
-Catálogo real: **30**, todas versión **1.0.0**, estado de metadata **research**.
+Catálogo real: **32**, estado de metadata **research**. Versión 1.0.0 salvo
+trend_volatility_breakout_v1 1.0.1 (corrección de warmup).
 `L` = LONG_ONLY; `L/S/LS` = LONG_ONLY, SHORT_ONLY, LONG_SHORT. Son capacidades declaradas
 del adaptador, no resultados de validación económica ni garantía de YAML habilitado.
 Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones explícitas.
@@ -89,6 +90,7 @@ Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones e
 | mtf_trend_pullback | 1.0.0 | L/S/LS | 1h | legacy_mtf / research |
 | mtf_volatility_expansion | 1.0.0 | L | 1h, 15m | legacy_mtf / research |
 | regime_meanrev | 1.0.0 | L | 1h | ohlcv / research |
+| range_mean_reversion_v1 | 1.0.0 | L/S/LS | 15m + contexto 1h | ohlcv, niveles absolutos opt-in / research |
 | regime_trend | 1.0.0 | L | 1h | ohlcv / research |
 | rsi_momentum_reset | 1.0.0 | L | 1h | ohlcv / research |
 | time_series_momentum | 1.0.0 | L/S/LS | 1h | ohlcv / research |
@@ -100,6 +102,7 @@ Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones e
 | vol_contraction_expansion | 1.0.0 | L | 1h | ohlcv / research |
 | vol_expansion_trend | 1.0.0 | L | 1h | ohlcv / research |
 | vol_momentum | 1.0.0 | L | 1h | ohlcv / research |
+| volatility_breakout_intraday_v1 | 1.0.0 | L/S/LS | 15m + contexto 1h | ohlcv / research |
 
 `liquidity_sweep` y `breakout_retest` siguen como YAML reservados sin implementación.
 Los perfiles originales deshabilitados no se habilitan automáticamente; el ejemplo
@@ -250,3 +253,17 @@ grids completos quedan para el usuario. TEST es OOS específico sobre historia y
 observada a nivel del proyecto, no evidencia independiente futura.
 Verificación de la corrección: suite completa 806 passed; Ruff/format y dependencias
 correctos; ETH/BTC FAST y FULL VALID. Sin grids históricos ni robustez real ejecutados.
+
+## Hipótesis intradía independientes (2026-10-04)
+
+Breakout compresión→ruptura→expansión y RANGE rechazo→midpoint: una configuración
+por familia, BTC/ETH 15m, contexto 1h completo y warmup2004. Fuente USD-M 2020–2026
+fijada; evaluación desde 2020-02-01 para disponer de warmup. Ejecución synthetic,
+sin funding/liquidaciones. BASE/ADVERSE y tres modos separados; RESEARCH ONLY.
+RANGE añade niveles absolutos opt-in sobre sizing/protecciones existentes.
+diagnostic_periods reutiliza segmentos/ledger/resume para siete años independientes,
+fuera de selección y gates. 120 backtests previstos por familia, ninguno histórico
+ejecutado por el agente. [Protocolo, adaptaciones y comandos](intraday-strategies-v1.md).
+Verificación: 863 tests aprobados (57 nuevos), Ruff/check y format correctos,
+dependencias sin conflictos; ambos experimentos FAST/FULL VALID. Solo pruebas
+sintéticas pequeñas de ejecución/reutilización/publicación; resultados económicos pendientes.

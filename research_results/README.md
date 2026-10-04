@@ -33,3 +33,8 @@ clasificación son retrospectivos y no hacen que un holdout observado sea indepe
 
 Procedimiento y comandos: [docs/research-evidence.md](../docs/research-evidence.md).
 Decisiones humanas: [Trend RSI Pullback](trend_rsi_pullback/RESEARCH_STATUS.md).
+
+Hipótesis intradía pendientes: [Volatility Breakout Intraday](volatility_breakout_intraday/RESEARCH_STATUS.md)
+y [Range Mean Reversion](range_mean_reversion/RESEARCH_STATUS.md).
+Sus compactos incluyen diagnósticos anuales separados y costes desglosados;
+los años se solapan con los periodos principales y no se suman con ellos.

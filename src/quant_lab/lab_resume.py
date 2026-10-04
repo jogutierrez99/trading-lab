@@ -101,7 +101,7 @@ class Recovery:
         count = len(resolved["parameters"]) * len(plan["markets"]) * len(plan["modes"])
         scenarios = 1 + len(plan["validation"]["cost_stress"])
         folds = len(plan["validation"]["walk_forward"])
-        expected = count * scenarios * (3 + folds)
+        expected = count * scenarios * (3 + len(plan.get("diagnostic_periods", {})) + folds)
         expected += len(plan["markets"]) * len(plan["modes"]) * scenarios * folds
         if self.expected != expected:
             raise ValueError("Resume expected count does not match the frozen plan")

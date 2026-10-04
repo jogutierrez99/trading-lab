@@ -153,7 +153,8 @@ def test_cli_check_does_not_run_or_write(lab, monkeypatch, capsys):
 
 def test_legacy_transition_is_exact_and_fails_closed():
     path = Path(lab_runner.__file__)
-    assert hashlib.sha256(path.read_bytes()).hexdigest() == RUNNER_TRANSITION[1]
+    current_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert current_hash not in RUNNER_TRANSITION
     base = {
         "python": "3.13.2",
         "dependencies": {"numpy": "2.2.4"},
@@ -163,6 +164,9 @@ def test_legacy_transition_is_exact_and_fails_closed():
     current = copy.deepcopy(base)
     current["files"]["src\\quant_lab\\lab_runner.py"] = RUNNER_TRANSITION[1]
     compatible_code(base, current)
+    current["files"]["src\\quant_lab\\lab_runner.py"] = current_hash
+    with pytest.raises(ValueError, match="code mismatch"):
+        compatible_code(base, current)
     current["files"]["src\\quant_lab\\lab_runner.py"] = "future unreviewed edit"
     with pytest.raises(ValueError, match="code mismatch"):
         compatible_code(base, current)

@@ -123,11 +123,21 @@ class Experiment(StrictModel):
     costs: CostsConfig | None = None
     execution: ExecutionConfig
     validation: Validation
+    diagnostic_periods: dict[StrategyName, Period] = Field(default_factory=dict)
     filters: Filters = Field(default_factory=Filters)
     ranking: Ranking = Field(default_factory=Ranking)
 
     @model_validator(mode="after")
     def consistent(self):
+        previous = None
+        for label, period in self.diagnostic_periods.items():
+            if not label.startswith("diagnostic_"):
+                raise ValueError("Diagnostic labels must start with diagnostic_")
+            if period.start < self.validation.train.start or period.end > self.validation.test.end:
+                raise ValueError("Diagnostics must lie within the research coverage")
+            if previous is not None and period.start < previous:
+                raise ValueError("Diagnostic periods must be ordered and disjoint")
+            previous = period.end
         if self.created_at.utcoffset() != timedelta(0):
             raise ValueError("created_at must be timezone-aware UTC")
         keys = [(m.symbol, m.timeframe) for m in self.markets]
@@ -151,10 +161,19 @@ class Experiment(StrictModel):
     def combinations(self):
         return prod(len(values) for values in self.strategy_parameters.values())
 
+    def periods(self):
+        yield from experiment_periods(self)
+
     def grid(self):
         keys = sorted(self.strategy_parameters)
         for values in product(*(self.strategy_parameters[key] for key in keys)):
             yield dict(zip(keys, values, strict=True))
+
+
+def experiment_periods(experiment):
+    """Shared preparation also accepts frozen challenge protocols without diagnostics."""
+    yield from experiment.validation.periods()
+    yield from getattr(experiment, "diagnostic_periods", {}).items()
 
 
 def discover(directory: Path) -> dict[str, tuple[Path, Experiment]]:

@@ -1,0 +1,126 @@
+{
+  "experiment": "volatility_breakout_intraday_v1_btc_eth_15m",
+  "run_id": "20261004T145930Z-5bae5d16f71c",
+  "strategy": "volatility_breakout_intraday_v1",
+  "strategy_version": "1.0.0",
+  "code_hash": "cad120a9800c23380cce3bfe08aac5a43084bde453192ebcddf7f4aaa56ecac5",
+  "git_commit": "c40d5c4d3e345eda56f34474302f86bd1cfc8109",
+  "environment": {
+    "python": "3.13.2",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "dependencies": {
+      "pandas": "2.2.3",
+      "numpy": "2.2.4",
+      "pyarrow": "23.0.1",
+      "pydantic": "2.10.6",
+      "PyYAML": "6.0.3"
+    }
+  },
+  "datasets": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "15m",
+      "dataset_id": "0a6032afe6c1e90ece9fe7f09ad8e7630860343b8433ca7f0d720102b54ffa97",
+      "parquet_sha256": "4cd16c93b3cc5c2c5dcf8c47720f7db4121750efb78c7d2fe0d2e4b2c58c9799",
+      "start": "2020-01-01 00:00:00+00:00",
+      "end": "2026-09-26 00:00:00+00:00"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "15m",
+      "dataset_id": "9d4bcb5a0627a70513522de8d967c52697af68220dba52ce626a9915730e35c8",
+      "parquet_sha256": "81a1a2515b321d29fabe33a1aea83896d8208b063d511438cf09f766357e6e0c",
+      "start": "2020-01-01 00:00:00+00:00",
+      "end": "2026-09-26 00:00:00+00:00"
+    }
+  ],
+  "markets": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "15m",
+      "warmup_bars": 2004
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "15m",
+      "warmup_bars": 2004
+    }
+  ],
+  "execution_assumptions": {
+    "market_mode": "synthetic",
+    "direction": "long",
+    "quantity_step": 1e-06,
+    "min_quantity": 1e-06,
+    "min_notional": 10.0,
+    "filter_assumption": "Existing fixed lab research filters; USD-M OHLCV prices, synthetic collateralized execution; no funding or liquidations.",
+    "liquidate_at_end": true
+  },
+  "cost_assumptions": {
+    "base": {
+      "trading_fee_pct": 0.05,
+      "slippage_pct": 0.03,
+      "spread_pct": 0.01
+    },
+    "stress": {
+      "adverse": {
+        "trading_fee_pct": 0.1,
+        "slippage_pct": 0.06,
+        "spread_pct": 0.02
+      }
+    }
+  },
+  "validation": {
+    "train": {
+      "start": "2020-02-01T00:00:00Z",
+      "end": "2023-01-01T00:00:00Z"
+    },
+    "validation": {
+      "start": "2023-01-01T00:00:00Z",
+      "end": "2025-01-01T00:00:00Z"
+    },
+    "test": {
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2026-09-26T00:00:00Z"
+    },
+    "walk_forward": [],
+    "cost_stress": {
+      "adverse": {
+        "trading_fee_pct": 0.1,
+        "slippage_pct": 0.06,
+        "spread_pct": 0.02
+      }
+    }
+  },
+  "historical_challenge": null,
+  "selection_context": "unknown; retrospective classification is not independent validation",
+  "candidates": null,
+  "classification": null,
+  "source": "results/volatility_breakout_intraday_v1_btc_eth_15m/20261004T145930Z-5bae5d16f71c",
+  "source_sha256": {
+    "run.json": "cae96d1babb666d5b2237f636d543a2b9fb8222a1e16bb83d800218e44f6174f",
+    "outcome.json": "261ccd51f08e90fbc1b93b734afeae88703dd32c98160a58a28106c91ea65e64",
+    "plan.json": "42c6ef523bfb8c680f827ab03ea220abda552f8fcfa89ff414053d7917900bfd",
+    "resolved.json": "73ad58652f04c43814140eef3a5f4f7c0bc02b90b14612c71ab9f10469625bb9",
+    "provenance.json": "22e50ccb7ff730987b87bc8018f9ae316fe9c399276040e1329376e7a4d6d4cc",
+    "metrics.csv": "5aee3858795fa2cb9a9971cf605f478273592ff467deb60bc30a77412b219545",
+    "ai_summary.md": "214ff5226e71271cafda4dc37289bd63a52d844c0d09aa3583420513bd686952",
+    "summary.md": "214ff5226e71271cafda4dc37289bd63a52d844c0d09aa3583420513bd686952",
+    "leaderboard.csv": "e2de31a9d078ae7f4bd5d5212e60e45b6846eb7e51fdd54850c6e7b341c9f3ed"
+  },
+  "compact_selection": "All challenge rows, or TRAIN-ranked top_n main rows plus all selected WF TEST rows and predefined diagnostic periods. No TEST ranking.",
+  "compact_rows": 120,
+  "source_rows": 120,
+  "classification_source": null,
+  "classification_sha256": null,
+  "publication_schema_version": 1,
+  "published_at": "2026-10-04T15:06:45.066092+00:00",
+  "max_file_bytes": 5000000,
+  "skipped": {},
+  "artifacts_sha256": {
+    "ai_summary.md": "ffefd68df863fb741522e8618e04488f18b6d31737ab8d7ef8c890c6e6f7864d",
+    "summary.md": "ffefd68df863fb741522e8618e04488f18b6d31737ab8d7ef8c890c6e6f7864d",
+    "leaderboard.csv": "26db8273a884e4a13c328b72d34801901619813c2703b4bfd0e48d536d9fc76d",
+    "metrics_compact.csv": "d928f06f0acad3a339cdf23ede8de33f20ae21037015db8d6b133f7a0f0215b4"
+  },
+  "note": "Compact research notebook, not full backtest storage. Legacy PASS is not paper eligibility. No Git commit/push performed."
+}

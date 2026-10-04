@@ -1,0 +1,25 @@
+name: volatility_breakout_intraday_v1
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 15m
+parameters:
+  ema_period: 100
+  ema_slope_lookback: 3
+  compression_window: 60
+  compression_ratio: 0.75
+  breakout_lookback: 20
+  atr_period: 14
+  atr_reference_window: 20
+  atr_expansion_factor: 1.1
+  momentum_threshold: 0.5
+  stop_atr_multiplier: 2.0
+  reward_risk: 2.0
+risk:
+  stop_method: atr
+  stop_enabled: true
+  take_profit_enabled: true
+  trailing_atr_multiplier: null
+  max_holding_bars: null

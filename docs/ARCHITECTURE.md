@@ -177,3 +177,19 @@ defecto. La nueva familia vincula ATR/RR a RiskConfig; no implementa otro sizing
 otro motor de protección. MTF reutiliza complete_bars/closed_features.
 lab_comparison lee únicamente artefactos compactos de runs COMPLETE y escribe un
 reporte nuevo, llamado por lab.py compare. Detalles en [protocolo](trend-rsi-pullback.md).
+
+## Hipótesis intradía independientes
+
+intraday_features reutiliza EMA/ADX y closed_features para contexto 1h de señales 15m,
+con reset por gaps. BaseStrategy.lab_price_levels activa niveles absolutos; el contrato
+entry_levels no ejecuta órdenes. price_level_execution convierte el bracket congelado
+en distancia/RR a next-open efectivo, delegando size_entry y preservando risk caps.
+StudyBackend usa esta rama solo si se suministran niveles, sin cambiar reference_v3
+ni adapters históricos. intraday_metrics añade diagnósticos sin selección.
+
+Experiment.diagnostic_periods es opcional: periodos dentro de cobertura, con nombres
+diagnostic_, ordenados/disjuntos entre sí. prepare/check_periods/run/resume conservan
+identidad y costes de cada segmento; no intervienen en ranking ni gates de candidatos.
+Publisher permite columnas compactas de costes/diagnósticos y las filas anuales;
+comparison separa activos cuando se declara esta extensión. Sin perpetuos/funding
+genéricos nuevos: [supuestos y protocolo](intraday-strategies-v1.md).

@@ -9,7 +9,7 @@ import pandas as pd
 
 from quant_lab.history import HistoryRequest
 from quant_lab.history_cache import read_bundle
-from quant_lab.lab_schema import Experiment, Market
+from quant_lab.lab_schema import Experiment, Market, experiment_periods
 from quant_lab.study_backend import candle_step
 from quant_lab.study_data import audit, digest
 
@@ -82,7 +82,7 @@ def inspect_bundle(base: Path, market: Market) -> dict:
 
 def check_periods(info: dict, market: Market, experiment: Experiment) -> None:
     step = candle_step(market.timeframe)
-    for label, period in experiment.validation.periods():
+    for label, period in experiment_periods(experiment):
         start, end = pd.Timestamp(period.start), pd.Timestamp(period.end)
         left = start - market.warmup_bars * step
         if start != start.floor(step) or end != end.floor(step):

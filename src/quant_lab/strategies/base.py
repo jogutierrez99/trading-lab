@@ -39,11 +39,17 @@ class BaseStrategy[P: StrictModel](ABC):
     lab_execution: ClassVar[str] = "ohlcv"
     # Opt-in mapping only; execution and sizing remain in RiskConfig/StudyBackend.
     lab_risk_parameters: ClassVar[dict[str, str]] = {}
+    lab_price_levels: ClassVar[bool] = False
+    lab_extended_metrics: ClassVar[bool] = False
     parameter_model: ClassVar[type[StrictModel]]
 
     @classmethod
     def required_warmup(cls, parameters: dict, timeframe: str) -> int:
         return 0
+
+    def entry_levels(self, candles: FeatureFrame):
+        """Opt-in absolute stops/targets known at each signal close, never fills."""
+        return None
 
     def __init__(self, config: StrategyConfig):
         if config.name != self.name or config.version != self.version:

@@ -58,6 +58,7 @@ def test_implemented_discovery_is_idempotent():
         "mtf_supertrend_pullback",
         "mtf_trend_pullback",
         "mtf_volatility_expansion",
+        "range_mean_reversion_v1",
         "regime_meanrev",
         "regime_trend",
         "rsi_momentum_reset",
@@ -70,6 +71,7 @@ def test_implemented_discovery_is_idempotent():
         "vol_contraction_expansion",
         "vol_expansion_trend",
         "vol_momentum",
+        "volatility_breakout_intraday_v1",
     )
     assert registry.names() == expected
     assert registry.discover().names() == expected

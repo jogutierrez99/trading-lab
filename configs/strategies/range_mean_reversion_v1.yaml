@@ -1,0 +1,25 @@
+name: range_mean_reversion_v1
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 15m
+parameters:
+  adx_period: 14
+  adx_threshold: 20.0
+  ema_period: 100
+  ema_slope_lookback: 3
+  max_ema_slope_pct: 0.1
+  range_lookback: 32
+  lower_zone: 0.2
+  upper_zone: 0.8
+  atr_period: 14
+  minimum_range_atr: 3.0
+  stop_atr_buffer: 0.5
+risk:
+  stop_method: structure
+  stop_enabled: true
+  take_profit_enabled: true
+  trailing_atr_multiplier: null
+  max_holding_bars: null

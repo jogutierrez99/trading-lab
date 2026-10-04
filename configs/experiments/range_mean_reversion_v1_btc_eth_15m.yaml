@@ -1,0 +1,110 @@
+schema_version: 1
+experiment_id: range_mean_reversion_v1_btc_eth_15m
+created_at: 2026-10-04 13:59:34.427496+00:00
+description: RESEARCH ONLY; one frozen configuration; BTC/ETH USD-M 15m prices with
+  closed 1h context. Synthetic collateralized execution; funding and liquidations
+  not modelled. Observed historical diagnostic; annual periods never select parameters.
+app: ../app.yaml
+strategy:
+  id: range_mean_reversion_v1
+  config: ../strategies/range_mean_reversion_v1.yaml
+markets:
+- symbol: BTCUSDT
+  timeframe: 15m
+  dataset: ../../data/mtf_15m/BTCUSDT/klines
+  dataset_format: mtf_quarters
+  dataset_id: 0a6032afe6c1e90ece9fe7f09ad8e7630860343b8433ca7f0d720102b54ffa97
+  warmup_bars: 2004
+- symbol: ETHUSDT
+  timeframe: 15m
+  dataset: ../../data/mtf_15m/ETHUSDT/klines
+  dataset_format: mtf_quarters
+  dataset_id: 9d4bcb5a0627a70513522de8d967c52697af68220dba52ce626a9915730e35c8
+  warmup_bars: 2004
+modes:
+- LONG_ONLY
+- SHORT_ONLY
+- LONG_SHORT
+strategy_parameters:
+  adx_period:
+  - 14
+  adx_threshold:
+  - 20.0
+  ema_period:
+  - 100
+  ema_slope_lookback:
+  - 3
+  max_ema_slope_pct:
+  - 0.1
+  range_lookback:
+  - 32
+  lower_zone:
+  - 0.2
+  upper_zone:
+  - 0.8
+  atr_period:
+  - 14
+  minimum_range_atr:
+  - 3.0
+  stop_atr_buffer:
+  - 0.5
+initial_cash: 10000.0
+costs: null
+execution:
+  market_mode: synthetic
+  direction: long
+  quantity_step: 1.0e-06
+  min_quantity: 1.0e-06
+  min_notional: 10.0
+  filter_assumption: Existing fixed lab research filters; USD-M OHLCV prices, synthetic
+    collateralized execution; no funding or liquidations.
+  liquidate_at_end: true
+validation:
+  train:
+    start: 2020-02-01 00:00:00+00:00
+    end: 2023-01-01 00:00:00+00:00
+  validation:
+    start: 2023-01-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  test:
+    start: 2025-01-01 00:00:00+00:00
+    end: 2026-09-26 00:00:00+00:00
+  walk_forward: []
+  cost_stress:
+    adverse:
+      trading_fee_pct: 0.1
+      slippage_pct: 0.06
+      spread_pct: 0.02
+diagnostic_periods:
+  diagnostic_2020:
+    start: 2020-02-01 00:00:00+00:00
+    end: 2021-01-01 00:00:00+00:00
+  diagnostic_2021:
+    start: 2021-01-01 00:00:00+00:00
+    end: 2022-01-01 00:00:00+00:00
+  diagnostic_2022:
+    start: 2022-01-01 00:00:00+00:00
+    end: 2023-01-01 00:00:00+00:00
+  diagnostic_2023:
+    start: 2023-01-01 00:00:00+00:00
+    end: 2024-01-01 00:00:00+00:00
+  diagnostic_2024:
+    start: 2024-01-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  diagnostic_2025:
+    start: 2025-01-01 00:00:00+00:00
+    end: 2026-01-01 00:00:00+00:00
+  diagnostic_2026:
+    start: 2026-01-01 00:00:00+00:00
+    end: 2026-09-26 00:00:00+00:00
+filters:
+  minimum_trades: 1
+  maximum_drawdown_pct: 25.0
+  minimum_profit_factor: null
+  minimum_sharpe: null
+  positive_test: false
+  cost_stress_survival: false
+ranking:
+  metric: closed_trades
+  descending: true
+  top_n: 6

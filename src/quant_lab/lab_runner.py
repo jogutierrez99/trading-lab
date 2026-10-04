@@ -23,7 +23,7 @@ from quant_lab.experiments import ExperimentStore, provenance, write_json
 from quant_lab.features import atr
 from quant_lab.indicators import volatility_fractions
 from quant_lab.lab_data import check_periods, inspect_bundle, load_bundle
-from quant_lab.lab_schema import Experiment
+from quant_lab.lab_schema import Experiment, experiment_periods
 from quant_lab.metrics import summarize
 from quant_lab.strategies.registry import StrategyRegistry
 from quant_lab.study_backend import Segment, StudyBackend, candle_step, validate_segment
@@ -57,7 +57,15 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         raise ValueError("Ordinary lab adapter currently supports Binance OHLCV datasets only")
     registry.create(template)  # Enabled flag, version and parameter model.
     risk = template.risk
-    if risk.stop_enabled and risk.stop_method != "atr":
+    if cls.lab_price_levels:
+        if (
+            risk.stop_method != "structure"
+            or not risk.stop_enabled
+            or not risk.take_profit_enabled
+            or risk.trailing_atr_multiplier is not None
+        ):
+            raise ValueError("Absolute-level strategy requires structural stop/target, no trailing")
+    elif risk.stop_enabled and risk.stop_method != "atr":
         raise ValueError("Ordinary lab adapter supports ATR stops; use specialized runner")
     keys = cls.parameter_model.model_fields
     for name in experiment.strategy_parameters:
@@ -100,7 +108,7 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         datasets.append(info)
         if full:
             frame = load_bundle(info)
-            for label, period in experiment.validation.periods():
+            for label, period in experiment_periods(experiment):
                 view, segment = window(frame, market, period)
                 validate_segment(view, segment)
                 if len(view) != market.warmup_bars + int(
@@ -117,7 +125,11 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         if any(getattr(costs, k) < v for k, v in app.costs.model_dump().items()):
             raise ValueError(f"Stress {name} must not lower any base cost")
     count = len(configs) * len(datasets) * len(experiment.modes) * len(scenarios)
-    count *= 3 + len(experiment.validation.walk_forward)
+    count *= (
+        3
+        + len(getattr(experiment, "diagnostic_periods", {}))
+        + len(experiment.validation.walk_forward)
+    )
     count += (
         len(datasets)
         * len(experiment.modes)
@@ -174,7 +186,8 @@ def evaluate(context, frame, market, mode, parameters, period, costs):
     execution = ExecutionConfig.model_validate(
         context["execution"].model_dump() | {"direction": DIRECTIONS[mode]}
     )
-    return StudyBackend().run(
+    options = {"entry_levels": strategy.entry_levels(candles)} if strategy.lab_price_levels else {}
+    result = StudyBackend().run(
         candles,
         signals,
         distances,
@@ -183,7 +196,13 @@ def evaluate(context, frame, market, mode, parameters, period, costs):
         config.risk,
         execution,
         fractions,
+        **options,
     )
+    if strategy.lab_extended_metrics:
+        from quant_lab.intraday_metrics import diagnostic_result
+
+        result = diagnostic_result(result, candles, signals, segment, strategy.name)
+    return result
 
 
 def rank_key(row: dict, experiment: Experiment):
@@ -296,6 +315,7 @@ def run(
             row = (
                 meta
                 | summarize(result)
+                | getattr(result, "diagnostics", {})
                 | {
                     "backtest_id": record,
                     "status": "completed",
@@ -333,8 +353,11 @@ def run(
     try:
         for market, frame in zip(experiment.markets, context["frames"], strict=True):
             for mode in experiment.modes:
-                for label in ("train", "validation", "test"):
-                    period = getattr(experiment.validation, label)
+                periods = [
+                    (k, getattr(experiment.validation, k)) for k in ("train", "validation", "test")
+                ]
+                periods += list(experiment.diagnostic_periods.items())
+                for label, period in periods:
                     for params in context["parameters"]:
                         for scenario, costs in context["scenarios"].items():
                             one(frame, market, mode, params, label, period, scenario, costs)

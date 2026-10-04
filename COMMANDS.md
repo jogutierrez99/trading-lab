@@ -100,3 +100,55 @@ python scripts/lab.py publish-comparison latest
 
 Reclasificar crea otro suplemento sin backtests. Publicar no sobrescribe una
 publicación anterior ni hace Git. Ninguno conecta esta familia a forward.
+
+## Hipótesis intradía V1 — investigación local
+
+Protocolo: [docs/intraday-strategies-v1.md](docs/intraday-strategies-v1.md).
+Una configuración por familia, BTC/ETH, tres modos y BASE/ADVERSE;
+120 backtests por experimento incluyendo diagnósticos anuales independientes.
+Precios USD-M 15m locales con ejecución synthetic; funding no modelado.
+
+### Validar las dos definiciones y sus datos
+
+```powershell
+& .\.venv\Scripts\python.exe scripts/lab.py validate volatility_breakout_intraday_v1_btc_eth_15m
+& .\.venv\Scripts\python.exe scripts/lab.py validate volatility_breakout_intraday_v1_btc_eth_15m --full
+& .\.venv\Scripts\python.exe scripts/lab.py validate range_mean_reversion_v1_btc_eth_15m
+& .\.venv\Scripts\python.exe scripts/lab.py validate range_mean_reversion_v1_btc_eth_15m --full
+```
+
+**Función:** Revisa configuración, contratos y, con FULL, integridad y cobertura local.
+
+**Cuándo usarlo:** Antes de ejecutar las pruebas históricas; no hace backtests.
+
+### Ejecutar cada familia
+
+```powershell
+& .\.venv\Scripts\python.exe scripts/lab.py run volatility_breakout_intraday_v1_btc_eth_15m
+& .\.venv\Scripts\python.exe scripts/lab.py report volatility_breakout_intraday_v1_btc_eth_15m
+& .\.venv\Scripts\python.exe scripts/lab.py run range_mean_reversion_v1_btc_eth_15m
+& .\.venv\Scripts\python.exe scripts/lab.py report range_mean_reversion_v1_btc_eth_15m
+```
+
+**Función:** Genera runs e informes separados usando parámetros predeclarados.
+
+**Cuándo usarlo:** Ejecución histórica local por el usuario después de FULL VALID.
+
+**Notas:** Los años se reinician a capital inicial; no sumar sus métricas con TRAIN/VALIDATION/TEST.
+Un código distinto no puede reanudar un run anterior; la excepción histórica de resume sigue congelada.
+
+### Comparar y publicar compactos
+
+```powershell
+& .\.venv\Scripts\python.exe scripts/lab.py compare volatility_breakout_intraday_v1_btc_eth_15m range_mean_reversion_v1_btc_eth_15m
+& .\.venv\Scripts\python.exe scripts/lab.py publish volatility_breakout_intraday_v1_btc_eth_15m
+& .\.venv\Scripts\python.exe scripts/lab.py publish range_mean_reversion_v1_btc_eth_15m
+& .\.venv\Scripts\python.exe scripts/lab.py publish-comparison latest
+```
+
+**Función:** Compara descriptivamente por activo/modo/periodo/coste y publica la allowlist en research_results/.
+
+**Cuándo usarlo:** Tras completar ambos runs.
+
+**Notas:** Conservar IDs impresos. Si se crean otras comparaciones, sustituir latest por el comparison_id
+de estas familias. Publicación no hace commit/push ni promociona metadata a validated.

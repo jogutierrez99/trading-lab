@@ -69,7 +69,7 @@ No hacen falta `.env` ni credenciales privadas; imports y catálogo no descargan
 ```text
 trading-lab/
 ├── src/quant_lab/            configuración, datos, motores, métricas, runners
-│   ├── strategies/          BaseStrategy, registro y 30 implementaciones
+│   ├── strategies/          BaseStrategy, registro y 32 implementaciones
 │   ├── execution_policies/  políticas de timing separadas de señales
 │   └── lab_*.py             schema, datos, CLI, orquestación y reporting ordinario
 ├── scripts/                 entrypoints; lab.py vive aquí
@@ -243,7 +243,7 @@ sin ejecutar backtests ni reescribir resultados.
 ## Trend Volatility Breakout V1
 
 [Protocolo y comandos](docs/trend-volatility-breakout.md): EMA trend/slope, ruptura
-del canal anterior y expansión ATR; single timeframe 1h, versión 1.0.0. ETH primero,
+del canal anterior y expansión ATR; single timeframe 1h, versión 1.0.1. ETH primero,
 BTC preparado con idéntico grid de 144 configuraciones por mercado/modo. Entrada
 next-open y ATR/RR mediante riesgo/StudyBackend existentes; funding not modelled.
 Preparar precios locales con `python scripts/prepare_lab_1h_prices.py ETHUSDT`,
@@ -252,3 +252,13 @@ el run completo solo localmente. Sin RSI/MTF/trailing ni incorporación a forwar
 [Estado inicial](research_results/trend_volatility_breakout/RESEARCH_STATUS.md):
 NEW_HYPOTHESIS; la rama RSI queda NOT_VALIDATED tras fallar robustez histórica,
 según la decisión del usuario. Se conservan sus candidatos, parámetros y resultados.
+
+## Nuevas hipótesis intradía independientes
+
+[Protocolo y comandos](docs/intraday-strategies-v1.md):
+`volatility_breakout_intraday_v1` estudia compresión/ruptura/expansión y
+`range_mean_reversion_v1` rechazo de extremos hacia midpoint. Entrada 15m,
+contexto 1h cerrado, BTC/ETH USD-M, una configuración por familia y tres modos.
+RESEARCH ONLY; ejecución synthetic sin funding/liquidaciones. Diagnósticos anuales
+predeclarados, sin selección ni incorporación a forward. RANGE usa niveles absolutos
+opt-in y sizing existente; las estrategias anteriores conservan su ejecución.

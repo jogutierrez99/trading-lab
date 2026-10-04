@@ -421,6 +421,7 @@ def robust(root: Path, identifier: str, policy_path: Path | None = None) -> dict
                 row = (
                     meta
                     | summarize(result)
+                    | getattr(result, "diagnostics", {})
                     | {
                         "backtest_id": record,
                         "status": "completed",

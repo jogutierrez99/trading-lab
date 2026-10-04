@@ -72,9 +72,12 @@ def compare(root: Path, experiments: list[str]) -> Path:
         )
         parameter_count = len(resolved["parameters"])
         variants = sorted({str(p.get("variant", "unspecified")) for p in resolved["parameters"]})
-        for (period, scenario, mode), group in metrics.groupby(
-            ["period", "scenario", "mode"], sort=True
-        ):
+        grouping = ["period", "scenario", "mode"]
+        if plan.get("diagnostic_periods"):
+            grouping = ["symbol", *grouping]
+        for key, group in metrics.groupby(grouping, sort=True):
+            identity = dict(zip(grouping, key, strict=True))
+            period, scenario, mode = (identity[k] for k in ("period", "scenario", "mode"))
             valid = group.loc[group.status == "completed"]
             row = {
                 "experiment": name,
@@ -98,6 +101,8 @@ def compare(root: Path, experiments: list[str]) -> Path:
                 if classification
                 else None,
             }
+            if "symbol" in identity:
+                row["symbol"] = identity["symbol"]
             for metric in ("return_pct", "max_drawdown_pct", "sharpe", "expectancy"):
                 values = pd.to_numeric(valid[metric], errors="coerce").dropna()
                 row["median_" + metric] = float(values.median()) if len(values) else None

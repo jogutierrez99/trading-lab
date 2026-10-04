@@ -23,12 +23,34 @@ COMPACT_COLUMNS = (
     "start",
     "end",
     "closed_trades",
+    "strategy",
+    "strategy_version",
+    "win_rate_pct",
     "return_pct",
     "profit_factor",
     "sharpe",
     "expectancy",
     "max_drawdown_pct",
     "fees_paid",
+    "average_win",
+    "average_loss",
+    "average_trade",
+    "average_close_exposure_pct",
+    "average_holding_hours",
+    "slippage_cost_closed_trades",
+    "spread_cost_closed_trades",
+    "gross_price_pnl",
+    "gross_return_pct",
+    "total_modeled_costs",
+    "cost_gross_profit_ratio",
+    "top_5_profit_share_pct",
+    "long_setup_count",
+    "short_setup_count",
+    "setups_traded_pct",
+    "midpoint_exit_pct",
+    "regime_exit_losses",
+    "funding_pnl",
+    "funding_note",
     "filter_status",
     "research_classification",
 )
@@ -200,6 +222,7 @@ def publish(root: Path, identifier: str, max_bytes: int = 5_000_000) -> dict:
                 & frame.period.isin(["train", "validation", "test"])
             )
             | selected_wf
+            | frame.period.isin(plan.get("diagnostic_periods", {}))
         ].copy()
     if document:
         labels = {
@@ -211,7 +234,7 @@ def publish(root: Path, identifier: str, max_bytes: int = 5_000_000) -> dict:
     metadata = run_metadata(evidence, root, document) | {
         "source_sha256": source_hashes,
         "compact_selection": "All challenge rows, or TRAIN-ranked top_n main rows "
-        "plus all selected WF TEST rows. No TEST ranking.",
+        "plus all selected WF TEST rows and predefined diagnostic periods. No TEST ranking.",
         "compact_rows": len(compact),
         "source_rows": len(frame),
         "classification_source": portable(supplementary[0], root) if supplementary else None,

@@ -1,0 +1,498 @@
+# Lab comparison
+
+Descriptive medians; independent markets/modes, not a portfolio.
+PASS/FAIL columns retain only legacy filters; they are not research or paper eligibility. New classifications are shown only when a hash-matched classification supplement exists. Counts describe whole configurations, not each period row; do not sum repeated counts. See sources.json for policy IDs/hashes; different policies are not interchangeable.
+TEST is the final holdout; no separate FINAL exists. No profitability or paper eligibility claim.
+Compare sources.json for periods, datasets, costs and execution assumptions.
+
+- volatility_breakout_intraday_v1_btc_eth_15m: 20261004T145930Z-5bae5d16f71c
+- range_mean_reversion_v1_btc_eth_15m: 20261004T150205Z-7a46d39881da
+
+## Comparison by period, cost scenario and direction
+
+```csv
+experiment,variants,parameter_configurations,configurations_all_markets_modes,valid_configurations_all_periods,classifications_all_periods,period,scenario,mode,configurations,valid_configurations,PASS,FAIL,legacy_PASS,legacy_FAIL,research_classification_counts_all_periods,symbol,median_return_pct,median_max_drawdown_pct,median_sharpe,median_expectancy
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-3.5783137059349768,4.066082999862632,-2.208161557359462,-11.927712353116506
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-8.882639781390155,8.892077809345343,-3.719246742378736,-16.7596977007361
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-5.501179432744552,5.619518042647924,-2.921534492011958,-23.91817144671562
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.600614518253164,3.2452723326766653,-1.6341450576397176,-8.668715060843828
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-7.270141947963838,7.404806846102188,-3.1050920302714338,-13.717248958422186
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-4.794199058802773,5.003213619339126,-2.6317536986048404,-20.84434373392528
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-6.123272857301398,7.188067376079312,-2.227673824437548,-16.11387594026693
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-5.617975523042428,6.998577314919022,-1.3042846498541734,-8.512084125821742
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,0.5382561567318644,3.5471594126187904,0.1779953196048976,1.9223434168994424
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-4.393707496737276,6.04999537606303,-1.598265477290089,-11.562388149308653
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-2.949727754761533,5.264109693850223,-0.6650217996172886,-4.469284476911527
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,1.5103135051905747,3.25156257478136,0.4644057363460211,5.393976804252107
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.99953400795433,2.9995340079543347,-1.8406359783430248,-11.109385214645876
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-4.713915484985498,5.93725575817364,-1.58593136780267,-5.418293660902824
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-1.7674157136491564,3.360551737162344,-0.6916069805846118,-2.9456928560818407
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.114455723790576,2.149778732998596,-1.3565762274316115,-7.831317495520513
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-1.5007637993582623,3.188611265975273,-0.492130331351683,-1.7250158613313873
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,0.6269363282736862,2.2798695186578866,0.2590094328804628,1.0448938804561403
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.096233393337954,2.8488554082977164,-1.400988618743675,-4.460071049655114
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-6.252896733369273,7.230518785975998,-3.113855994721021,-6.947663037076868
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-4.245657748107279,4.634743635966772,-2.994491098509992,-9.873622670017046
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,0.0867735218621934,1.2076428402437085,0.0651245005178481,0.1886380910046931
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-2.752473549015577,4.185988191237203,-1.370022736632079,-3.092666909006294
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.836789711619258,3.3579305222298705,-2.110732912791496,-6.597185375858612
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-4.888714162292274,5.1207560564586165,-2.8220184596076714,-8.428817521193476
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-7.236542101378241,7.988719599475451,-2.977503630092557,-7.617412738292915
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.468485311726487,3.283271944009939,-1.3787468216335017,-6.671581923585299
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-1.6358979526413853,2.9764415448787296,-0.924724427761706,-2.820513711450788
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-2.556435355574016,4.460323489563578,-1.0215248476693626,-2.690984584814675
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-0.9358464857255776,1.9707099168966853,-0.5201766940940253,-2.529314826285295
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-4.709907561452564,4.709907561452564,-3.095430636247307,-9.812307419692957
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-7.286541544612158,7.286541544612154,-3.407164580756828,-9.108176930765085
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.7040285284651744,2.978827483369914,-1.723735947867776,-8.450089151453762
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.9048610003574504,2.9048610003574504,-2.113419025293706,-6.180555319909325
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-4.504590657085283,4.504590657085282,-2.2143347559370787,-5.702013489981381
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-1.6475702457852126,2.1559015380982056,-1.075049416497578,-5.148657018078795
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.095058399268745,2.290796738986471,-2.4107254756979044,-6.983527997562556
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-3.770701773129237,4.245342026989045,-2.4252485926739142,-5.545149666366568
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-1.71151417348403,2.1970678789564517,-1.3162481846662075,-4.50398466706311
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-0.2505724072263349,0.6906626696518583,-0.2928051151325671,-0.835241357421213
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-0.9787878203560308,1.733673452660602,-0.653115051920636,-1.4185330729797492
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-0.73004558622215,1.5517398338786814,-0.5910992539693932,-1.871911759544138
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-6.7063068799746,6.7063068799746,-2.8260994197977785,-8.597829333300778
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-10.782497551105209,10.782497551105209,-2.999392143905936,-7.285471318314226
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-4.369265136353684,4.369265136353679,-1.5385358404641227,-6.24180733764821
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-3.148144574189504,3.349375097547327,-1.4202731925434893,-4.088499446999297
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-5.439257296425581,5.439257296425585,-1.562736366770373,-3.675173848936225
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.365593297173041,2.4279192359425177,-0.8603977710513574,-3.3318215453141518
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-12.197574494228192,12.641741452307226,-2.054856295848933,-12.839552099187566
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-18.055508860427384,18.147368740729164,-1.9573154351133832,-8.764810126421102
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-6.671725306705268,7.390440450178376,-0.8574340606909373,-6.010563339374157
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-8.84905193393064,9.45235318344329,-1.49341211937641,-9.31479150940064
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-11.356027917339928,11.585765345496403,-1.1879492310591049,-5.512634911330034
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-2.750332344382933,6.4066404790125615,-0.3390881343195427,-2.477776886831508
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-6.882487604590826,7.553034198572376,-2.1616154400460115,-6.554750099610327
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-13.135342256456529,14.214519686723914,-3.05093797593197,-7.100185003489965
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-6.715014028775135,7.575782440377458,-2.11790167853835,-8.393767535968916
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-1.550532470921917,3.670202161784165,-0.4680958376024809,-1.490896606655698
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-5.353947976234686,7.720642389364525,-1.1989623453938885,-2.909754334910161
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-3.8633134668144655,4.971539063657948,-1.2355121017793402,-4.829141833517859
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-4.773956169461235,4.947260948209892,-2.489843756113452,-14.91861302956635
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-9.20499511922187,10.18435772964954,-3.729921825563272,-18.409990238443687
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-4.6531798254425,6.011224540802009,-2.764127058909019,-25.85099903023602
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-3.4692505717842548,3.8733949522869615,-1.8484497593757916,-10.51288052055823
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-7.397078970060045,8.568853630858044,-3.069756131367374,-14.504076411882494
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2020,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-4.068991979659565,5.486638640774723,-2.527155521002564,-22.605510998108954
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-1.4960825179303194,3.5013028980241065,-0.3648386829705892,-3.0532296284292952
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,0.1197689634787391,4.611469874812931,0.0488671111354185,0.1686886809560871
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,1.640389648732099,2.585487139661817,0.5242904188670667,7.456316585145879
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,0.7293376667349083,3.087635953481355,0.2044906751990804,1.488444217826166
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,3.14096717007899,4.040035083002894,0.6280513062170441,4.423897422646442
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2021,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,2.394170653780825,2.374390679473505,0.7487317762508403,10.882593880822014
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-2.8760991606203934,3.875754269140309,-1.124970663660149,-7.014876001513212
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-8.425554580315753,8.532654641189547,-2.106925820972204,-9.361727311461973
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-5.713788882651238,6.183656967488418,-1.788564598438591,-11.660793638063955
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-0.9296083680960132,2.5461767566394764,-0.348254695393056,-2.267337483160855
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-4.459113119753,4.704963007100806,-1.0937922638193311,-5.010239460396467
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2022,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-3.5626222517030293,4.273834183133955,-1.1261854274032224,-7.422129691048141
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-2.6088385754189924,2.916153352694771,-1.234211189811287,-4.576909781436933
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-5.132025696667242,5.3827184234811,-2.0434064733775616,-5.183864340067841
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-2.590775111586041,2.796498736992053,-1.807432591389912,-6.168512170443
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-0.448939822685479,1.9905744470912097,-0.2035182664524582,-0.7876137240094857
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-1.3405452903367032,2.823863453837455,-0.5354996456734347,-1.354086151855173
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2023,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-0.8956271215738942,1.3517571219509508,-0.6937467721366699,-2.132445527556873
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-5.291987748992765,6.795270332742274,-2.3144484766023914,-10.376446566652476
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-7.78083112304312,9.021711443773176,-2.624677073173505,-8.277479918130984
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-2.627913907281365,3.219199113616461,-1.316835453460799,-6.111427691351778
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-3.652665104612263,5.567511674925599,-1.6252843148505594,-7.162088440416235
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-4.814214053209232,6.634271050151942,-1.626317849984101,-5.12150431192486
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2024,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-1.2055884563180963,2.5829163308843066,-0.6050567793394369,-2.8036940844606075
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-4.358974396026438,4.752593249809735,-1.8951237511326404,-8.717948792052923
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-9.265196154868228,9.463630846351572,-2.80329911242198,-9.551748613266088
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-5.129830777184708,5.456464377812494,-1.994163833236508,-10.914533568477983
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-2.735081931565253,3.1684405384443664,-1.1998553475516485,-5.470163863130441
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-5.3016767522890085,5.814838838363532,-1.5873787699847568,-5.465646136380403
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2025,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-2.638767095394245,3.3078004628218083,-1.0222736183392476,-5.614398075306825
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-2.032656082438677,2.9857968182470147,-1.4941196091331084,-5.978400242466752
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-7.376623592729481,8.636126346982834,-3.383159170263381,-9.706083674644091
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-5.454845609437475,5.82422901181948,-3.117251860391249,-12.987727641517832
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-0.6943952350762617,1.827096454521344,-0.5125321150557686,-2.042338926695153
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-3.728456797475777,5.17858495648766,-1.7065332958271702,-4.905864207204841
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",diagnostic_2026,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-3.055276603551771,3.4536084613544302,-1.7657731837845427,-7.274468103694558
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-6.303027598265798,7.06057286453802,-1.737608936179471,-7.5036042836498
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-15.95836156662137,16.80272755940781,-3.030021584508552,-9.22448645469436
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-10.304852800587671,10.962897382343728,-2.4496578329731764,-11.578486292795164
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-3.4104856968157797,4.309696479629026,-0.941251494741985,-4.060102020018733
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-8.832461535912795,10.1320084221698,-1.6326707179992532,-5.105469095903346
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",test,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-5.613422153791802,6.639540970223642,-1.3218135920515552,-6.307215903136836
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-8.896434276780763,9.130599922153808,-1.0527385774439333,-7.292159243262926
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-16.755397790710703,17.74962574162451,-1.4878178592730311,-7.940946820242
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-8.626403360450585,10.02352789991604,-1.060651443392607,-9.692588045450105
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-3.6691200380036593,5.3670588872435925,-0.4139282499299542,-2.983024421141212
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-8.74741862140982,10.8741274949064,-0.7374346889566521,-4.145696029104227
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",train,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-5.271727696778106,7.090278469027554,-0.6402418588985674,-5.990599655429744
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-7.762767907298662,9.386002095660162,-1.7985423321526175,-7.187748062313551
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-12.51354381685169,13.717482375775669,-2.351790796459077,-6.483701459508647
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-5.150604612448206,5.649332869487898,-1.504004702713703,-6.059534838174357
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-4.085203098693036,6.809397993196987,-0.9414181666105365,-3.7825954617527393
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-6.090223995926314,8.473323719849574,-1.1297131254941035,-3.155556474573161
+
+volatility_breakout_intraday_v1_btc_eth_15m,unspecified,1,6,6,"{""PASS"": 6}",validation,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-2.090417077988127,2.835842950162316,-0.626832756078432,-2.459314209397912
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-11.45769233875269,11.457692338752697,-5.144440135560819,-7.956730790800421
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,adverse,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-23.571329125410543,23.61886824029254,-7.677765540886691,-8.270641798389635
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-13.822251715518686,13.875855061717884,-6.436248520974402,-9.733980081351188
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-5.880625307243848,5.931031147076858,-3.291072261850936,-4.083767574474837
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-13.73611540924994,13.872418959085817,-5.493539384300965,-4.819689617280697
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-8.457359751254845,8.553029127456902,-5.17119401659727,-5.95588714877094
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-16.74661997838922,16.957355703780237,-5.466881915677199,-10.874428557395587
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,adverse,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-28.180166582655698,28.30487807897074,-7.044457483171279,-9.424804877142394
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-14.130644734773725,14.448601676852396,-5.008143750708707,-9.54773292890107
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-11.13260240656878,11.433196576410756,-4.272571487625081,-7.228962601668078
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-18.46088519865432,18.73129868666967,-5.344911661873915,-6.17420909653995
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-8.552216117290701,8.909794397140832,-3.5921952919607767,-5.778524403574716
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-17.220972891084475,17.447593831914066,-6.752477328251269,-9.111625868298724
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,adverse,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-30.179186218690575,30.2724022097589,-8.081800717580624,-7.451650918195191
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-15.75455158016361,15.772164280511848,-5.83294054127075,-7.260162018508662
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-10.314506064228755,10.6363851010399,-4.949600569477243,-5.457410615994017
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-17.080655813070212,17.576157965530857,-5.4545323888522805,-4.2174458797703736
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-7.615249344147557,8.063445879925386,-3.4033877290243497,-3.5093314949988788
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-19.52656798817845,19.56165731625185,-8.133160162917934,-8.136069995074372
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,adverse,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-36.09281720411828,36.16628948104166,-11.307573590801349,-7.306238300428829
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-20.61834858217777,20.72882928458612,-8.341583329564946,-8.05404241491316
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-10.95178850847306,11.1258996510274,-6.163408210542057,-4.544310584428601
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-21.262761565136145,21.403719975120566,-9.074058956180783,-4.2868470897452005
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-11.540047231599516,11.682290642972948,-6.755710612745536,-4.490290751595135
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-19.512878628383447,19.512878628383444,-6.439318771178341,-8.303352607822765
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,adverse,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-32.69342604371895,32.76997129165305,-9.300324979594755,-7.330364583793468
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-17.201331396681674,17.29549522414035,-7.080797773752805,-7.783407871801691
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-11.0782307863718,11.09850020945732,-4.833242488590446,-4.714140760158195
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-18.661647959861515,18.778782947757023,-6.957156248704089,-4.184225999968956
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-9.045970450828678,9.20705193632,-5.077554955354495,-4.093199299017461
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,adverse,LONG_ONLY,1,1,0,1,0,1,,BTCUSDT,-26.233725033220317,26.23372503322032,-9.1676450968505,-8.408245202955262
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,adverse,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-43.02955223752664,43.03499373964284,-11.72984255771368,-7.24403236321999
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-23.724933451312648,23.74604931685199,-7.991759670222922,-8.042350322478953
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-15.800026386638788,15.800026386638782,-7.393695228907963,-5.064111021358686
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,base,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-26.68746730326053,26.710023856394937,-9.527478569624405,-4.492839613343539
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-13.532897706199476,13.605843953939114,-5.950674164869533,-4.58742295125408
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,adverse,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-16.219570232383397,16.418341645723604,-7.990612298325597,-8.447692829366412
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,adverse,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-28.540866227894547,28.641310859408687,-11.220354458474,-7.884217190026129
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,adverse,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-14.828134880161237,14.828134880161231,-7.867603277028543,-8.621008651256545
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-9.112366230828206,9.366725659555176,-5.896236137340263,-4.74602407855639
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,base,LONG_SHORT,1,1,1,0,1,0,,BTCUSDT,-16.6683262311904,16.818112861035736,-8.867434326073626,-4.604510008616055
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-8.366239503450501,8.38257630403431,-6.21876650499358,-4.864092734564182
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,adverse,LONG_ONLY,1,1,0,1,0,1,,BTCUSDT,-38.19825722281468,38.28512685561069,-8.682312229986684,-7.579019290241019
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,adverse,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-59.28926480600097,59.34648886407295,-11.48620993434824,-6.201805942050318
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,adverse,SHORT_ONLY,1,1,0,1,0,1,,BTCUSDT,-35.03502758621746,35.04680818036971,-7.907227270700365,-7.502147234736132
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-23.4726095938704,23.596544741815197,-6.774215300119896,-4.657263808307673
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,base,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-38.90735807747748,39.006294711660495,-9.241351110004285,-4.069807330280086
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-20.7669143928087,20.798098343737347,-6.008688715311017,-4.446876743642144
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,adverse,LONG_ONLY,1,1,0,1,0,1,,BTCUSDT,-38.979870849347854,38.979870849347854,-5.764099277705281,-8.004080256539568
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,adverse,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-61.67459454193565,61.67459454193563,-7.560816487052146,-6.236056070974245
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,adverse,SHORT_ONLY,1,1,0,1,0,1,,BTCUSDT,-37.65810595934386,37.65810595934386,-5.686118704113065,-7.427634311507679
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,base,LONG_ONLY,1,1,0,1,0,1,,BTCUSDT,-24.985763138273025,25.02593717917365,-4.185399055865571,-5.130546845641261
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,base,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-41.675469584618206,41.7067054162209,-5.396284481476071,-4.213899856887586
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-22.66126776664189,22.691040040493043,-3.915474672357501,-4.4696780604816535
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,adverse,LONG_ONLY,1,1,0,1,0,1,,BTCUSDT,-35.18128363032381,35.18128363032381,-7.135116217071768,-7.406586027436631
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,adverse,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-56.95426732234008,56.95426732234008,-10.25882089192117,-6.058964608759604
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,adverse,SHORT_ONLY,1,1,0,1,0,1,,BTCUSDT,-34.27303652856594,34.27303652856594,-7.720258233539655,-7.18512296196349
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,base,LONG_ONLY,1,1,1,0,1,0,,BTCUSDT,-20.75808066874449,20.82800310006222,-5.35685931752098,-4.360941316963099
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,base,LONG_SHORT,1,1,0,1,0,1,,BTCUSDT,-35.90896354160957,35.91257697888434,-7.933270973761698,-3.811991883398029
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,base,SHORT_ONLY,1,1,1,0,1,0,,BTCUSDT,-19.54211685562124,19.57331034008465,-5.903751174186439,-4.088308965611139
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-7.569024705777306,8.324382329821987,-3.665684898469701,-6.360524962838087
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-15.197438490341977,15.719671984792887,-5.1996821602844046,-6.784570754616995
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-8.436659844616479,8.443590312907563,-4.346920326305968,-7.959113060958987
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-2.7807473599350097,4.534978616787165,-1.500097599595779,-2.3367624873401693
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-6.733026566481803,8.27205609055954,-2.622758042580367,-3.005815431465134
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2020,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-4.216791720502622,4.24437450253672,-2.61054364332914,-3.978105396700637
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-13.827564035136996,14.36582091928787,-4.297705007188578,-10.093112434406407
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-21.71948962976976,21.981915210207685,-5.481594561965902,-8.793315639582909
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-9.346225221492189,9.621886597533369,-3.486036544335752,-8.420022722064937
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-8.675211772749591,9.45836405397371,-3.147513505350533,-6.3322713669705415
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-13.067457918235482,13.973500516477428,-3.7882078505483454,-5.290468792807905
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2021,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-4.965886257759744,5.912120022789693,-2.1410867373123943,-4.473771403387169
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-11.897497081884556,11.971094014104857,-4.389013019239919,-8.038849379651609
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,adverse,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-23.443376603459,23.443376603459,-6.529245695767796,-7.636279023928047
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-13.179932239546922,13.238961355553124,-5.271755320980652,-8.18629331648879
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-6.189279660052927,6.2876751385760326,-2.6133983012608697,-4.181945716251961
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-12.78256611545665,12.78259251397482,-4.048940083150526,-4.16370231773831
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2022,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-7.029618489561473,7.112548682165354,-3.2900407704299046,-4.366222664323951
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-20.832400781724548,20.832400781724544,-8.08116133767565,-8.400161605534025
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,adverse,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-35.369315967431284,35.36931596743128,-10.859382604391426,-7.338032358388251
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-18.710034488240023,18.757475265996757,-7.811638567747188,-7.795847703433364
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-12.052846919845985,12.069312707052948,-6.511195666979602,-4.860018919292759
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-20.69238516279345,20.692385162793453,-8.560842293380103,-4.293025967384542
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2023,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-9.978780024774226,10.069407249264025,-5.61550947049424,-4.157825010322707
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-19.94342736673036,19.94342736673036,-6.609260931523214,-9.106587838689684
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,adverse,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-32.98748616293674,32.98748616293674,-9.021145035168333,-8.330173273468876
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-16.48811345532951,16.48811345532951,-5.864740162076705,-9.21123656722312
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-12.154130579627653,12.154130579627653,-5.108270067936972,-5.54983131489843
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-20.71864390881444,20.71864390881444,-7.036884655405292,-5.231980785054201
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2024,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-9.88289584759936,9.882895847599356,-4.360504830359924,-5.521170864580619
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-18.87849955500467,18.878499555004677,-6.668778585729053,-8.904952620285265
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,adverse,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-34.27789671697936,34.27789671697936,-9.390844029252968,-8.422087645449434
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-19.558818562560496,19.5588185625605,-6.470181310386221,-9.494572117747824
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-11.24868783300642,11.455390508668808,-4.846905636099423,-5.305984826889698
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-21.87837400550279,21.89453267339997,-7.35031708045521,-5.375521868673913
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2025,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-12.193043635277922,12.447136913751846,-5.040385714003068,-5.9189532210088265
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,adverse,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-12.449624697274595,12.638964407032388,-5.916168775424032,-7.545227089257281
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,adverse,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-25.176736331250137,25.176736331250137,-9.676147058228402,-7.72292525498481
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,adverse,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-14.633441771435896,14.6334417714359,-8.086532198659473,-8.977571638917755
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-6.157658757579576,6.519806823173112,-3.573608402499309,-3.7094329864936335
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,base,LONG_SHORT,1,1,1,0,1,0,,ETHUSDT,-14.116529652307086,14.116529652307088,-6.502581858029475,-4.31698154504803
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",diagnostic_2026,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-8.50679701475967,8.506797014759668,-5.866210323894905,-5.218893874085638
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,adverse,LONG_ONLY,1,1,0,1,0,1,,ETHUSDT,-28.83115193742014,28.89871774694735,-6.310064984810578,-7.647520407803784
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,adverse,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-50.606019117826776,50.606019117826776,-9.432873698161966,-6.932331386003647
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,adverse,SHORT_ONLY,1,1,0,1,0,1,,ETHUSDT,-31.330130829217683,31.33013082921769,-7.026106999428124,-8.4905503602216
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-16.54147528737576,16.638531941362288,-4.255234148945117,-4.37605166332687
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,base,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-32.69393861267071,32.69393861267072,-6.934672421818757,-4.472495022253178
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",test,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-19.662602464965907,19.895080546075448,-5.319211737296516,-5.328618554191351
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,adverse,LONG_ONLY,1,1,0,1,0,1,,ETHUSDT,-29.82633442391965,30.097249401435533,-4.118613201544112,-7.382756045524712
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,adverse,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-49.178739625605616,49.33261670139779,-5.739713613012784,-6.321174759075295
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,adverse,SHORT_ONLY,1,1,0,1,0,1,,ETHUSDT,-27.93445879209848,27.93445879209849,-4.333834137059402,-7.390068463518151
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-16.709892566919514,17.102301985913744,-2.512517129046125,-4.136112021514688
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,base,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-29.28466962664312,29.54393533683886,-3.543392200431087,-3.7640963530389753
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",train,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-15.372106714367929,15.372106714367929,-2.657998889605465,-4.066694897980984
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,adverse,LONG_ONLY,1,1,0,1,0,1,,ETHUSDT,-36.62113114639129,36.62113114639129,-7.274277944824815,-7.8417839713899555
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,adverse,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-56.689347180473206,56.689347180473206,-9.887930687057306,-6.456645464746392
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,adverse,SHORT_ONLY,1,1,0,1,0,1,,ETHUSDT,-32.113213648138284,32.11321364813828,-6.752264332855226,-7.664251467336114
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,base,LONG_ONLY,1,1,1,0,1,0,,ETHUSDT,-22.74205793158638,22.756522445667777,-5.683166795094095,-4.869819685564544
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,base,LONG_SHORT,1,1,0,1,0,1,,ETHUSDT,-37.12384390902047,37.12384390902047,-7.693588656876638,-4.228228235651552
+
+range_mean_reversion_v1_btc_eth_15m,unspecified,1,6,6,"{""FAIL"": 6}",validation,base,SHORT_ONLY,1,1,1,0,1,0,,ETHUSDT,-18.875482974574464,18.87548297457446,-4.881509170483623,-4.504888538084674
+
+```
+
+TRAIN-only descriptive examples: train_ranked_examples.json. Source results unchanged.

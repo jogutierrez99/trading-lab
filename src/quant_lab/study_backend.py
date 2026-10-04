@@ -55,6 +55,8 @@ class StudyBackend:
         risk: RiskConfig,
         execution: ExecutionConfig,
         entry_fractions: pd.Series | None = None,
+        *,
+        entry_levels: pd.DataFrame | None = None,
     ) -> BacktestResult:
         validate_segment(candles, history)
         step = candle_step(history.timeframe)
@@ -68,6 +70,21 @@ class StudyBackend:
             raise ValueError("Signals must have one Python bool per candle")
         if not stop_distances.index.equals(candles.index):
             raise ValueError("Stop distances must align exactly with candle timestamps")
+        if entry_levels is not None:
+            if not entry_levels.index.equals(candles.index) or set(entry_levels.columns) != {
+                "long_stop",
+                "long_target",
+                "short_stop",
+                "short_target",
+            }:
+                raise ValueError("Absolute levels must align exactly with candles")
+            if (
+                risk.stop_method != "structure"
+                or not risk.stop_enabled
+                or not risk.take_profit_enabled
+                or risk.trailing_atr_multiplier is not None
+            ):
+                raise ValueError("Absolute levels require structural stop, target and no trailing")
         if risk.sizing_method == "volatility_target" and entry_fractions is None:
             raise ValueError("Volatility sizing requires causal entry fractions")
         if entry_fractions is not None:
@@ -132,19 +149,36 @@ class StudyBackend:
                                         "position_pct": fraction * 100,
                                     }
                                 )
-                        sized = (
-                            "invalid_entry_fraction"
-                            if entry_risk is None
-                            else size_entry(
-                                balance,
-                                float(row.open),
-                                float(stop_distances.iloc[previous]),
-                                side,
-                                entry_risk,
-                                execution,
-                                costs,
+                        if entry_levels is not None:
+                            from quant_lab.price_level_execution import size_with_levels
+
+                            sized = (
+                                "invalid_entry_fraction"
+                                if entry_risk is None
+                                else size_with_levels(
+                                    balance,
+                                    float(row.open),
+                                    entry_levels.iloc[previous],
+                                    side,
+                                    entry_risk,
+                                    execution,
+                                    costs,
+                                )
                             )
-                        )
+                        else:
+                            sized = (
+                                "invalid_entry_fraction"
+                                if entry_risk is None
+                                else size_entry(
+                                    balance,
+                                    float(row.open),
+                                    float(stop_distances.iloc[previous]),
+                                    side,
+                                    entry_risk,
+                                    execution,
+                                    costs,
+                                )
+                            )
                         if isinstance(sized, str):
                             rejections.append(Rejection(time, sized))
                         else:

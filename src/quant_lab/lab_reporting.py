@@ -65,7 +65,7 @@ def reports(path: Path, experiment: Experiment, rows: list[dict], context: dict,
     ):
         matches = by_configuration[train["configuration_id"]]
         # Walk-forward winners form a separate adaptive procedure, not another full grid.
-        fixed = [r for r in matches if not r["period"].startswith("wf_")]
+        fixed = [r for r in matches if r["period"] in {"train", "validation", "test"}]
         reasons = sorted(
             {
                 f"{r['period']}/{r['scenario']}: {reason}"
