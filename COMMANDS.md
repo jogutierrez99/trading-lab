@@ -152,3 +152,84 @@ Un código distinto no puede reanudar un run anterior; la excepción histórica 
 
 **Notas:** Conservar IDs impresos. Si se crean otras comparaciones, sustituir latest por el comparison_id
 de estas familias. Publicación no hace commit/push ni promociona metadata a validated.
+
+## Literatura V1 — cuatro hipótesis independientes
+
+[Protocolo, bibliografía y supuestos](docs/literature-hypotheses-v1.md).
+
+### Preparar datos, validar y ejecutar localmente
+
+```powershell
+Set-Location 'C:\Users\joshu\OneDrive\Escritorio\WEBS\Back_testing\trading-lab'
+$py = '.\.venv\Scripts\python.exe'
+# Preparación offline explícita; ya realizada en este checkout, repetición verifica identidades.
+& $py scripts/prepare_literature_data.py
+
+# 1. Validate Donchian
+& $py scripts/lab.py validate donchian_trend_v1_btc_eth_4h
+& $py scripts/lab.py validate donchian_trend_v1_btc_eth_4h --full
+# 2. Run Donchian
+& $py scripts/lab.py run donchian_trend_v1_btc_eth_4h
+& $py scripts/lab.py report donchian_trend_v1_btc_eth_4h
+# 3. Validate Risk Managed Momentum
+& $py scripts/lab.py validate risk_managed_momentum_v1_btc_eth_4h --full
+& $py scripts/lab.py validate risk_managed_momentum_v1_btc_eth_1d --full
+# 4. Run Risk Managed Momentum 4H
+& $py scripts/lab.py run risk_managed_momentum_v1_btc_eth_4h
+& $py scripts/lab.py report risk_managed_momentum_v1_btc_eth_4h
+# 5. Run Risk Managed Momentum 1D
+& $py scripts/lab.py run risk_managed_momentum_v1_btc_eth_1d
+& $py scripts/lab.py report risk_managed_momentum_v1_btc_eth_1d
+# 6. Validate RSI Momentum
+& $py scripts/lab.py validate rsi_momentum_regime_v1_btc_eth_4h --full
+# 7. Run RSI Momentum
+& $py scripts/lab.py run rsi_momentum_regime_v1_btc_eth_4h
+& $py scripts/lab.py report rsi_momentum_regime_v1_btc_eth_4h
+# 8. Validate Funding Conditional
+& $py scripts/lab.py validate funding_conditional_momentum_v1_btc_eth_1h --full
+# 9. Run Funding Conditional
+& $py scripts/lab.py run funding_conditional_momentum_v1_btc_eth_1h
+& $py scripts/lab.py report funding_conditional_momentum_v1_btc_eth_1h
+# 10. Compare — solo tras completar los cinco runs
+& $py scripts/lab.py compare donchian_trend_v1_btc_eth_4h risk_managed_momentum_v1_btc_eth_4h risk_managed_momentum_v1_btc_eth_1d rsi_momentum_regime_v1_btc_eth_4h funding_conditional_momentum_v1_btc_eth_1h
+# 11. Generate research_results
+& $py scripts/lab.py publish donchian_trend_v1_btc_eth_4h
+& $py scripts/lab.py publish risk_managed_momentum_v1_btc_eth_4h
+& $py scripts/lab.py publish risk_managed_momentum_v1_btc_eth_1d
+& $py scripts/lab.py publish rsi_momentum_regime_v1_btc_eth_4h
+& $py scripts/lab.py publish funding_conditional_momentum_v1_btc_eth_1h
+& $py scripts/lab.py publish-comparison latest
+```
+
+**Función:** Prepara snapshots offline inmutables, valida contratos y datos, ejecuta
+las cinco pruebas predeclaradas y publica compactos por familia.
+
+**Cuándo usarlo:** Los runs históricos los ejecuta el usuario después de FULL VALID.
+
+**Notas:** Preparación/validate no hacen backtests ni descargas. 564 backtests previstos;
+ningún tuning. Warmup/periodos y backend Funding difieren de diario/synthetic; no
+comparar por retorno bruto ni sumar años con periodos principales. Conservar IDs;
+latest refiere la comparación recién creada si no se generan otras entre medias.
+Publicación no hace commit/push, ni conecta a paper/forward/OKX.
+
+
+## RMM 4h final falsification V1
+
+Protocolo: docs/rmm-final-falsification-v1.md. POST-SELECTION FALSIFICATION,
+cuatro candidatos sin optimización. Cada run incluye WF/anuales/BASE/ADVERSE.
+
+```powershell
+$py = '.\.venv\Scripts\python.exe'
+& $py scripts/lab.py falsification validate --full
+& $py scripts/lab.py run rmm_falsification_v1_scaled_180
+& $py scripts/lab.py run rmm_falsification_v1_fixed_180
+& $py scripts/lab.py run rmm_falsification_v1_scaled_150
+& $py scripts/lab.py run rmm_falsification_v1_scaled_210
+& $py scripts/lab.py compare rmm_falsification_v1_scaled_180 rmm_falsification_v1_fixed_180 rmm_falsification_v1_scaled_150 rmm_falsification_v1_scaled_210
+# Reemplazar por IDs exactos de runs COMPLETE, en este orden:
+& $py scripts/lab.py falsification report --runs '<RUN_SCALED_180>' '<RUN_FIXED_180>' '<RUN_SCALED_150>' '<RUN_SCALED_210>'
+```
+
+El último comando audita ledger/JSON/equity SHA256 y publica únicamente compactos
+nuevos bajo research_results/risk_managed_momentum_v1_final_falsification/<id>/.
+No simula, no selecciona vecinos y deja clasificación final pendiente de revisión humana.

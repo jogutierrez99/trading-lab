@@ -52,6 +52,11 @@ def reports(path: Path, experiment: Experiment, rows: list[dict], context: dict,
             "costs": json.dumps(r["costs"], sort_keys=True),
             "filter_reasons": json.dumps(r["filter_reasons"]),
         }
+        | (
+            {"entry_diagnostics": json.dumps(r["entry_diagnostics"], allow_nan=False)}
+            if "entry_diagnostics" in r
+            else {}
+        )
         for r in rows
     ]
     pd.DataFrame(serial).to_csv(path / "metrics.csv", index=False, mode="x")
@@ -134,8 +139,13 @@ def reports(path: Path, experiment: Experiment, rows: list[dict], context: dict,
         f"Strategy: {experiment.strategy.id} {context['template'].version}",
         f"Code hash: {code['code_sha256']}",
         f"Git commit: {code['git_revision']}",
-        "Backend: StudyBackend v1; independent liquidated periods, causal warmup.",
-        f"Execution: {experiment.execution.market_mode}; funding is not modelled.",
+        "Backend: existing hourly perpetual engine; matched complete days, gap resets, "
+        "independent liquidated periods."
+        if experiment.execution.market_mode == "perpetual"
+        else "Backend: StudyBackend v1; independent liquidated periods, causal warmup.",
+        "Execution: perpetual isolated1x; observed funding included; margin model assumed."
+        if experiment.execution.market_mode == "perpetual"
+        else f"Execution: {experiment.execution.market_mode}; funding is not modelled.",
         "No automatic promising/validated designation or future-profit claim.",
         "",
         "## Datasets and periods",

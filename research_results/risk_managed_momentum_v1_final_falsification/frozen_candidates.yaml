@@ -1,0 +1,611 @@
+schema_version: 1
+status: PREPARED_NOT_EXECUTED
+evidence_scope: POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE
+frozen_at: '2026-10-04T16:56:44.179944+00:00'
+strategy: risk_managed_momentum_v1
+strategy_version: 1.0.0
+timeframe: 4h
+candidates:
+  A:
+    symbol: BTCUSDT
+    mode: LONG_ONLY
+  B:
+    symbol: BTCUSDT
+    mode: LONG_SHORT
+  C:
+    symbol: ETHUSDT
+    mode: LONG_ONLY
+  D:
+    symbol: ETHUSDT
+    mode: LONG_SHORT
+central_parameters:
+  ema_period: 200
+  momentum_lookback: 180
+  volatility_period: 180
+  target_volatility_pct: 10.0
+fixed_position_pct: 15.0
+experiments:
+  scaled_180:
+    schema_version: 1
+    experiment_id: rmm_falsification_v1_scaled_180
+    created_at: '2026-10-04T16:56:44.147061Z'
+    description: POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE; four frozen
+      candidates; no optimization, no unseen holdout, no portfolio or operational
+      eligibility.
+    app: ../app.yaml
+    strategy:
+      id: risk_managed_momentum_v1
+      config: ../strategies/risk_managed_momentum_v1.yaml
+    markets:
+    - symbol: BTCUSDT
+      timeframe: 4h
+      dataset: ../../data/literature_v1/prices/BTCUSDT/4h/1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+      dataset_format: bundle
+      dataset_id: 1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+      warmup_bars: 1000
+      perpetual_data: null
+    - symbol: ETHUSDT
+      timeframe: 4h
+      dataset: ../../data/literature_v1/prices/ETHUSDT/4h/2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+      dataset_format: bundle
+      dataset_id: 2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+      warmup_bars: 1000
+      perpetual_data: null
+    modes:
+    - LONG_ONLY
+    - LONG_SHORT
+    strategy_parameters:
+      ema_period:
+      - 200
+      momentum_lookback:
+      - 180
+      volatility_period:
+      - 180
+      target_volatility_pct:
+      - 10.0
+    initial_cash: 10000.0
+    costs:
+      trading_fee_pct: 0.05
+      slippage_pct: 0.03
+      spread_pct: 0.01
+    execution:
+      market_mode: synthetic
+      direction: long
+      quantity_step: 1.0e-06
+      min_quantity: 1.0e-06
+      min_notional: 10.0
+      filter_assumption: Fixed research filters; no historical tiers. Collateralized
+        synthetic, no funding/liquidations.
+      liquidate_at_end: true
+    validation:
+      train:
+        start: '2020-07-01T00:00:00Z'
+        end: '2022-07-01T00:00:00Z'
+      validation:
+        start: '2022-07-01T00:00:00Z'
+        end: '2025-07-01T00:00:00Z'
+      test:
+        start: '2025-07-01T00:00:00Z'
+        end: '2026-09-26T00:00:00Z'
+      walk_forward:
+      - train:
+          start: '2020-07-01T00:00:00Z'
+          end: '2022-07-01T00:00:00Z'
+        test:
+          start: '2022-07-01T00:00:00Z'
+          end: '2023-01-01T00:00:00Z'
+      - train:
+          start: '2021-01-01T00:00:00Z'
+          end: '2023-01-01T00:00:00Z'
+        test:
+          start: '2023-01-01T00:00:00Z'
+          end: '2023-07-01T00:00:00Z'
+      - train:
+          start: '2021-07-01T00:00:00Z'
+          end: '2023-07-01T00:00:00Z'
+        test:
+          start: '2023-07-01T00:00:00Z'
+          end: '2024-01-01T00:00:00Z'
+      - train:
+          start: '2022-01-01T00:00:00Z'
+          end: '2024-01-01T00:00:00Z'
+        test:
+          start: '2024-01-01T00:00:00Z'
+          end: '2024-07-01T00:00:00Z'
+      - train:
+          start: '2022-07-01T00:00:00Z'
+          end: '2024-07-01T00:00:00Z'
+        test:
+          start: '2024-07-01T00:00:00Z'
+          end: '2025-01-01T00:00:00Z'
+      - train:
+          start: '2023-01-01T00:00:00Z'
+          end: '2025-01-01T00:00:00Z'
+        test:
+          start: '2025-01-01T00:00:00Z'
+          end: '2025-07-01T00:00:00Z'
+      cost_stress:
+        adverse:
+          trading_fee_pct: 0.1
+          slippage_pct: 0.06
+          spread_pct: 0.02
+    diagnostic_periods:
+      diagnostic_2020:
+        start: '2020-07-01T00:00:00Z'
+        end: '2021-01-01T00:00:00Z'
+      diagnostic_2021:
+        start: '2021-01-01T00:00:00Z'
+        end: '2022-01-01T00:00:00Z'
+      diagnostic_2022:
+        start: '2022-01-01T00:00:00Z'
+        end: '2023-01-01T00:00:00Z'
+      diagnostic_2023:
+        start: '2023-01-01T00:00:00Z'
+        end: '2024-01-01T00:00:00Z'
+      diagnostic_2024:
+        start: '2024-01-01T00:00:00Z'
+        end: '2025-01-01T00:00:00Z'
+      diagnostic_2025:
+        start: '2025-01-01T00:00:00Z'
+        end: '2026-01-01T00:00:00Z'
+      diagnostic_2026:
+        start: '2026-01-01T00:00:00Z'
+        end: '2026-09-26T00:00:00Z'
+    filters:
+      minimum_trades: 1
+      maximum_drawdown_pct: 25.0
+      minimum_profit_factor: null
+      minimum_sharpe: null
+      positive_test: false
+      cost_stress_survival: false
+    ranking:
+      metric: closed_trades
+      descending: true
+      top_n: 4
+  fixed_180:
+    schema_version: 1
+    experiment_id: rmm_falsification_v1_fixed_180
+    created_at: '2026-10-04T16:56:44.155870Z'
+    description: POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE; four frozen
+      candidates; no optimization, no unseen holdout, no portfolio or operational
+      eligibility.
+    app: ../app.yaml
+    strategy:
+      id: risk_managed_momentum_v1
+      config: ../profiles/rmm_falsification_v1/fixed.yaml
+    markets:
+    - symbol: BTCUSDT
+      timeframe: 4h
+      dataset: ../../data/literature_v1/prices/BTCUSDT/4h/1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+      dataset_format: bundle
+      dataset_id: 1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+      warmup_bars: 1000
+      perpetual_data: null
+    - symbol: ETHUSDT
+      timeframe: 4h
+      dataset: ../../data/literature_v1/prices/ETHUSDT/4h/2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+      dataset_format: bundle
+      dataset_id: 2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+      warmup_bars: 1000
+      perpetual_data: null
+    modes:
+    - LONG_ONLY
+    - LONG_SHORT
+    strategy_parameters:
+      ema_period:
+      - 200
+      momentum_lookback:
+      - 180
+      volatility_period:
+      - 180
+      target_volatility_pct:
+      - 10.0
+    initial_cash: 10000.0
+    costs:
+      trading_fee_pct: 0.05
+      slippage_pct: 0.03
+      spread_pct: 0.01
+    execution:
+      market_mode: synthetic
+      direction: long
+      quantity_step: 1.0e-06
+      min_quantity: 1.0e-06
+      min_notional: 10.0
+      filter_assumption: Fixed research filters; no historical tiers. Collateralized
+        synthetic, no funding/liquidations.
+      liquidate_at_end: true
+    validation:
+      train:
+        start: '2020-07-01T00:00:00Z'
+        end: '2022-07-01T00:00:00Z'
+      validation:
+        start: '2022-07-01T00:00:00Z'
+        end: '2025-07-01T00:00:00Z'
+      test:
+        start: '2025-07-01T00:00:00Z'
+        end: '2026-09-26T00:00:00Z'
+      walk_forward:
+      - train:
+          start: '2020-07-01T00:00:00Z'
+          end: '2022-07-01T00:00:00Z'
+        test:
+          start: '2022-07-01T00:00:00Z'
+          end: '2023-01-01T00:00:00Z'
+      - train:
+          start: '2021-01-01T00:00:00Z'
+          end: '2023-01-01T00:00:00Z'
+        test:
+          start: '2023-01-01T00:00:00Z'
+          end: '2023-07-01T00:00:00Z'
+      - train:
+          start: '2021-07-01T00:00:00Z'
+          end: '2023-07-01T00:00:00Z'
+        test:
+          start: '2023-07-01T00:00:00Z'
+          end: '2024-01-01T00:00:00Z'
+      - train:
+          start: '2022-01-01T00:00:00Z'
+          end: '2024-01-01T00:00:00Z'
+        test:
+          start: '2024-01-01T00:00:00Z'
+          end: '2024-07-01T00:00:00Z'
+      - train:
+          start: '2022-07-01T00:00:00Z'
+          end: '2024-07-01T00:00:00Z'
+        test:
+          start: '2024-07-01T00:00:00Z'
+          end: '2025-01-01T00:00:00Z'
+      - train:
+          start: '2023-01-01T00:00:00Z'
+          end: '2025-01-01T00:00:00Z'
+        test:
+          start: '2025-01-01T00:00:00Z'
+          end: '2025-07-01T00:00:00Z'
+      cost_stress:
+        adverse:
+          trading_fee_pct: 0.1
+          slippage_pct: 0.06
+          spread_pct: 0.02
+    diagnostic_periods:
+      diagnostic_2020:
+        start: '2020-07-01T00:00:00Z'
+        end: '2021-01-01T00:00:00Z'
+      diagnostic_2021:
+        start: '2021-01-01T00:00:00Z'
+        end: '2022-01-01T00:00:00Z'
+      diagnostic_2022:
+        start: '2022-01-01T00:00:00Z'
+        end: '2023-01-01T00:00:00Z'
+      diagnostic_2023:
+        start: '2023-01-01T00:00:00Z'
+        end: '2024-01-01T00:00:00Z'
+      diagnostic_2024:
+        start: '2024-01-01T00:00:00Z'
+        end: '2025-01-01T00:00:00Z'
+      diagnostic_2025:
+        start: '2025-01-01T00:00:00Z'
+        end: '2026-01-01T00:00:00Z'
+      diagnostic_2026:
+        start: '2026-01-01T00:00:00Z'
+        end: '2026-09-26T00:00:00Z'
+    filters:
+      minimum_trades: 1
+      maximum_drawdown_pct: 25.0
+      minimum_profit_factor: null
+      minimum_sharpe: null
+      positive_test: false
+      cost_stress_survival: false
+    ranking:
+      metric: closed_trades
+      descending: true
+      top_n: 4
+  scaled_150:
+    schema_version: 1
+    experiment_id: rmm_falsification_v1_scaled_150
+    created_at: '2026-10-04T16:56:44.162469Z'
+    description: POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE; four frozen
+      candidates; no optimization, no unseen holdout, no portfolio or operational
+      eligibility.
+    app: ../app.yaml
+    strategy:
+      id: risk_managed_momentum_v1
+      config: ../strategies/risk_managed_momentum_v1.yaml
+    markets:
+    - symbol: BTCUSDT
+      timeframe: 4h
+      dataset: ../../data/literature_v1/prices/BTCUSDT/4h/1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+      dataset_format: bundle
+      dataset_id: 1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+      warmup_bars: 1000
+      perpetual_data: null
+    - symbol: ETHUSDT
+      timeframe: 4h
+      dataset: ../../data/literature_v1/prices/ETHUSDT/4h/2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+      dataset_format: bundle
+      dataset_id: 2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+      warmup_bars: 1000
+      perpetual_data: null
+    modes:
+    - LONG_ONLY
+    - LONG_SHORT
+    strategy_parameters:
+      ema_period:
+      - 200
+      momentum_lookback:
+      - 150
+      volatility_period:
+      - 150
+      target_volatility_pct:
+      - 10.0
+    initial_cash: 10000.0
+    costs:
+      trading_fee_pct: 0.05
+      slippage_pct: 0.03
+      spread_pct: 0.01
+    execution:
+      market_mode: synthetic
+      direction: long
+      quantity_step: 1.0e-06
+      min_quantity: 1.0e-06
+      min_notional: 10.0
+      filter_assumption: Fixed research filters; no historical tiers. Collateralized
+        synthetic, no funding/liquidations.
+      liquidate_at_end: true
+    validation:
+      train:
+        start: '2020-07-01T00:00:00Z'
+        end: '2022-07-01T00:00:00Z'
+      validation:
+        start: '2022-07-01T00:00:00Z'
+        end: '2025-07-01T00:00:00Z'
+      test:
+        start: '2025-07-01T00:00:00Z'
+        end: '2026-09-26T00:00:00Z'
+      walk_forward:
+      - train:
+          start: '2020-07-01T00:00:00Z'
+          end: '2022-07-01T00:00:00Z'
+        test:
+          start: '2022-07-01T00:00:00Z'
+          end: '2023-01-01T00:00:00Z'
+      - train:
+          start: '2021-01-01T00:00:00Z'
+          end: '2023-01-01T00:00:00Z'
+        test:
+          start: '2023-01-01T00:00:00Z'
+          end: '2023-07-01T00:00:00Z'
+      - train:
+          start: '2021-07-01T00:00:00Z'
+          end: '2023-07-01T00:00:00Z'
+        test:
+          start: '2023-07-01T00:00:00Z'
+          end: '2024-01-01T00:00:00Z'
+      - train:
+          start: '2022-01-01T00:00:00Z'
+          end: '2024-01-01T00:00:00Z'
+        test:
+          start: '2024-01-01T00:00:00Z'
+          end: '2024-07-01T00:00:00Z'
+      - train:
+          start: '2022-07-01T00:00:00Z'
+          end: '2024-07-01T00:00:00Z'
+        test:
+          start: '2024-07-01T00:00:00Z'
+          end: '2025-01-01T00:00:00Z'
+      - train:
+          start: '2023-01-01T00:00:00Z'
+          end: '2025-01-01T00:00:00Z'
+        test:
+          start: '2025-01-01T00:00:00Z'
+          end: '2025-07-01T00:00:00Z'
+      cost_stress:
+        adverse:
+          trading_fee_pct: 0.1
+          slippage_pct: 0.06
+          spread_pct: 0.02
+    diagnostic_periods:
+      diagnostic_2020:
+        start: '2020-07-01T00:00:00Z'
+        end: '2021-01-01T00:00:00Z'
+      diagnostic_2021:
+        start: '2021-01-01T00:00:00Z'
+        end: '2022-01-01T00:00:00Z'
+      diagnostic_2022:
+        start: '2022-01-01T00:00:00Z'
+        end: '2023-01-01T00:00:00Z'
+      diagnostic_2023:
+        start: '2023-01-01T00:00:00Z'
+        end: '2024-01-01T00:00:00Z'
+      diagnostic_2024:
+        start: '2024-01-01T00:00:00Z'
+        end: '2025-01-01T00:00:00Z'
+      diagnostic_2025:
+        start: '2025-01-01T00:00:00Z'
+        end: '2026-01-01T00:00:00Z'
+      diagnostic_2026:
+        start: '2026-01-01T00:00:00Z'
+        end: '2026-09-26T00:00:00Z'
+    filters:
+      minimum_trades: 1
+      maximum_drawdown_pct: 25.0
+      minimum_profit_factor: null
+      minimum_sharpe: null
+      positive_test: false
+      cost_stress_survival: false
+    ranking:
+      metric: closed_trades
+      descending: true
+      top_n: 4
+  scaled_210:
+    schema_version: 1
+    experiment_id: rmm_falsification_v1_scaled_210
+    created_at: '2026-10-04T16:56:44.170952Z'
+    description: POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE; four frozen
+      candidates; no optimization, no unseen holdout, no portfolio or operational
+      eligibility.
+    app: ../app.yaml
+    strategy:
+      id: risk_managed_momentum_v1
+      config: ../strategies/risk_managed_momentum_v1.yaml
+    markets:
+    - symbol: BTCUSDT
+      timeframe: 4h
+      dataset: ../../data/literature_v1/prices/BTCUSDT/4h/1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+      dataset_format: bundle
+      dataset_id: 1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+      warmup_bars: 1000
+      perpetual_data: null
+    - symbol: ETHUSDT
+      timeframe: 4h
+      dataset: ../../data/literature_v1/prices/ETHUSDT/4h/2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+      dataset_format: bundle
+      dataset_id: 2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+      warmup_bars: 1000
+      perpetual_data: null
+    modes:
+    - LONG_ONLY
+    - LONG_SHORT
+    strategy_parameters:
+      ema_period:
+      - 200
+      momentum_lookback:
+      - 210
+      volatility_period:
+      - 210
+      target_volatility_pct:
+      - 10.0
+    initial_cash: 10000.0
+    costs:
+      trading_fee_pct: 0.05
+      slippage_pct: 0.03
+      spread_pct: 0.01
+    execution:
+      market_mode: synthetic
+      direction: long
+      quantity_step: 1.0e-06
+      min_quantity: 1.0e-06
+      min_notional: 10.0
+      filter_assumption: Fixed research filters; no historical tiers. Collateralized
+        synthetic, no funding/liquidations.
+      liquidate_at_end: true
+    validation:
+      train:
+        start: '2020-07-01T00:00:00Z'
+        end: '2022-07-01T00:00:00Z'
+      validation:
+        start: '2022-07-01T00:00:00Z'
+        end: '2025-07-01T00:00:00Z'
+      test:
+        start: '2025-07-01T00:00:00Z'
+        end: '2026-09-26T00:00:00Z'
+      walk_forward:
+      - train:
+          start: '2020-07-01T00:00:00Z'
+          end: '2022-07-01T00:00:00Z'
+        test:
+          start: '2022-07-01T00:00:00Z'
+          end: '2023-01-01T00:00:00Z'
+      - train:
+          start: '2021-01-01T00:00:00Z'
+          end: '2023-01-01T00:00:00Z'
+        test:
+          start: '2023-01-01T00:00:00Z'
+          end: '2023-07-01T00:00:00Z'
+      - train:
+          start: '2021-07-01T00:00:00Z'
+          end: '2023-07-01T00:00:00Z'
+        test:
+          start: '2023-07-01T00:00:00Z'
+          end: '2024-01-01T00:00:00Z'
+      - train:
+          start: '2022-01-01T00:00:00Z'
+          end: '2024-01-01T00:00:00Z'
+        test:
+          start: '2024-01-01T00:00:00Z'
+          end: '2024-07-01T00:00:00Z'
+      - train:
+          start: '2022-07-01T00:00:00Z'
+          end: '2024-07-01T00:00:00Z'
+        test:
+          start: '2024-07-01T00:00:00Z'
+          end: '2025-01-01T00:00:00Z'
+      - train:
+          start: '2023-01-01T00:00:00Z'
+          end: '2025-01-01T00:00:00Z'
+        test:
+          start: '2025-01-01T00:00:00Z'
+          end: '2025-07-01T00:00:00Z'
+      cost_stress:
+        adverse:
+          trading_fee_pct: 0.1
+          slippage_pct: 0.06
+          spread_pct: 0.02
+    diagnostic_periods:
+      diagnostic_2020:
+        start: '2020-07-01T00:00:00Z'
+        end: '2021-01-01T00:00:00Z'
+      diagnostic_2021:
+        start: '2021-01-01T00:00:00Z'
+        end: '2022-01-01T00:00:00Z'
+      diagnostic_2022:
+        start: '2022-01-01T00:00:00Z'
+        end: '2023-01-01T00:00:00Z'
+      diagnostic_2023:
+        start: '2023-01-01T00:00:00Z'
+        end: '2024-01-01T00:00:00Z'
+      diagnostic_2024:
+        start: '2024-01-01T00:00:00Z'
+        end: '2025-01-01T00:00:00Z'
+      diagnostic_2025:
+        start: '2025-01-01T00:00:00Z'
+        end: '2026-01-01T00:00:00Z'
+      diagnostic_2026:
+        start: '2026-01-01T00:00:00Z'
+        end: '2026-09-26T00:00:00Z'
+    filters:
+      minimum_trades: 1
+      maximum_drawdown_pct: 25.0
+      minimum_profit_factor: null
+      minimum_sharpe: null
+      positive_test: false
+      cost_stress_survival: false
+    ranking:
+      metric: closed_trades
+      descending: true
+      top_n: 4
+file_sha256:
+  configs/experiments/rmm_falsification_v1_scaled_180.yaml: d497cc41aa214ba40f61bc48850d09943e3226e9c54d74e6ebcfcb39de174e31
+  configs/experiments/rmm_falsification_v1_fixed_180.yaml: fea2179e7dab310b9b66496e05c82f6e3a94f508fe34181cdf115062e6ee706b
+  configs/experiments/rmm_falsification_v1_scaled_150.yaml: dc3c54ea83ee907663f7304b93f577ce1a9c011548ab3d87b47c6b67a8c568c5
+  configs/experiments/rmm_falsification_v1_scaled_210.yaml: 5b91cd221a310a5b2077a594dd76237d085d0dc93d9cc31e8455984ad1f16a76
+  configs/profiles/rmm_falsification_v1/fixed.yaml: 4bed8041ad3373cf2688ef80d94fdaef27fa0b66fc5de2631d8dabb6a7f8166b
+  configs/strategies/risk_managed_momentum_v1.yaml: 147f05012c91347a8777bd1ce6eff85da824e7d089516791a3ddba9616647fc8
+  configs/risk.yaml: 388c85d59f758a3116dfcb302fd2e8f3e489de2f5345ac845d06d618efd8dd5c
+  configs/app.yaml: 15ce75df888657859d1af78045b72cc77dc8834be34d352f36864565d1cea9c1
+  src/quant_lab/strategies/risk_managed_momentum_v1.py: 17a02a3734add5b4556d78248df9056af21e4c1c236dc7f32066ca659744d5ba
+  src/quant_lab/literature_features.py: 1558da7a8ef131b8d7c9ad482804626c3f8a1c824ed945cc63bc23a3fa61153e
+  src/quant_lab/indicators.py: c6d88055068269f4f1683cd4ada7ec37a5780e433174bba29b27a6452fd08dd3
+  src/quant_lab/features.py: 396f82a75b4ed7a2a90837dcce9beb23f88d39f2679cfcd5c41acac7153e2392
+  src/quant_lab/risk.py: dfcfde6cf79b792dda39eb78ce8a2ba92f8bdb51bfecf5bd3c3e74b8b7fd58be
+  src/quant_lab/study_backend.py: 23b5d45e43587d3ca660869365e3ce10a4c19ff5edd123ae05bfc4a8cdfedba8
+  src/quant_lab/lab_runner.py: 5755aa949693662f91e67c57c0a9c857ef37a5a73e31787b7c63449f2a083b10
+  src/quant_lab/metrics.py: 832f65004655583bb7c9c0f3d801c61692b2c28911854c615efa27cf50cb022f
+  src/quant_lab/lab_rmm_falsification.py: 64b16fcf8a9972213af290175fdea5c9ac3c8395d18ebc93bab18a599b2f95a5
+  src/quant_lab/lab_cli.py: a9bd82660446cea7a176110ffe73baac6c00bac25437eb921b68ae0fb60368f7
+guidelines:
+  maximum_drawdown_pct: 25.0
+  minimum_temporal_trades: 30
+  minimum_period_trades: 5
+  concentration_top3_net_share_pct: 80.0
+  minimum_positive_wf_fraction: 0.5
+  ablation_maximum_exposure_ratio: 1.5
+  ablation_dd_relative_tolerance: 0.05
+  ablation_sharpe_min_gain: 0.05
+classifications:
+- REJECTED
+- INCONCLUSIVE
+- PROMISING_BUT_UNCONFIRMED
+- DEMO_FORWARD_CANDIDATE
+demo_requires_human_review: true
+selection_source_run_ids: unknown; user-described prior observations, not reaudited
+freeze_git_revision: e2147d580609131406ad69950b4c03ca8ebb5ec8

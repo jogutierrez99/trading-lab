@@ -91,13 +91,40 @@ def heartbeat(engine, feed, status):
         )
 
 
-def run(config_path, *, max_updates=None):
+def run(config_path, *, max_updates=None, mode="signal-only", verification=None):
     config, inherited, output = load_config(config_path)
     if importlib.util.find_spec("websockets") is None:
         raise ValueError('Install forward dependencies: python -m pip install -e ".[dev,forward]"')
     broker = OKXDemoBroker()
     instruments, warnings = instrument_lookup(config, broker)
+    code = provenance(ROOT)
+    demo = mode == "demo-execution"
+    if config.data_protocol == "rmm_4h":
+        mapping = {
+            asset: next(i for i in instruments if i.startswith(asset + "-"))
+            for asset in config.instruments
+        }
+        if demo:
+            from quant_lab.brokers.okx_execution import OKXDemoExecution
+            from quant_lab.forward.rmm_operations import check_receipt
+
+            if not verification:
+                raise ValueError(
+                    "DEMO_EXECUTION requires --verification after stopped SIGNAL_ONLY >=4h"
+                )
+            check_receipt(verification, config, code, mapping)
+            broker = OKXDemoExecution(armed=True)
+        config = config.model_copy(
+            update={
+                "instruments": mapping,
+                "mode": "demo_execution" if demo else "signal_only",
+                "trading_enabled": demo,
+            }
+        )
+    elif demo:
+        raise ValueError("Legacy forward remains SIGNAL_ONLY")
     feed = OKXMarketData(broker, list(instruments))
+    feed.rmm_reference = config.data_protocol == "rmm_4h"
     feed.required_feeds = {
         (i, tf) for i in instruments for tf in BARS if config.required_feed(i, tf)
     }
@@ -106,7 +133,8 @@ def run(config_path, *, max_updates=None):
         "inherited": inherited.model_dump(mode="json"),
         "instruments": {key: asdict(value) for key, value in instruments.items()},
     }
-    store = Store(output, resolved, provenance(ROOT))
+    store = Store(output, resolved, code)
+    coordinator = None
     for receipt in sorted((ROOT / "reports/forward/preflight").glob("*.json"), reverse=True):
         try:
             proof = json.loads(receipt.read_text(encoding="utf-8"))
@@ -122,10 +150,20 @@ def run(config_path, *, max_updates=None):
     status = "stopped"
     try:
         engine = ForwardEngine(config, inherited, instruments, store)
+        if demo:
+            from quant_lab.forward.demo_execution import DemoCoordinator
+
+            coordinator = DemoCoordinator(
+                store, broker, config.demo_strategy, instruments, inherited
+            )
+            coordinator.account_check()
         with store.db:
             for warning in warnings:
                 engine.monitoring_warning(**warning)
-        private = all(os.getenv(n) for n in ("OKX_API_KEY", "OKX_API_SECRET", "OKX_API_PASSPHRASE"))
+        private = demo or (
+            config.data_protocol != "rmm_4h"
+            and all(os.getenv(n) for n in ("OKX_API_KEY", "OKX_API_SECRET", "OKX_API_PASSPHRASE"))
+        )
         snapshot = (
             broker.reconcile() if private else {"status": "PUBLIC_ONLY", "private_state": "unknown"}
         )
@@ -133,10 +171,16 @@ def run(config_path, *, max_updates=None):
             store.event("BROKER_SNAPSHOT", store.session, snapshot)
         try:
             recover(engine, feed, initial=True)
+            if demo and any(
+                e["kind"] == "RECOVERY_REVIEW_REQUIRED" for e in store.rows("events", session=True)
+            ):
+                raise RuntimeError("Missed demo decision boundary; manual review required")
         except DataGap as exc:
             detect(engine, str(exc))
             raise
-        print(f"SIGNAL_ONLY session: {store.path}", flush=True)
+        print(f"{config.mode.upper()} session: {store.path}", flush=True)
+        if config.data_protocol == "rmm_4h":
+            store.metadata["feed_sources"] = feed.rmm_sources
         store.report("running")
         retries, updates, last_heartbeat = 0, 0, 0.0
         while max_updates is None or updates < max_updates:
@@ -162,6 +206,9 @@ def run(config_path, *, max_updates=None):
                                     bar.instrument_id, bar.timeframe, "Late monitoring candle"
                                 )
                         engine.ingest(bar, feed.quote)
+                        if coordinator and config.required_feed(bar.instrument_id, bar.timeframe):
+                            coordinator.observe(bar)
+                            coordinator.drain()
                         updates += 1
                     if time.monotonic() - last_heartbeat >= config.heartbeat_seconds:
                         now = feed.now()
@@ -171,6 +218,8 @@ def run(config_path, *, max_updates=None):
                             ):
                                 raise DataGap(f"Stale candle stream: {inst} {tf}")
                         heartbeat(engine, feed, "connected")
+                        if coordinator:
+                            coordinator.account_check()
                         store.report("running")
                         last_heartbeat = time.monotonic()
                     if max_updates is not None and updates >= max_updates:
@@ -194,6 +243,13 @@ def run(config_path, *, max_updates=None):
                     time.sleep(min(2**retries, 30))
                     try:
                         recover(engine, feed)
+                        if demo and any(
+                            e["kind"] == "RECOVERY_REVIEW_REQUIRED"
+                            for e in store.rows("events", session=True)
+                        ):
+                            raise RuntimeError(
+                                "Missed demo decision boundary; manual review required"
+                            )
                         break
                     except (ConnectionError, OSError, TimeoutError, DataGap):
                         retries += 1
@@ -229,16 +285,27 @@ def run(config_path, *, max_updates=None):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="OKX EU SIGNAL_ONLY; no order routing")
+    parser = argparse.ArgumentParser(
+        description="OKX demo forward; RMM execution requires verification"
+    )
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
-    parser.add_argument("--mode", choices=["signal-only"], default="signal-only")
+    parser.add_argument("--mode", choices=["signal-only", "demo-execution"], default="signal-only")
+    parser.add_argument("--verification", type=Path)
     parser.add_argument(
         "--max-updates", type=int, help="Stop after a bounded number of confirmed WS updates"
     )
     args = parser.parse_args(argv)
     if args.max_updates is not None and args.max_updates < 1:
         parser.error("--max-updates must be positive")
-    run(args.config, max_updates=args.max_updates)
+    try:
+        run(
+            args.config,
+            max_updates=args.max_updates,
+            mode=args.mode,
+            verification=args.verification,
+        )
+    except DataGap as exc:
+        parser.exit(1, f"Forward stopped: {exc}\n")
 
 
 if __name__ == "__main__":

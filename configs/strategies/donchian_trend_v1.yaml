@@ -1,0 +1,23 @@
+name: donchian_trend_v1
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 4h
+parameters:
+  ema_period: 200
+  adx_period: 14
+  adx_threshold: 25.0
+  donchian_lookback: 20
+  atr_period: 14
+  breakout_strength_min: 0.1
+  stop_atr_multiplier: 2.0
+  trailing_atr_multiplier: 2.0
+risk:
+  stop_method: atr
+  stop_enabled: true
+  take_profit_enabled: false
+  trailing_atr_multiplier: 2.0
+  max_holding_bars: null
+  trailing_basis: close

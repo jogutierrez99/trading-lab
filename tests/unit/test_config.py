@@ -15,11 +15,15 @@ from quant_lab.config import (
 
 def test_repository_configuration(repo_root):
     config = load_research_config(repo_root / "configs/app.yaml")
-    assert len(config.strategies) == 34
+    assert len(config.strategies) == 38
     assert {s.name for s in config.strategies if s.enabled} == {
         "trend_volatility_breakout_v1",
         "volatility_breakout_intraday_v1",
         "range_mean_reversion_v1",
+        "donchian_trend_v1",
+        "risk_managed_momentum_v1",
+        "rsi_momentum_regime_v1",
+        "funding_conditional_momentum_v1",
     }
     assert {m.timeframe for m in config.markets.markets} == {"5m", "15m", "1h", "4h", "1d"}
     assert config.app.costs.trading_fee_pct == 0.05

@@ -1,0 +1,21 @@
+environment: demo
+data_protocol: rmm_4h
+mode: signal_only
+broker: okx
+trading_enabled: false
+allow_live_trading: false
+instruments:
+  BTC: AUTO
+strategies:
+  - rmm_btc_long_short_4h
+  - rmm_btc_long_only_4h_shadow
+demo_strategy: rmm_btc_long_short_4h
+parameters:
+  ema_period: 200
+  momentum_lookback: 180
+  volatility_period: 180
+  target_volatility_pct: 10.0
+output: ../../results/forward/rmm_btc_4h
+warmup_bars: 1000
+heartbeat_seconds: 30
+max_reconnects: 8

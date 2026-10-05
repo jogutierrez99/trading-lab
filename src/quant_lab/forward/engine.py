@@ -33,6 +33,15 @@ class ForwardEngine:
             store,
         )
         self.book = CandleBook()
+        if config.data_protocol == "rmm_4h":
+            from quant_lab.forward.rmm import RMMPolicy
+
+            self.costs = CostModel.from_config(inherited.costs["base"])
+            self.eth = config.instruments.get("ETH")
+            for row in store.rows("bars"):
+                self.book.add(Bar(**(row | {"timestamp": pd.Timestamp(row["timestamp"])})))
+            self.rmm = RMMPolicy(self)
+            return
         self.adapter = StrategyAdapter(
             inherited.risk, instruments[config.instruments["ETH"]].settlement_currency
         )
@@ -58,6 +67,8 @@ class ForwardEngine:
         )
 
     def save(self):
+        if hasattr(self, "rmm"):
+            return self.rmm.save()
         self.store.checkpoint(
             {
                 "positions": self.positions,
@@ -111,6 +122,8 @@ class ForwardEngine:
         self.monitor_latest[key] = bar.row() | {"timestamp": bar.timestamp.isoformat()}
 
     def invalidate_timing(self, reason):
+        if hasattr(self, "rmm"):
+            return
         with self.store.db:
             for item in self.timing.policy.pending:
                 self.store.event("TIMING_NOT_EXECUTED", item["entry"].signal_id, {"reason": reason})
@@ -251,6 +264,8 @@ class ForwardEngine:
             )
 
     def ingest(self, bar, quote_provider, *, recovering=False):
+        if hasattr(self, "rmm"):
+            return self.rmm.ingest(bar, quote_provider, recovering)
         if not recovering and self.config.required_feed(bar.instrument_id, bar.timeframe):
             gaps = self.store.gaps(unresolved=True)
             if gaps:

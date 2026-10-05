@@ -5,7 +5,12 @@ import pandas as pd
 from quant_lab.features import atr, ema, rsi, true_range
 from quant_lab.indicators import adx, bollinger, wilder
 
-STEPS = {"15m": pd.Timedelta(minutes=15), "1h": pd.Timedelta(hours=1), "4h": pd.Timedelta(hours=4)}
+STEPS = {
+    "15m": pd.Timedelta(minutes=15),
+    "1h": pd.Timedelta(hours=1),
+    "4h": pd.Timedelta(hours=4),
+    "1d": pd.Timedelta(days=1),
+}
 
 
 def features(candles: pd.DataFrame) -> pd.DataFrame:

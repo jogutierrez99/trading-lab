@@ -1,0 +1,135 @@
+schema_version: 1
+experiment_id: rmm_falsification_v1_scaled_210
+created_at: 2026-10-04 16:56:44.170952+00:00
+description: POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE; four frozen candidates;
+  no optimization, no unseen holdout, no portfolio or operational eligibility.
+app: ../app.yaml
+strategy:
+  id: risk_managed_momentum_v1
+  config: ../strategies/risk_managed_momentum_v1.yaml
+markets:
+- symbol: BTCUSDT
+  timeframe: 4h
+  dataset: ../../data/literature_v1/prices/BTCUSDT/4h/1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+  dataset_format: bundle
+  dataset_id: 1000ebd0bbbc0ce230d83c1fc644467bbb3e0d1de001b66d5da4cf2015355f39
+  warmup_bars: 1000
+  perpetual_data: null
+- symbol: ETHUSDT
+  timeframe: 4h
+  dataset: ../../data/literature_v1/prices/ETHUSDT/4h/2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+  dataset_format: bundle
+  dataset_id: 2b5103f04503d4870c9a056504c33d4715c4ec3e20caa57fd1b7c6dcff7d6686
+  warmup_bars: 1000
+  perpetual_data: null
+modes:
+- LONG_ONLY
+- LONG_SHORT
+strategy_parameters:
+  ema_period:
+  - 200
+  momentum_lookback:
+  - 210
+  volatility_period:
+  - 210
+  target_volatility_pct:
+  - 10.0
+initial_cash: 10000.0
+costs:
+  trading_fee_pct: 0.05
+  slippage_pct: 0.03
+  spread_pct: 0.01
+execution:
+  market_mode: synthetic
+  direction: long
+  quantity_step: 1.0e-06
+  min_quantity: 1.0e-06
+  min_notional: 10.0
+  filter_assumption: Fixed research filters; no historical tiers. Collateralized synthetic,
+    no funding/liquidations.
+  liquidate_at_end: true
+validation:
+  train:
+    start: 2020-07-01 00:00:00+00:00
+    end: 2022-07-01 00:00:00+00:00
+  validation:
+    start: 2022-07-01 00:00:00+00:00
+    end: 2025-07-01 00:00:00+00:00
+  test:
+    start: 2025-07-01 00:00:00+00:00
+    end: 2026-09-26 00:00:00+00:00
+  walk_forward:
+  - train:
+      start: 2020-07-01 00:00:00+00:00
+      end: 2022-07-01 00:00:00+00:00
+    test:
+      start: 2022-07-01 00:00:00+00:00
+      end: 2023-01-01 00:00:00+00:00
+  - train:
+      start: 2021-01-01 00:00:00+00:00
+      end: 2023-01-01 00:00:00+00:00
+    test:
+      start: 2023-01-01 00:00:00+00:00
+      end: 2023-07-01 00:00:00+00:00
+  - train:
+      start: 2021-07-01 00:00:00+00:00
+      end: 2023-07-01 00:00:00+00:00
+    test:
+      start: 2023-07-01 00:00:00+00:00
+      end: 2024-01-01 00:00:00+00:00
+  - train:
+      start: 2022-01-01 00:00:00+00:00
+      end: 2024-01-01 00:00:00+00:00
+    test:
+      start: 2024-01-01 00:00:00+00:00
+      end: 2024-07-01 00:00:00+00:00
+  - train:
+      start: 2022-07-01 00:00:00+00:00
+      end: 2024-07-01 00:00:00+00:00
+    test:
+      start: 2024-07-01 00:00:00+00:00
+      end: 2025-01-01 00:00:00+00:00
+  - train:
+      start: 2023-01-01 00:00:00+00:00
+      end: 2025-01-01 00:00:00+00:00
+    test:
+      start: 2025-01-01 00:00:00+00:00
+      end: 2025-07-01 00:00:00+00:00
+  cost_stress:
+    adverse:
+      trading_fee_pct: 0.1
+      slippage_pct: 0.06
+      spread_pct: 0.02
+diagnostic_periods:
+  diagnostic_2020:
+    start: 2020-07-01 00:00:00+00:00
+    end: 2021-01-01 00:00:00+00:00
+  diagnostic_2021:
+    start: 2021-01-01 00:00:00+00:00
+    end: 2022-01-01 00:00:00+00:00
+  diagnostic_2022:
+    start: 2022-01-01 00:00:00+00:00
+    end: 2023-01-01 00:00:00+00:00
+  diagnostic_2023:
+    start: 2023-01-01 00:00:00+00:00
+    end: 2024-01-01 00:00:00+00:00
+  diagnostic_2024:
+    start: 2024-01-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  diagnostic_2025:
+    start: 2025-01-01 00:00:00+00:00
+    end: 2026-01-01 00:00:00+00:00
+  diagnostic_2026:
+    start: 2026-01-01 00:00:00+00:00
+    end: 2026-09-26 00:00:00+00:00
+filters:
+  minimum_trades: 1
+  maximum_drawdown_pct: 25.0
+  minimum_profit_factor: null
+  minimum_sharpe: null
+  positive_test: false
+  cost_stress_survival: false
+ranking:
+  metric: closed_trades
+  descending: true
+  top_n: 4

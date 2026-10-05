@@ -167,6 +167,8 @@ class Store:
 
     def event(self, kind, key, data):
         row = {"kind": kind, "key": key, **data}
+        if self.metadata["config"].get("forward", {}).get("data_protocol") == "rmm_4h":
+            row["runtime_mode"] = self.metadata["config"]["forward"]["mode"]
         self.put("events", identity(kind, key), row)
         table = {
             "MARKET_BAR_CLOSED": "bars",
@@ -330,6 +332,10 @@ class Store:
         report = "\n\n".join(sections) + "\n"
         for name in ("summary.md", "ai_summary.md"):
             (self.path / name).write_text(report, encoding="utf-8")
+        if self.metadata["config"]["forward"].get("data_protocol") == "rmm_4h":
+            from quant_lab.forward.rmm_reporting import report as rmm_report
+
+            rmm_report(self)
 
     def close(self):
         self.db.close()

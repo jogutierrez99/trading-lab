@@ -1,5 +1,12 @@
 # Arquitectura técnica actual
 
+Extensión RMM4h (2026-10-04): mismo ForwardEngine/feed/store/recovery/ShadowTracker;
+`forward/rmm.py` usa la estrategia original congelada. `DemoCoordinator` concilia
+órdenes/fills/checkpoint demo separados de ledgers shadow. `OKXDemoExecution` aporta
+capacidad POST demo explícita gated; broker legacy permanece GET-only. Una MAIN
+seleccionada, otras alternativas independientes, D shadow. Ver
+[protocolo y límites](forward-rmm-4h.md); no routing live ni resultados históricos nuevos.
+
 Inspección: 2026-09-28. Paquete `quant-trading-lab` 0.1.0, Python >=3.12.
 Rutas de módulos relativas a `src/quant_lab/`. El [audit anterior](lab-architecture-audit.md)
 explica decisiones de reutilización; los protocolos históricos siguen vigentes para sus runners.
@@ -193,3 +200,34 @@ identidad y costes de cada segmento; no intervienen en ranking ni gates de candi
 Publisher permite columnas compactas de costes/diagnósticos y las filas anuales;
 comparison separa activos cuando se declara esta extensión. Sin perpetuos/funding
 genéricos nuevos: [supuestos y protocolo](intraday-strategies-v1.md).
+
+## Literatura V1: sizing explícito y bridge funding
+
+BaseStrategy.lab_volatility_timeframes conserva1h por defecto; solo Momentum V1
+opta por4h/1d. realized_volatility/volatility_fractions aceptan annual_bars explícito,
+default8760 intacto; lab pasa2190/365 para esos timeframes. Caps/entrada/sizing
+permanecen en risk/StudyBackend, sin rebalanceo continuo.
+
+PerpetualLabExecution existe solo dentro del schema lab; ExecutionConfig genérico
+no se amplía. prepare exige adapter perpetual_funding y market.perpetual_data con
+snapshot fijado por ID. FULL verifica precios, funding/mark, fingerprint/SHA y cohorte
+BTC/ETH de días completos. evaluate delega al motor run_perpetual existente, hourly1x,
+con política de fronteras heredada y financiación real; otros adapters siguen cerrados.
+Orquestación, Segment, Store, ledger/resume/report/publish siguen compartidos.
+
+literature_data prepara bundles offline nuevos usando quarters15m completos y los
+loaders/validadores existentes, sin descargas. literature_features separa reglas;
+literature_metrics reutiliza excursiones y reflexión de shorts. Compactos limitados
+incluyen exact_parameters.json y entry_diagnostics.csv, nunca full ledgers/equity.
+[Reglas y limitaciones](literature-hypotheses-v1.md).
+
+
+## Risk Managed Momentum 4h: falsación congelada
+
+[Protocolo y comandos](rmm-final-falsification-v1.md): cuatro candidatos A/B/C/D, seis folds fijos,
+control fixed15%, vecinos ligados150/180/210, años y BASE/ADVERSE. Cuatro
+experimentos ordinarios singleton;704 backtests para ejecución local del usuario.
+POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE, sin nuevo holdout independiente.
+`lab.py falsification validate [--full]` verifica freeze/datos; `falsification report
+--runs RUN180 RUNFIXED RUN150 RUN210` audita fuentes y exporta compactos únicos,
+sin simular ni aprobar demo. Strategy/engine/global risk/forward sin cambios.

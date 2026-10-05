@@ -10,7 +10,7 @@ class DiagnosticResult(BacktestResult):
     diagnostics: dict
 
 
-def diagnostic_result(result, candles, signals, segment, strategy):
+def diagnostic_result(result, candles, signals, segment, strategy, *, hours_per_bar=0.25):
     trades = result.trades
     gross = [
         (1 if t.side == "long" else -1) * t.quantity * (t.exit_reference - t.entry_reference)
@@ -32,7 +32,9 @@ def diagnostic_result(result, candles, signals, segment, strategy):
         "total_modeled_costs": costs,
         "cost_gross_profit_ratio": costs / gross_profit if gross_profit else None,
         "average_trade": sum(t.net_pnl for t in trades) / n if n else None,
-        "average_holding_hours": sum(t.holding_bars for t in trades) * 0.25 / n if n else None,
+        "average_holding_hours": sum(t.holding_bars for t in trades) * hours_per_bar / n
+        if n
+        else None,
         "top_5_profit_share_pct": 100 * sum(profits[:5]) / sum(profits) if profits else None,
         "long_setup_count": le,
         "short_setup_count": se,

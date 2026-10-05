@@ -1,0 +1,26 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "evidence_scope": "POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE",
+  "candidates": {
+    "A": {
+      "classification": "INCONCLUSIVE",
+      "review_status": "NOT_EXECUTED",
+      "demo_approved": false
+    },
+    "B": {
+      "classification": "INCONCLUSIVE",
+      "review_status": "NOT_EXECUTED",
+      "demo_approved": false
+    },
+    "C": {
+      "classification": "INCONCLUSIVE",
+      "review_status": "NOT_EXECUTED",
+      "demo_approved": false
+    },
+    "D": {
+      "classification": "INCONCLUSIVE",
+      "review_status": "NOT_EXECUTED",
+      "demo_approved": false
+    }
+  }
+}

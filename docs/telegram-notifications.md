@@ -51,6 +51,7 @@ relativos de `--db` se resuelven contra la raíz del proyecto, no contra el cwd.
 | Opción | Comportamiento |
 |---|---|
 | `--db PATH` | Predeterminado `results/forward/forward.sqlite` |
+| `--state-dir PATH` | Guarda el estado fuera del directorio del journal; copia un estado previo validado si el destino no existe |
 | `--poll-seconds 2` | Sobrescribe el entorno; intervalo finito de 0.1 a 3600 segundos |
 | `--once` | Procesa hasta el máximo rowid observado al inicio de la lectura y termina |
 | `--dry-run` | Imprime, usa cursor solo en memoria e ignora el estado real |
@@ -102,6 +103,31 @@ El estado se escribe a temporal en el mismo directorio, flush/fsync y replace at
 Contiene path, cursor, identidad stream/evento del cursor, envío pendiente y hasta
 100 fallos recientes (rowid, estado e intentos). No guarda token, chat ID ni mensajes.
 
+En Windows, `PermissionError` con winerror5/32/33 durante replace reintenta cinco
+veces con esperas0.2/0.4/0.8/1.6s. Si persiste, conserva el estado anterior y termina
+sin enviar un evento cuyo pending no pudo persistirse. Los permisos, antivirus o
+sincronización pueden bloquear la sustitución; no inferir una causa específica solo
+del código5. En OneDrive, usar desde CMD un directorio de estado local:
+
+```bat
+.venv\Scripts\python.exe scripts/notification_watcher.py --db results/forward/rmm_btc_4h/forward.sqlite --state-dir "%LOCALAPPDATA%\TradingLab\watchers" --startup-message
+```
+
+El nombre del estado local incluye un hash de la ruta absoluta del DB para evitar
+mezclar journals. Mantener `--state-dir` en todos los reinicios posteriores. Si el
+destino no existe, se valida y copia el estado original, conservando cursor, anchor,
+failures y pending; el original no se borra. Si ya existe destino, se usa su cursor
+vigente. Un origen/destino corrupto falla para revisión, sin reset. El lock del
+watcher sigue junto al DB, por lo que la opción no permite otro watcher simultáneo.
+Dry-run no crea ni copia estado. No mover SQLite/WAL/SHM ni borrar estados para
+resolver el incidente. Pruebas dirigidas64 passed; Ruff de archivos afectados pasa.
+
+La modificación del watcher cambia el hash global de código. No interrumpe un runner
+ya abierto; antes de reiniciar RMM demo se requiere una nueva fase SIGNAL_ONLY y
+recibo del código vigente según su gate. Con posiciones/órdenes demo existentes,
+revisar cuenta y recuperación antes de cualquier reinicio; no liquidar automáticamente
+ni reutilizar un recibo anterior cambiando sus hashes.
+
 - Éxito confirmado: persiste el cursor y no reenvía esa fila en un reinicio normal.
 - Antes del HTTP persiste `pending`, conservando el cursor completado anterior.
   Si el proceso se interrumpe, el siguiente arranque registra `interrupted_unknown`
@@ -118,6 +144,11 @@ Contiene path, cursor, identidad stream/evento del cursor, envío pendiente y ha
 - DB inexistente/bloqueada o esquema todavía no disponible: reintenta en el siguiente
   poll; `--once` devuelve 1 en vez de esperar indefinidamente. Un fallo persistente del
   esquema requiere revisar compatibilidad. Sin escrituras en el journal.
+  Una base ausente muestra INFO indicando arrancar el runner para la ruta elegida;
+  el watcher no crea la base. Bloqueos, acceso SQLite y otros errores de lectura
+  tienen diagnósticos separados con código numérico, sin texto de excepción.
+  Solo informa cuando cambia el problema y al recuperar la lectura, sin repetir
+  el aviso cada dos segundos. El startup Telegram espera la primera lectura correcta.
 - Estado corrupto, identidad del cursor cambiada o fallo de disco/lock: termina con
   código 2 para revisión, sin asumir cursor cero ni reenviar histórico. No restablecer
   el estado automáticamente si se sustituye/trunca un DB. No afecta al runner.

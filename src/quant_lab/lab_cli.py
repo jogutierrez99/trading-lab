@@ -32,6 +32,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     commands = parser.add_subparsers(dest="command", required=True)
+    falsification = commands.add_parser(
+        "falsification", help="Frozen RMM 4h protocol validation / compact read-only diagnostics"
+    ).add_subparsers(dest="action", required=True)
+    frozen_validate = falsification.add_parser("validate")
+    frozen_validate.add_argument("--full", action="store_true")
+    frozen_report = falsification.add_parser("report")
+    frozen_report.add_argument(
+        "--runs",
+        nargs=4,
+        required=True,
+        metavar="RUN_ID",
+        help="scaled180 fixed180 scaled150 scaled210",
+    )
     for name in ("strategies", "experiments", "status"):
         commands.add_parser(name)
     comparison = commands.add_parser("compare", help="Compare completed lab runs without backtests")
@@ -83,7 +96,15 @@ def main(argv: list[str] | None = None) -> int:
     root = args.root.resolve()
     directory = root / "configs/experiments"
     try:
-        if args.command == "strategies":
+        if args.command == "falsification":
+            from quant_lab.lab_rmm_falsification import report, validate
+
+            result = (
+                validate(root, full=args.full)
+                if args.action == "validate"
+                else {"publication_directory": str(report(root, args.runs))}
+            )
+        elif args.command == "strategies":
             result = StrategyRegistry().discover().catalogue()
         elif args.command == "experiments":
             result = [

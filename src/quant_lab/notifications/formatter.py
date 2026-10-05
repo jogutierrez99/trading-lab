@@ -5,6 +5,11 @@ import re
 from datetime import UTC, datetime
 
 TITLES = {
+    "DEMO_ORDER_SUBMITTED": "DEMO ORDER SUBMITTED",
+    "DEMO_ORDER_FILLED": "DEMO ORDER FILLED",
+    "DEMO_ORDER_REJECTED": "DEMO ORDER REJECTED",
+    "DEMO_POSITION_CLOSED": "DEMO POSITION CLOSED",
+    "DEMO_EXECUTION_BLOCKED": "DEMO EXECUTION BLOCKED",
     "SIGNAL_GENERATED": "🚨 SIGNAL GENERATED",
     "ORDER_INTENT_CREATED": "🧮 HYPOTHETICAL ORDER INTENT",
     "TIMING_WINDOW_STARTED": "⏳ OPTIONAL 15M WINDOW STARTED",
@@ -57,8 +62,24 @@ def format_event(data: dict, session: str, *, include_rejected: bool = False) ->
         return None
     if kind == "SIGNAL_REJECTED" and not include_rejected:
         return None
-    lines = [TITLES[kind], "", "Mode: OKX DEMO / SIGNAL_ONLY"]
-    if kind == "ORDER_INTENT_CREATED":
+    actual = kind.startswith("DEMO_")
+    demo_context = actual or data.get("runtime_mode") == "demo_execution"
+    lines = [
+        TITLES[kind],
+        "",
+        "Mode: OKX DEMO / " + ("DEMO_EXECUTION" if demo_context else "SIGNAL_ONLY"),
+    ]
+    if actual:
+        for fee in data.get("fees_observed", []):
+            lines.append(
+                "Observed fee: " + safe_text(fee.get("fee")) + " " + safe_text(fee.get("currency"))
+            )
+        lines.append("Execution: OKX DEMO exchange state; see journal for reconciliation")
+    elif demo_context and kind in {"SIGNAL_GENERATED", "ORDER_INTENT_CREATED"}:
+        lines.append("Execution: HYPOTHETICAL / SHADOW — see separate demo order events")
+    elif demo_context:
+        lines.append("Execution: OKX DEMO operational event")
+    elif kind == "ORDER_INTENT_CREATED":
         lines.append("Execution: SIGNAL ONLY — NOT sent to OKX")
     elif kind.startswith("TIMING_"):
         lines.append("Execution: SIGNAL ONLY — theoretical selection; no exchange order sent")
@@ -74,6 +95,38 @@ def format_event(data: dict, session: str, *, include_rejected: bool = False) ->
     field("Instrument", "instrument", "instrument_id")
     field("Timeframe", "timeframe")
     field("Side", "side")
+    for key in (
+        "ema",
+        "momentum",
+        "realized_volatility",
+        "calculated_exposure_pct",
+        "quantity",
+        "client_id",
+        "status",
+        "symbol",
+        "mode",
+        "reference_price",
+        "target_volatility_pct",
+        "target_notional",
+        "contracts",
+        "fill_price",
+        "reject_code",
+        "latency_ms",
+        "actual_quantity",
+        "position_after_fill",
+    ):
+        field(key, key)
+    if actual:
+        exchange = data.get("exchange", {})
+        for label, key in (
+            ("Order ID", "ordId"),
+            ("Filled contracts", "accFillSz"),
+            ("Fee", "fee"),
+            ("Fee currency", "feeCcy"),
+            ("Position state", "state"),
+        ):
+            if exchange.get(key) is not None:
+                lines.append(f"{label}: {safe_text(exchange[key])}")
     field("Timestamp (UTC)", "timestamp", "resolved_at", "quote_observed_at", timestamp=True)
     if kind == "SIGNAL_GENERATED":
         signal = safe_text(data.get("signal_id", data.get("key", "unknown")))[:16]

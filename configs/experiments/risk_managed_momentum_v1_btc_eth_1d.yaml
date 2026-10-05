@@ -1,0 +1,85 @@
+schema_version: 1
+experiment_id: risk_managed_momentum_v1_btc_eth_1d
+created_at: 2026-10-04 15:57:38.366511+00:00
+description: RESEARCH ONLY; literature-inspired falsification; one predeclared config,
+  no optimization/automatic promotion. USD-M prices; synthetic execution; funding
+  not modelled.
+app: ../app.yaml
+strategy:
+  id: risk_managed_momentum_v1
+  config: ../strategies/risk_managed_momentum_v1.yaml
+markets:
+- symbol: BTCUSDT
+  timeframe: 1d
+  dataset: ../../data/literature_v1/prices/BTCUSDT/1d/04fd046d35a9f8d7710d029f7f71619eb5a68ce9acf6e888262304103d3027c3
+  dataset_id: 04fd046d35a9f8d7710d029f7f71619eb5a68ce9acf6e888262304103d3027c3
+  warmup_bars: 1000
+- symbol: ETHUSDT
+  timeframe: 1d
+  dataset: ../../data/literature_v1/prices/ETHUSDT/1d/e5a51efa3cd2e8890b5a6d5e1929657a4174dc87271a25d975c9dc13ea9fa554
+  dataset_id: e5a51efa3cd2e8890b5a6d5e1929657a4174dc87271a25d975c9dc13ea9fa554
+  warmup_bars: 1000
+modes:
+- LONG_ONLY
+- SHORT_ONLY
+- LONG_SHORT
+strategy_parameters:
+  ema_period:
+  - 200
+  momentum_lookback:
+  - 30
+  volatility_period:
+  - 30
+  target_volatility_pct:
+  - 10.0
+initial_cash: 10000.0
+costs: null
+execution:
+  market_mode: synthetic
+  direction: long
+  quantity_step: 1.0e-06
+  min_quantity: 1.0e-06
+  min_notional: 10.0
+  filter_assumption: Fixed research filters; no historical tiers. Collateralized synthetic,
+    no funding/liquidations.
+  liquidate_at_end: true
+validation:
+  train:
+    start: 2023-01-01 00:00:00+00:00
+    end: 2024-01-01 00:00:00+00:00
+  validation:
+    start: 2024-01-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  test:
+    start: 2025-01-01 00:00:00+00:00
+    end: 2026-09-26 00:00:00+00:00
+  walk_forward: []
+  cost_stress:
+    adverse:
+      trading_fee_pct: 0.1
+      slippage_pct: 0.06
+      spread_pct: 0.02
+diagnostic_periods:
+  diagnostic_2023:
+    start: 2023-01-01 00:00:00+00:00
+    end: 2024-01-01 00:00:00+00:00
+  diagnostic_2024:
+    start: 2024-01-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  diagnostic_2025:
+    start: 2025-01-01 00:00:00+00:00
+    end: 2026-01-01 00:00:00+00:00
+  diagnostic_2026:
+    start: 2026-01-01 00:00:00+00:00
+    end: 2026-09-26 00:00:00+00:00
+filters:
+  minimum_trades: 1
+  maximum_drawdown_pct: 25.0
+  minimum_profit_factor: null
+  minimum_sharpe: null
+  positive_test: false
+  cost_stress_survival: false
+ranking:
+  metric: closed_trades
+  descending: true
+  top_n: 6

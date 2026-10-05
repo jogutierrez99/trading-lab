@@ -1,0 +1,22 @@
+name: rsi_momentum_regime_v1
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 4h
+parameters:
+  ema_period: 200
+  adx_period: 14
+  adx_threshold: 25.0
+  rsi_period: 14
+  long_threshold: 55.0
+  short_threshold: 45.0
+  atr_period: 14
+  stop_atr_multiplier: 2.0
+risk:
+  stop_method: atr
+  stop_enabled: true
+  take_profit_enabled: false
+  trailing_atr_multiplier: null
+  max_holding_bars: null

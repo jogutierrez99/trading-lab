@@ -1,0 +1,19 @@
+name: funding_conditional_momentum_v1
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters:
+  momentum_lookback: 168
+  funding_window: 90
+  lower_quantile: 0.05
+  atr_period: 14
+  stop_atr_multiplier: 2.0
+risk:
+  stop_method: atr
+  stop_enabled: true
+  take_profit_enabled: false
+  trailing_atr_multiplier: null
+  max_holding_bars: null

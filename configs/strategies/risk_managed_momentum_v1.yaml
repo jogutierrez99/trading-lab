@@ -1,0 +1,24 @@
+name: risk_managed_momentum_v1
+version: 1.0.0
+enabled: true
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 4h
+parameters:
+  ema_period: 200
+  momentum_lookback: 180
+  volatility_period: 180
+  target_volatility_pct: 10.0
+risk:
+  stop_method: atr
+  stop_enabled: false
+  take_profit_enabled: false
+  trailing_atr_multiplier: null
+  max_holding_bars: null
+  sizing_method: volatility_target
+  volatility_period: 180
+  target_volatility_pct: 10.0
+  min_position_pct: 5.0
+  max_position_pct: 25.0
+  max_exposure_pct: 100.0

@@ -315,11 +315,51 @@ def test_wal_readonly_bytes_and_writer_during_delivery(db):
     assert not (db.parent / ".runner.lock").exists()
 
 
-def test_missing_journal_retry_then_from_now(tmp_path):
+def test_missing_journal_retry_then_from_now(tmp_path, caplog):
     missing = tmp_path / "missing.sqlite"
     watcher = fw.ForwardWatcher(missing, notifier())
-    assert watcher.poll() is None
+    with caplog.at_level("INFO"):
+        assert watcher.poll() is None
+        assert watcher.poll() is None
+    assert caplog.text.count("Journal does not exist yet") == 1
+    assert "start the forward runner" in caplog.text
+    assert not any(record.levelname == "WARNING" for record in caplog.records)
     assert not missing.exists() and not watcher.state_path.exists()
+
+
+@pytest.mark.parametrize(
+    "code", [sqlite3.SQLITE_BUSY, sqlite3.SQLITE_CANTOPEN, sqlite3.SQLITE_ERROR]
+)
+def test_journal_diagnostics_are_bounded_and_recover(db, monkeypatch, caplog, code):
+    sender = notifier()
+    watcher = fw.ForwardWatcher(db, sender)
+    watcher.poll()
+    add(db)
+    original = fw.journal
+
+    @contextmanager
+    def unavailable(path):
+        exc = sqlite3.OperationalError("secret must never appear in logs")
+        exc.sqlite_errorcode = code
+        raise exc
+        yield
+
+    with caplog.at_level("INFO"):
+        monkeypatch.setattr(fw, "journal", unavailable)
+        before = watcher.state_path.read_bytes()
+        assert watcher.poll() is None
+        assert watcher.poll() is None
+        assert watcher.state_path.read_bytes() == before
+        assert watcher.cursor == 0
+        sender.send.assert_not_called()
+        assert len(caplog.records) == 1
+        assert f"SQLite code={code}" in caplog.text
+        assert "secret" not in caplog.text
+        monkeypatch.setattr(fw, "journal", original)
+        assert watcher.poll() == 1 and watcher.cursor == 1
+        assert "observation resumed" in caplog.text
+        assert watcher.poll() == 0
+        assert caplog.text.count("observation resumed") == 1
 
 
 def test_temporary_sqlite_failure_does_not_advance(db, monkeypatch):
@@ -375,6 +415,94 @@ def test_atomic_save_failure_preserves_state_and_prevents_send(db, monkeypatch):
     assert watcher.state_path.read_bytes() == original
     assert list(db.parent.glob(watcher.state_path.name + ".*")) == []
     watcher.notifier.send.assert_not_called()
+
+
+def test_windows_transient_replace_retries_before_delivery(db, monkeypatch):
+    watcher = fw.ForwardWatcher(db, notifier())
+    watcher.poll()
+    add(db)
+    original_replace = fw.os.replace
+    blocked = PermissionError(13, "blocked")
+    blocked.winerror = 5
+    sleeps = Mock()
+    replace = Mock(side_effect=[blocked, blocked, None, None])
+
+    def transient(source, target):
+        replace(source, target)
+        original_replace(source, target)
+
+    monkeypatch.setattr(fw.os, "replace", transient)
+    monkeypatch.setattr(fw.time, "sleep", sleeps)
+    assert watcher.poll() == 1
+    assert watcher.cursor == 1
+    watcher.notifier.send.assert_called_once()
+    assert sleeps.call_args_list[:2] == [((0.2,),), ((0.4,),)]
+
+
+def test_windows_permanent_replace_fails_closed_after_bounded_retries(db, monkeypatch):
+    watcher = fw.ForwardWatcher(db, notifier())
+    watcher.poll()
+    before = watcher.state_path.read_bytes()
+    add(db)
+    blocked = PermissionError(13, "blocked")
+    blocked.winerror = 5
+    replace = Mock(side_effect=blocked)
+    sleeps = Mock()
+    monkeypatch.setattr(fw.os, "replace", replace)
+    monkeypatch.setattr(fw.time, "sleep", sleeps)
+    with pytest.raises(PermissionError):
+        watcher.poll()
+    assert replace.call_count == 5 and sleeps.call_count == 4
+    assert watcher.state_path.read_bytes() == before
+    assert watcher.cursor == 0
+    watcher.notifier.send.assert_not_called()
+
+
+def test_external_state_migration_retains_cursor_and_uses_it_on_restart(db, tmp_path):
+    original = fw.ForwardWatcher(db, notifier())
+    original.poll()
+    add(db)
+    original.poll()
+    before = original.state_path.read_bytes()
+    sender = notifier()
+    moved = fw.ForwardWatcher(db, sender, state_dir=tmp_path / "local-state")
+    assert moved.cursor == 1
+    assert moved.state_path.parent == tmp_path / "local-state"
+    assert moved.lock_path == original.lock_path
+    assert original.state_path.read_bytes() == before
+    assert moved.poll() == 0
+    sender.send.assert_not_called()
+    add(db)
+    assert moved.poll() == 1 and moved.cursor == 2
+    assert original.state_path.read_bytes() == before
+    restarted = fw.ForwardWatcher(db, notifier(), state_dir=tmp_path / "local-state")
+    assert restarted.cursor == 2 and restarted.poll() == 0
+    restarted.notifier.send.assert_not_called()
+
+
+def test_external_state_keeps_pending_uncertainty_and_rejects_corrupt_source(db, tmp_path):
+    original = fw.ForwardWatcher(db, notifier())
+    original.poll()
+    add(db)
+    with sqlite3.connect(db) as connection:
+        pending_anchor = fw.anchor(connection, 1)
+    original.save(original.state | {"pending": {"rowid": 1, "anchor": pending_anchor}})
+    moved = fw.ForwardWatcher(db, notifier(), state_dir=tmp_path / "pending-state")
+    assert moved.poll() == 0 and moved.cursor == 1
+    assert moved.state["failures"][-1]["status"] == "interrupted_unknown"
+    moved.notifier.send.assert_not_called()
+    original.state_path.write_text("invalid JSON")
+    with pytest.raises(ValueError, match="Invalid watcher state"):
+        fw.ForwardWatcher(db, notifier(), state_dir=tmp_path / "other-state")
+
+
+def test_external_state_dry_run_does_not_copy_or_create_directory(db, tmp_path):
+    original = fw.ForwardWatcher(db, notifier())
+    original.poll()
+    destination = tmp_path / "dry-state"
+    preview = fw.ForwardWatcher(db, dry_run=True, state_dir=destination)
+    assert preview.poll() == 0
+    assert not destination.exists()
 
 
 def test_delivered_but_final_save_fails_is_not_resent(db, monkeypatch):

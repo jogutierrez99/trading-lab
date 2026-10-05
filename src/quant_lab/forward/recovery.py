@@ -153,10 +153,18 @@ def recover_incidents(engine, feed):
                 continue
             since = min(w[2] for w in bounds)
             try:
-                bars = feed.history(inst, tf, engine.config.warmup_bars, since=since)
+                bars = (
+                    feed.rmm_history(inst, engine.config.warmup_bars, since=since)
+                    if engine.config.data_protocol == "rmm_4h" and tf == "4h"
+                    else feed.history(inst, tf, engine.config.warmup_bars, since=since)
+                )
                 chunks = [bars]
                 if not engine.book.bars.get((inst, tf)):
-                    warmup = feed.history(inst, tf, engine.config.warmup_bars)
+                    warmup = (
+                        feed.rmm_history(inst, engine.config.warmup_bars)
+                        if engine.config.data_protocol == "rmm_4h" and tf == "4h"
+                        else feed.history(inst, tf, engine.config.warmup_bars)
+                    )
                     chunks.append(warmup)
                     bars = warmup + bars
             except DataGap as exc:

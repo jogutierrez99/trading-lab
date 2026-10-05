@@ -41,6 +41,8 @@ class BaseStrategy[P: StrictModel](ABC):
     lab_risk_parameters: ClassVar[dict[str, str]] = {}
     lab_price_levels: ClassVar[bool] = False
     lab_extended_metrics: ClassVar[bool] = False
+    lab_volatility_timeframes: ClassVar[tuple[str, ...]] = ("1h",)
+    lab_entry_diagnostics: ClassVar[bool] = False
     parameter_model: ClassVar[type[StrictModel]]
 
     @classmethod

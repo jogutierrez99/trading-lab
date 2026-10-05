@@ -4,12 +4,14 @@ Laboratorio modular de investigación cuantitativa con datos históricos públic
 Binance. Separa estrategias, configuración experimental, simulación y análisis para
 repetir hipótesis con datos, costes y versiones identificables. Un backtest describe
 el pasado: no demuestra rentabilidad futura ni preparación para producción.
-No hay órdenes reales, retiradas ni paper trading operativo.
+No hay órdenes live ni retiradas. El [forward RMM 4h](docs/forward-rmm-4h.md)
+prepara ejecución OKX DEMO explícita tras una fase SIGNAL_ONLY verificada.
 
 La infraestructura [forward SIGNAL_ONLY para OKX EU demo](docs/forward-signal-only.md)
 registra señales e intents hipotéticos, sin enviar órdenes. Incluye runner, preflight,
 conectividad de lectura y persistencia. Check público REST verificado; cuenta privada
-y WebSocket real pendientes. DEMO_EXECUTION y live continúan bloqueados.
+y WebSocket real pendientes. Ese protocolo legacy conserva SIGNAL_ONLY; RMM
+añade un adaptador demo separado y verificación previa. Live permanece bloqueado.
 ETH 1h/15m son obligatorios para V1; BTC y 4h son monitorización. La vela histórica
 ETH 4h no confirmada se registra como aviso, sin rellenarla ni bloquear estas variantes.
 
@@ -69,7 +71,7 @@ No hacen falta `.env` ni credenciales privadas; imports y catálogo no descargan
 ```text
 trading-lab/
 ├── src/quant_lab/            configuración, datos, motores, métricas, runners
-│   ├── strategies/          BaseStrategy, registro y 32 implementaciones
+│   ├── strategies/          BaseStrategy, registro y 36 implementaciones
 │   ├── execution_policies/  políticas de timing separadas de señales
 │   └── lab_*.py             schema, datos, CLI, orquestación y reporting ordinario
 ├── scripts/                 entrypoints; lab.py vive aquí
@@ -262,3 +264,26 @@ contexto 1h cerrado, BTC/ETH USD-M, una configuración por familia y tres modos.
 RESEARCH ONLY; ejecución synthetic sin funding/liquidaciones. Diagnósticos anuales
 predeclarados, sin selección ni incorporación a forward. RANGE usa niveles absolutos
 opt-in y sizing existente; las estrategias anteriores conservan su ejecución.
+
+## Cuatro hipótesis respaldadas por literatura
+
+[Protocolo, bibliografía, audit de funding y comandos](docs/literature-hypotheses-v1.md):
+Donchian Trend 4h, Risk Managed Momentum 4h/1d, RSI Momentum 4h y Funding Conditional
+Momentum 1h. Una configuración por timeframe, BTC/ETH, tres modos y BASE/ADVERSE.
+RESEARCH ONLY, sin selección automática ni portfolio. Los primeros tres usan synthetic;
+Funding reutiliza el motor perpetuo horario con mark/funding reales y cohorte matched.
+Sizing 4h/1d es opt-in exclusivo de Momentum. Preparación offline explícita:
+`& .\\.venv\\Scripts\\python.exe scripts/prepare_literature_data.py`.
+No hay descarga ni backtests al preparar/validar; 564 ejecuciones históricas previstas,
+para el usuario. Detalles y límites antes de interpretar comparaciones.
+
+
+## Risk Managed Momentum 4h: falsación congelada
+
+[Protocolo y comandos](docs/rmm-final-falsification-v1.md): cuatro candidatos A/B/C/D, seis folds fijos,
+control fixed15%, vecinos ligados150/180/210, años y BASE/ADVERSE. Cuatro
+experimentos ordinarios singleton;704 backtests para ejecución local del usuario.
+POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE, sin nuevo holdout independiente.
+`lab.py falsification validate [--full]` verifica freeze/datos; `falsification report
+--runs RUN180 RUNFIXED RUN150 RUN210` audita fuentes y exporta compactos únicos,
+sin simular ni aprobar demo. Strategy/engine/global risk/forward sin cambios.

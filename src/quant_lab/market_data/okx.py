@@ -118,6 +118,9 @@ class OKXMarketData:
         self._clock = None
         self._clock_at = 0.0
         self.required_feeds = None  # None means every subscribed channel is mandatory.
+        self.rmm_sources = {}
+        self.rmm_hours = CandleBook()
+        self.last_quotes = {}
 
     def now(self):
         elapsed = time.monotonic() - self._clock_at
@@ -126,6 +129,70 @@ class OKXMarketData:
             self._clock_at = time.monotonic()
             elapsed = 0.0
         return self._clock + pd.Timedelta(seconds=elapsed)
+
+    def rmm_history(self, instrument, count, *, since=None):
+        try:
+            result = self.history(instrument, "4h", count, since=since)
+            self.rmm_source(instrument, "native_4h")
+            return result
+        except DataGap as native_error:
+            from quant_lab.mtf_features import complete_bars
+
+            try:
+                hours = self.history(instrument, "1h", count * 4 + 4, since=since)
+            except DataGap as hourly_error:
+                raise DataGap(
+                    f"RMM history unavailable for {instrument}: native 4h: {native_error}; "
+                    f"hourly fallback: {hourly_error}. "
+                    "Forward cannot start until continuous confirmed OKX DEMO history is "
+                    "available; preserve the frozen warmup and do not splice other markets.",
+                    bars=hourly_error.bars,
+                ) from None
+            self.rmm_hours.bars[(instrument, "1h")] = {}
+            for hour in hours:
+                self.rmm_hours.add(hour)
+            frame = pd.DataFrame([b.row() for b in hours]).set_index("timestamp")
+            frame = complete_bars(frame[["open", "high", "low", "close", "volume"]], "1h", "4h")
+            if since is None:
+                frame = frame.tail(count)
+            if len(frame) < (count if since is None else 1):
+                raise DataGap("RMM 4h resampled warmup incomplete") from None
+            expected = self.now().floor("4h") - STEPS["4h"]
+            if frame.index[-1] != expected or any(
+                frame.index.to_series().diff().dropna() != STEPS["4h"]
+            ):
+                raise DataGap("RMM resampled 4h continuity incomplete") from None
+            self.rmm_source(instrument, "resampled_1h")
+            return [Bar(instrument, "4h", t, **r.to_dict()) for t, r in frame.iterrows()]
+
+    def rmm_source(self, instrument, source):
+        self.rmm_sources[instrument] = source
+        if self.required_feeds is not None:
+            self.required_feeds.discard((instrument, "1h"))
+            self.required_feeds.discard((instrument, "4h"))
+            self.required_feeds.add((instrument, "1h" if source == "resampled_1h" else "4h"))
+
+    def rmm_live_bars(self, bar):
+        if self.rmm_sources.get(bar.instrument_id) != "resampled_1h":
+            return [bar]
+        if bar.timeframe == "4h":
+            return []
+        output = [bar]
+        if (
+            bar.timeframe == "1h"
+            and self.rmm_hours.add(bar)
+            and bar.close_time.value % STEPS["4h"].value == 0
+        ):
+            from quant_lab.mtf_features import complete_bars
+
+            frame = self.rmm_hours.frame(bar.instrument_id, "1h").tail(4)
+            combined = complete_bars(frame, "1h", "4h")
+            if len(combined) != 1 or combined.index[0] != bar.close_time - STEPS["4h"]:
+                raise DataGap("Incomplete causal live 1h -> 4h group")
+            output.insert(
+                0, Bar(bar.instrument_id, "4h", combined.index[0], **combined.iloc[0].to_dict())
+            )
+        return output
 
     def history(self, instrument, timeframe, count, *, since=None):
         now = self.now()
@@ -163,7 +230,13 @@ class OKXMarketData:
         if not result or result[-1].timestamp < expected_last:
             raise DataGap("REST latest closed candle unavailable", bars=result)
         if since is None and len(result) < count:
-            raise DataGap("Insufficient warmup", bars=result)
+            raise DataGap(
+                f"Insufficient warmup: {instrument} {timeframe}; "
+                f"required={count}, available={len(result)}, "
+                f"first_open={result[0].timestamp.isoformat()}, "
+                f"last_open={result[-1].timestamp.isoformat()}",
+                bars=result,
+            )
         if since is not None and result[0].timestamp > since:
             raise DataGap("REST recovery did not cover missing history", bars=result)
         for previous, current in zip(result, result[1:], strict=False):
@@ -187,8 +260,13 @@ class OKXMarketData:
             try:
                 observed = pd.Timestamp(int(rows[0]["ts"]), unit="ms", tz="UTC")
                 price = float(rows[0]["askPx"])
+                if getattr(self, "rmm_reference", False):
+                    bid = float(rows[0]["bidPx"])
+                    if not isfinite(bid) or bid <= 0 or bid > price:
+                        raise ValueError("Invalid bid/ask")
+                    price = (price + bid) / 2
             except (IndexError, KeyError, TypeError, ValueError, OverflowError):
-                pass
+                price = None
             now = self.now()
             if observed is not None and observed > now:
                 # Cached server time can lag another endpoint: refresh, never relax
@@ -209,6 +287,15 @@ class OKXMarketData:
             if now < boundary or now - boundary > pd.Timedelta(seconds=90):
                 reason = "outside_decision_window"
             if reason is None:
+                if getattr(self, "rmm_reference", False):
+                    self.last_quotes[instrument] = dict(
+                        bid=float(rows[0]["bidPx"]),
+                        ask=float(rows[0]["askPx"]),
+                        quote_observed_at=str(observed),
+                        quoted_spread_bps=(float(rows[0]["askPx"]) - float(rows[0]["bidPx"]))
+                        / price
+                        * 10000,
+                    )
                 return price, observed
             details = {
                 "reason": reason,
@@ -293,6 +380,6 @@ class OKXMarketData:
                         yield FeedIssue(arg["instId"], timeframe, "Invalid monitoring candle")
                         continue
                     if bar:
-                        yield bar
+                        yield from self.rmm_live_bars(bar)
                 # Also allow heartbeat/staleness checks during incomplete candle updates.
                 yield None

@@ -80,6 +80,8 @@ def reconstruct(session_path, output_root):
     session_path = Path(session_path).resolve()
     meta, intents, signals, raw_bars, gaps, source = snapshot(session_path)
     cfg = meta["config"]
+    if cfg["forward"].get("data_protocol") == "rmm_4h":
+        return reconstruct_rmm(session_path, output_root, meta)
     tracker = ShadowTracker(
         CostsConfig.model_validate(cfg["inherited"]["costs"]["base"]),
         cfg["inherited"]["risk"]["max_holding_bars"],
@@ -177,6 +179,60 @@ def reconstruct(session_path, output_root):
     report = render(out, tracker.positions, reconstructed=True)
     report += "\n## Reconstruction limits\n\n" + json.dumps(warnings) + "\n"
     (out / "shadow_pnl_summary.md").write_text(report, encoding="utf-8")
+    return out
+
+
+def reconstruct_rmm(session_path, output_root, meta):
+    """Use signal-close journal states; do not infer RMM exits from stop rules."""
+    database = session_path.parent / "forward.sqlite"
+    if not database.exists():
+        raise ValueError("RMM reconstruction requires its immutable SQLite event journal")
+    with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True) as db:
+        db.execute("BEGIN")
+        last = db.execute(
+            "SELECT max(rowid) FROM events WHERE session=?", (meta["session_id"],)
+        ).fetchone()[0]
+        events = [
+            json.loads(r[0])
+            for r in db.execute(
+                "SELECT data FROM events WHERE stream=? AND rowid<=? ORDER BY rowid",
+                (meta["stream_id"], last or 0),
+            )
+        ]
+    positions = {}
+    for event in events:
+        if event["kind"] in {
+            "SHADOW_POSITION_OPENED",
+            "SHADOW_POSITION_UPDATED",
+            "SHADOW_POSITION_CLOSED",
+        }:
+            positions[event["shadow_position_id"]] = {
+                k: v for k, v in event.items() if k not in {"kind", "key"}
+            }
+    if any(e["kind"] == "DATA_GAP" and not e.get("resolved") for e in events):
+        positions = {
+            k: p | {"coverage": "DATA_GAP"} if p["status"] == "OPEN" else p
+            for k, p in positions.items()
+        }
+    root = Path(output_root).resolve()
+    if root == session_path or session_path in root.parents:
+        raise ValueError("Derived output must be outside original session")
+    out = root / session_path.name / uuid4().hex
+    out.mkdir(parents=True, exist_ok=False)
+    payload = encode_rmm = json.dumps(events, sort_keys=True).encode()
+    (out / "source_snapshot.json").write_bytes(payload)
+    (out / "provenance.json").write_text(
+        json.dumps(
+            {
+                "source_session": str(session_path),
+                "source_sha256": hashlib.sha256(encode_rmm).hexdigest(),
+            }
+        ),
+        encoding="utf-8",
+    )
+    (out / "shadow_pnl_summary.md").write_text(
+        render(out, positions, reconstructed=True), encoding="utf-8"
+    )
     return out
 
 

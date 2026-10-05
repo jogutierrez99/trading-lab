@@ -322,3 +322,25 @@ python -m pip check
 (rechaza si su último run está incompleto). Escribe comparison.csv/json, fuentes/hashes,
 ejemplos ordenados solo por TRAIN y summary.md/ai_summary.md en una nueva carpeta
 reports/lab-comparison. No recalcula operaciones ni modifica clasificaciones.
+
+## Investigación Literatura V1
+
+[Protocolo y comandos completos](literature-hypotheses-v1.md). Preparación offline
+explícita por prepare_literature_data.py; precios USD-M agregados1h/4h/1d y snapshots
+funding/mark reales. FULL no ejecuta backtests. Cinco experimentos predeclarados,
+sin grids: cuatro de120 y diario84. Momentum V1 opta por volatility sizing4h/1d,
+con duración explícita; la restricción horaria legacy sigue vigente para otros módulos.
+Funding usa schema PerpetualLabExecution/adapter perpetual_funding y snapshots
+fijados; lab no habilita genéricamente adapters legacy. Publicar con publish y
+publish-comparison conserva compactos/diagnósticos, sin promoción ni Git automático.
+
+
+## Risk Managed Momentum 4h: falsación congelada
+
+[Protocolo y comandos](rmm-final-falsification-v1.md): cuatro candidatos A/B/C/D, seis folds fijos,
+control fixed15%, vecinos ligados150/180/210, años y BASE/ADVERSE. Cuatro
+experimentos ordinarios singleton;704 backtests para ejecución local del usuario.
+POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE, sin nuevo holdout independiente.
+`lab.py falsification validate [--full]` verifica freeze/datos; `falsification report
+--runs RUN180 RUNFIXED RUN150 RUN210` audita fuentes y exporta compactos únicos,
+sin simular ni aprobar demo. Strategy/engine/global risk/forward sin cambios.

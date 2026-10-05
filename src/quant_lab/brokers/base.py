@@ -18,8 +18,8 @@ class OrderIntent:
     contracts: str
     reference_price: float
     estimated_entry_price: float
-    stop_price: float
-    risk_budget: float
+    stop_price: float | None
+    risk_budget: float | None
     reason: str
     execution_policy: str
 

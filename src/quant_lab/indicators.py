@@ -47,16 +47,26 @@ def bollinger(close: pd.Series, period: int = 20, width: float = 2.0) -> pd.Data
     )
 
 
-def realized_volatility(close: pd.Series, period: int = 720) -> pd.Series:
+def realized_volatility(
+    close: pd.Series, period: int = 720, *, annual_bars: float = 8760
+) -> pd.Series:
     """Sample standard deviation of simple hourly returns, annualized sqrt(8760)."""
     if type(period) is not int or period < 2:
         raise ValueError("period must be an integer >= 2")
-    return close.pct_change(fill_method=None).rolling(period).std(ddof=1) * np.sqrt(24 * 365)
+    if not np.isfinite(annual_bars) or annual_bars <= 0:
+        raise ValueError("annual_bars must be finite and positive")
+    return close.pct_change(fill_method=None).rolling(period).std(ddof=1) * np.sqrt(annual_bars)
 
 
 def volatility_fractions(
-    close: pd.Series, period: int, target_pct: float, minimum_pct: float, maximum_pct: float
+    close: pd.Series,
+    period: int,
+    target_pct: float,
+    minimum_pct: float,
+    maximum_pct: float,
+    *,
+    annual_bars: float = 8760,
 ) -> pd.Series:
-    vol = realized_volatility(close, period)
+    vol = realized_volatility(close, period, annual_bars=annual_bars)
     result = (target_pct / 100 / vol).clip(minimum_pct / 100, maximum_pct / 100)
     return result.where(np.isfinite(vol) & (vol > 0))

@@ -70,6 +70,17 @@ class Validation(StrictModel):
             yield f"wf_{index}_test", fold.test
 
 
+class Auxiliary(StrictModel):
+    dataset: str = Field(min_length=1)
+    dataset_id: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class PerpetualLabExecution(ExecutionConfig):
+    """Only the explicit funding adapter accepts this specialized lab execution."""
+
+    market_mode: Literal["perpetual"] = "perpetual"
+
+
 class Market(StrictModel):
     symbol: Literal["BTCUSDT", "ETHUSDT"]
     timeframe: Literal["15m", "1h", "4h", "1d"]
@@ -77,6 +88,7 @@ class Market(StrictModel):
     dataset_format: Literal["bundle", "mtf_quarters"] = "bundle"
     dataset_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     warmup_bars: int = Field(default=200, ge=0, le=10000)
+    perpetual_data: Auxiliary | None = None
 
     @model_validator(mode="after")
     def source_contract(self):
@@ -121,7 +133,7 @@ class Experiment(StrictModel):
     strategy_parameters: dict[str, list[Any]] = Field(default_factory=dict)
     initial_cash: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     costs: CostsConfig | None = None
-    execution: ExecutionConfig
+    execution: ExecutionConfig | PerpetualLabExecution
     validation: Validation
     diagnostic_periods: dict[StrategyName, Period] = Field(default_factory=dict)
     filters: Filters = Field(default_factory=Filters)

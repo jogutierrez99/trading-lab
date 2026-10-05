@@ -39,7 +39,11 @@ Leer [AGENTS](../../AGENTS.md) y sus cinco documentos, luego
    No optimizar con holdout. Rutas del experimento relativas al YAML; las de app, a app.
    `*_pct` son porcentajes; costes completos pueden sobrescribir app. El riesgo del
    perfil prevalece sobre global. Cambiar timeframe cambia duración de parámetros en barras;
-   sizing por volatilidad lab solo admite 1h.
+   sizing por volatilidad legacy admite 1h; Risk Managed Momentum V1 declara opt-in
+   4h/1d con anualización explícita. No puentear guards de otros módulos.
+   Funding Conditional Momentum V1 usa el schema local PerpetualLabExecution y
+   adapter perpetual_funding, con market.perpetual_data fijado; no habilita genéricamente
+   legacy_mtf/legacy_batch_006. Ver [Literatura V1](../../docs/literature-hypotheses-v1.md).
 7. Ejecutar `python scripts/lab.py validate <id>`; usar `--full` para verificar bytes y
    OHLCV cuando corresponda. No ejecutan backtests. Informar número previsto y cualquier
    limitación. No hace falta full pytest por cada YAML; tests dirigidos si cambia código.

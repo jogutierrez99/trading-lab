@@ -1,6 +1,7 @@
 """Incremental read-only journal observer with a separate durable delivery cursor."""
 
 import argparse
+import hashlib
 import json
 import logging
 import math
@@ -90,7 +91,16 @@ def atomic_state(path: Path, state: dict) -> None:
             json.dump(state, handle, allow_nan=False)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temp, path)
+        for attempt in range(5):
+            try:
+                os.replace(temp, path)
+                break
+            except PermissionError as exc:
+                if getattr(exc, "winerror", None) not in {5, 32, 33} or attempt == 4:
+                    raise
+                if attempt == 0:
+                    LOG.warning("Watcher state replacement blocked; retrying for up to 3 seconds")
+                time.sleep(0.2 * 2**attempt)
     finally:
         if temp is not None:
             temp.unlink(missing_ok=True)
@@ -116,10 +126,15 @@ def signal_only(connection, session: str) -> bool:
     try:
         config = json.loads(row[0])["config"]["forward"] if row else {}
         return (
-            config.get("mode") == "signal_only"
+            (
+                config.get("mode") == "signal_only"
+                and config.get("trading_enabled") is False
+                or config.get("mode") == "demo_execution"
+                and config.get("data_protocol") == "rmm_4h"
+                and config.get("trading_enabled") is True
+            )
             and config.get("environment") == "demo"
             and config.get("broker") == "okx"
-            and config.get("trading_enabled") is False
             and config.get("allow_live_trading") is False
         )
     except (ValueError, TypeError, KeyError, AttributeError):
@@ -138,19 +153,30 @@ class ForwardWatcher:
         replay_last=None,
         include_rejected=False,
         output=print,
+        state_dir: Path | None = None,
     ):
         self.db = db.resolve()
         self.state_path = self.db.with_name(self.db.stem + "_telegram_watcher_state.json")
+        original_state_path = self.state_path
+        if state_dir is not None:
+            database_id = hashlib.sha256(str(self.db).encode()).hexdigest()[:16]
+            self.state_path = (
+                state_dir.resolve() / f"{self.db.stem}_{database_id}_telegram_watcher_state.json"
+            )
         self.lock_path = self.db.with_name(self.db.stem + "_telegram_watcher.lock")
         self.notifier, self.dry_run = notifier, dry_run
         self.replay_last, self.include_rejected, self.output = replay_last, include_rejected, output
         self.state = None
         self.highwater = 0
-        if not dry_run and self.state_path.exists():
+        self._journal_issue = None
+        load_path = self.state_path
+        if state_dir is not None and not load_path.exists():
+            load_path = original_state_path
+        if not dry_run and load_path.exists():
             if replay_last is not None:
                 raise ValueError("Replay requires dry-run or a journal without watcher state")
             try:
-                state = json.loads(self.state_path.read_text(encoding="utf-8"))
+                state = json.loads(load_path.read_text(encoding="utf-8"))
                 valid = (
                     state["version"] == 1
                     and state["database"] == str(self.db)
@@ -173,6 +199,11 @@ class ForwardWatcher:
             if not valid:
                 raise ValueError("Invalid watcher state; preserve it and review before restarting")
             self.state = state
+            if load_path != self.state_path:
+                atomic_state(self.state_path, state)
+                LOG.info(
+                    "Watcher state copied to --state-dir; original preserved and cursor retained"
+                )
 
     @staticmethod
     def _valid_anchor(value):
@@ -201,9 +232,16 @@ class ForwardWatcher:
             | {"cursor": rowid, "anchor": identity, "pending": None, "failures": failures}
         )
 
+    def journal_unavailable(self, reason: str, level: int, message: str) -> None:
+        """Report transitions only; repeated polls must not flood operational logs."""
+        if reason != self._journal_issue:
+            LOG.log(level, message)
+        self._journal_issue = reason
+
     def poll(self, *, through: int | None = None) -> int | None:
         """Read at most 200 rows. None means retryable SQLite failure; no cursor change."""
         try:
+            self.db.stat()
             with journal(self.db) as connection:
                 connection.execute("BEGIN")
                 self.highwater = connection.execute(
@@ -251,9 +289,36 @@ class ForwardWatcher:
                     session: signal_only(connection, session) for session in {r[3] for r in rows}
                 }
             # End the read transaction BEFORE network I/O/backoff, so WAL can checkpoint.
-        except sqlite3.Error:
-            LOG.warning("Journal unavailable or temporarily locked; retrying on next poll")
+        except FileNotFoundError:
+            self.journal_unavailable(
+                "missing",
+                logging.INFO,
+                "Journal does not exist yet; start the forward runner for the selected --db. "
+                "Waiting for its database; no journal or cursor created.",
+            )
             return None
+        except sqlite3.Error as exc:
+            code = getattr(exc, "sqlite_errorcode", None)
+            primary = code & 0xFF if isinstance(code, int) else None
+            if primary in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}:
+                message = "Journal temporarily locked; retrying without consuming events."
+            elif primary == sqlite3.SQLITE_CANTOPEN:
+                message = (
+                    "Journal cannot be opened; check --db and read access to its directory "
+                    "and SQLite WAL/SHM files. Retrying without consuming events."
+                )
+            else:
+                message = (
+                    "Journal SQLite read failed; check schema compatibility and database health. "
+                    "Retrying without consuming events."
+                )
+            self.journal_unavailable(
+                f"sqlite:{code}", logging.WARNING, f"{message} SQLite code={code}."
+            )
+            return None
+        if self._journal_issue is not None:
+            LOG.info("Journal available; read-only observation resumed.")
+            self._journal_issue = None
         for rowid, stream, event_id, session, raw in rows:
             identity = [stream, event_id]
             try:
@@ -284,8 +349,13 @@ class ForwardWatcher:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="Read-only SIGNAL_ONLY Telegram journal observer")
+    parser = argparse.ArgumentParser(description="Read-only OKX demo Telegram journal observer")
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
+    parser.add_argument(
+        "--state-dir",
+        type=Path,
+        help="Store delivery state outside the journal directory; retain any existing cursor",
+    )
     parser.add_argument("--poll-seconds", type=float)
     parser.add_argument(
         "--replay-last", type=int, help="Last N journal rows, explicitly (max 10000)"
@@ -319,6 +389,8 @@ def main(argv=None) -> int:
             return 0
         notifier = None if args.dry_run else TelegramNotifier.from_environment()
         db = args.db if args.db.is_absolute() else ROOT / args.db
+        if args.state_dir is not None and not args.state_dir.is_absolute():
+            args.state_dir = ROOT / args.state_dir
         # Acquire before loading state: two processes must never read the same old cursor.
         lock = db.resolve().with_name(db.stem + "_telegram_watcher.lock")
         if args.dry_run:
@@ -358,6 +430,7 @@ def watch(args, db: Path, notifier, poll: float) -> int:
         dry_run=args.dry_run,
         replay_last=args.replay_last,
         include_rejected=args.include_rejected,
+        state_dir=getattr(args, "state_dir", None),
     )
     startup_done, through = False, None
     while True:
@@ -367,7 +440,7 @@ def watch(args, db: Path, notifier, poll: float) -> int:
             if args.startup_message:
                 message = (
                     "🟢 Trading Lab Telegram watcher started\nDatabase: forward.sqlite\n"
-                    "Mode: READ ONLY\nTrading mode: SIGNAL_ONLY observer\n"
+                    "Mode: READ ONLY\nTrading mode: OKX DEMO observer\n"
                     "Historical alerts: "
                     + (
                         "explicit replay"

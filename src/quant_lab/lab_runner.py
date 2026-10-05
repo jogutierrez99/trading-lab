@@ -27,6 +27,7 @@ from quant_lab.lab_schema import Experiment, experiment_periods
 from quant_lab.metrics import summarize
 from quant_lab.strategies.registry import StrategyRegistry
 from quant_lab.study_backend import Segment, StudyBackend, candle_step, validate_segment
+from quant_lab.study_data import HOURS
 
 DIRECTIONS = {"LONG_ONLY": "long", "SHORT_ONLY": "short", "LONG_SHORT": "combined"}
 
@@ -43,8 +44,11 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
     base = path.parent
     registry = StrategyRegistry().discover()
     cls = registry.implementation(experiment.strategy.id)
-    if cls.lab_execution != "ohlcv":
+    if cls.lab_execution not in {"ohlcv", "perpetual_funding"}:
         raise ValueError(f"Strategy requires {cls.lab_execution}; use its dedicated legacy runner")
+    perpetual = cls.lab_execution == "perpetual_funding"
+    if perpetual != (experiment.execution.market_mode == "perpetual"):
+        raise ValueError("Perpetual funding requires its explicit perpetual execution profile")
     app_path = (base / experiment.app).resolve()
     app = load_yaml(app_path, AppConfig)
     global_risk = load_yaml(app_path.parent / app.risk_file, RiskConfig)
@@ -88,6 +92,8 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         if mode not in cls.lab_modes:
             raise ValueError(f"Strategy does not support {mode}; supported: {cls.lab_modes}")
     datasets, frames = [], []
+    auxiliary = {}
+    common_days = None
     for market in experiment.markets:
         if market.timeframe not in cls.lab_timeframes:
             raise ValueError(f"Strategy requires timeframes {cls.lab_timeframes}")
@@ -101,10 +107,38 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
             raise ValueError(
                 "USD-M quarter prices require explicit synthetic execution; no funding"
             )
-        if risk.sizing_method == "volatility_target" and market.timeframe != "1h":
+        if (
+            risk.sizing_method == "volatility_target"
+            and market.timeframe not in cls.lab_volatility_timeframes
+        ):
             raise ValueError("Volatility sizing is hourly; use cross-market runner for translation")
         info = inspect_bundle(base, market)
         check_periods(info, market, experiment)
+        if perpetual:
+            from quant_lab.literature_data import complete_days, inspect_aux, load_aux
+
+            if (
+                market.timeframe != "1h"
+                or risk.sizing_method != "stop_risk"
+                or risk.trailing_atr_multiplier is not None
+            ):
+                raise ValueError("Funding adapter supports 1h stop-risk, no trailing")
+            aux_info = inspect_aux(base, market)
+            info["perpetual"] = aux_info
+            metadata = aux_info["manifest"]
+            for label, period in experiment_periods(experiment):
+                left = pd.Timestamp(period.start) - market.warmup_bars * pd.Timedelta(hours=1)
+                if pd.Timestamp(metadata["funding_start"]) > left or pd.Timestamp(
+                    metadata["funding_end"]
+                ).floor("h") + pd.Timedelta(hours=8) < pd.Timestamp(period.end):
+                    raise ValueError(f"{label}: BLOCKED_BY_DATA, observed funding coverage")
+            if full:
+                aux = load_aux(aux_info)
+                auxiliary[market.symbol] = aux
+                days = complete_days(aux)
+                common_days = days if common_days is None else common_days.intersection(days)
+        elif market.perpetual_data is not None:
+            raise ValueError("Perpetual auxiliary data requires the explicit funding adapter")
         datasets.append(info)
         if full:
             frame = load_bundle(info)
@@ -136,6 +170,13 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         * len(scenarios)
         * len(experiment.validation.walk_forward)
     )
+    if perpetual and full:
+        for label, period in experiment_periods(experiment):
+            if not (
+                (common_days >= pd.Timestamp(period.start))
+                & (common_days < pd.Timestamp(period.end))
+            ).any():
+                raise ValueError(f"{label}: BLOCKED_BY_DATA, no funding/mark-complete common days")
     return dict(
         registry=registry,
         app=app,
@@ -145,6 +186,8 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         frames=frames,
         scenarios=scenarios,
         backtests=count,
+        auxiliary=auxiliary,
+        funding_days=common_days,
     )
 
 
@@ -171,6 +214,20 @@ def evaluate(context, frame, market, mode, parameters, period, costs):
     )
     strategy = context["registry"].create(config)
     candles, segment = window(frame, market, period)
+    if strategy.lab_execution == "perpetual_funding":
+        from quant_lab.lab_funding_adapter import execute
+
+        execution = context["execution"].model_copy(update={"direction": DIRECTIONS[mode]})
+        return execute(
+            candles,
+            strategy,
+            segment,
+            context["app"].model_copy(update={"costs": costs}),
+            config.risk,
+            execution,
+            context["auxiliary"][market.symbol],
+            context["funding_days"],
+        )
     signals = strategy.generate_signals(candles.copy(deep=True))
     distances = atr(candles, config.risk.atr_period) * config.risk.atr_multiplier
     fractions = None
@@ -182,6 +239,7 @@ def evaluate(context, frame, market, mode, parameters, period, costs):
             r.target_volatility_pct,
             r.min_position_pct,
             min(r.max_position_pct, r.max_exposure_pct),
+            annual_bars=365 * 24 / HOURS[market.timeframe],
         )
     execution = ExecutionConfig.model_validate(
         context["execution"].model_dump() | {"direction": DIRECTIONS[mode]}
@@ -201,7 +259,18 @@ def evaluate(context, frame, market, mode, parameters, period, costs):
     if strategy.lab_extended_metrics:
         from quant_lab.intraday_metrics import diagnostic_result
 
-        result = diagnostic_result(result, candles, signals, segment, strategy.name)
+        result = diagnostic_result(
+            result,
+            candles,
+            signals,
+            segment,
+            strategy.name,
+            hours_per_bar=candle_step(market.timeframe).total_seconds() / 3600,
+        )
+        if strategy.lab_entry_diagnostics:
+            from quant_lab.literature_metrics import enrich
+
+            result = enrich(result, strategy, candles, fractions)
     return result
 
 
@@ -244,7 +313,10 @@ def run(
         if context["registry"].implementation(context["template"].name).lab_risk_parameters
         else None,
         "datasets": context["datasets"],
-        "backend": "study_backend_v1",
+        "backend": "perpetual_funding_v1"
+        if context["registry"].implementation(context["template"].name).lab_execution
+        == "perpetual_funding"
+        else "study_backend_v1",
         "execution": experiment.execution.model_dump(),
     }
     recovery = None

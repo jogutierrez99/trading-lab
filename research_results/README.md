@@ -38,3 +38,26 @@ Hipótesis intradía pendientes: [Volatility Breakout Intraday](volatility_break
 y [Range Mean Reversion](range_mean_reversion/RESEARCH_STATUS.md).
 Sus compactos incluyen diagnósticos anuales separados y costes desglosados;
 los años se solapan con los periodos principales y no se suman con ellos.
+
+
+Literatura V1: [protocolo y bibliografía](../docs/literature-hypotheses-v1.md),
+cuatro familias RESEARCH ONLY con estado PREPARED_NOT_EXECUTED bajo
+`donchian_trend/`, `risk_managed_momentum/`, `rsi_momentum_regime/` y
+`funding_conditional_momentum/`. Publicación normal elimina sufijo_v1.
+Compactos incluyen exact_parameters.json y entry_diagnostics.csv cuando disponibles,
+limitados por tamaño. Funding/mark tienen fuentes y hashes en metadata; PnL de
+funding real se distingue de null/synthetic. La comparación es descriptiva por
+activo/TF/lado/coste/periodo; no constituye portfolio ni selección de ganador.
+Clasificación prudente requiere informe posterior: REJECTED, INCONCLUSIVE o
+PROMISING_BUT_UNCONFIRMED. PAPER_TRADING_CANDIDATE nunca automático en este bloque.
+
+
+## Risk Managed Momentum 4h: falsación congelada
+
+[Protocolo y comandos](../docs/rmm-final-falsification-v1.md): cuatro candidatos A/B/C/D, seis folds fijos,
+control fixed15%, vecinos ligados150/180/210, años y BASE/ADVERSE. Cuatro
+experimentos ordinarios singleton;704 backtests para ejecución local del usuario.
+POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE, sin nuevo holdout independiente.
+`lab.py falsification validate [--full]` verifica freeze/datos; `falsification report
+--runs RUN180 RUNFIXED RUN150 RUN210` audita fuentes y exporta compactos únicos,
+sin simular ni aprobar demo. Strategy/engine/global risk/forward sin cambios.

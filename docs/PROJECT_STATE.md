@@ -1,5 +1,40 @@
 # Estado actual del Trading Lab
 
+Extensión 2026-10-04: [RMM 4h OKX DEMO](forward-rmm-4h.md), cuatro alternativas
+independientes congeladas200/180/180/10, warmup1000. Reutiliza forward, SQLite,
+recovery, shadow y watcher; una MAIN seleccionada puede enviar market demo tras
+SIGNAL_ONLY>=4h y recibo verificado. D siempre SHADOW_CANDIDATE. PnL observado
+separado del modelado; net demo excluye funding desconocido. Discovery público EEA
+ETH/BTC X-Perp linear USD verificado; cuenta privada/WS prolongado/Telegram/órdenes
+demo pendientes de fases locales. Legacy sigue SIGNAL_ONLY y live bloqueado.
+Verificación:953 tests suite completa,138 regresiones forward,14 RMM específicos;
+Ruff check/format pasan. Sin ejecución del forward ni órdenes/notificaciones reales.
+
+Diagnóstico operativo 2026-10-05: la cuenta demo verificada por el usuario no implica
+warmup válido. GET público ETH X-Perp devuelve902 velas4h/3611 horas, insuficientes
+para1000 velas4h; arranque RMM bloqueado por historial. `verify_forward_rmm.py warmup`
+comprueba ambos activos sin crear sesión. Se conserva el protocolo congelado y
+se informa del bloqueo sin reducir warmup ni mezclar fuentes.
+Preflight público dirigido: BTC sí aporta1000 velas4h continuas; ETH bloquea la
+prueba conjunta.67 tests forward dirigidos y Ruff de archivos afectados pasan.
+
+Variante operativa [BTC-only](forward-rmm-btc-4h.md): YAML separado
+`okx_demo_rmm_btc_4h.yaml`, alternativas C MAIN/D shadow, warmup1000 congelado.
+Discovery/gate se limitan a los activos configurados; recibo y journal propios.
+La prueba conjunta conserva sus dos activos obligatorios. Implementación y tests
+sintéticos; cuenta BTC, observación prolongada y ejecución demo pendientes del usuario.
+
+Watcher: `--state-dir` permite cursor local fuera de OneDrive con migración validada,
+sin borrar origen ni perder pending; lock sigue vinculado al DB. Replace Windows
+reintenta bloqueos transitorios de forma acotada.64 tests notifier pasan. Cambia
+el hash global: runner ya abierto continúa; futuros recibos RMM exigen el código vigente.
+
+Preflight RMM `account` y entradas demo requieren `totalEq` finito positivo mediante
+GET; el ledger modelado no aporta fondos al exchange. No bloquea salidas reduceOnly
+ni demuestra margen suficiente. Diagnóstico de envío incierto conserva SUBMITTING
+y consulta orden/ocupación/fills/permisos sin mutar journal ni reenviar.35 tests RMM
+sintéticos pasan; no se enviaron órdenes durante esta verificación.
+
 Fecha de inspección: **2026-09-28**. Memoria operativa compacta, no historial de runs.
 Fuentes: código/configuración presentes, catálogo CLI y manifiestos/resúmenes locales
 seleccionados. La lectura de un recibo histórico no equivale a repetir su auditoría.
@@ -25,7 +60,7 @@ automáticos. [Contrato](research-evidence.md), [cuaderno](../research_results/R
 | Capital base | `configs/app.yaml`: 10000; el experimento puede sobrescribirlo |
 | Costes app | Comisión 0.05%, slippage 0.03%, spread completo 0.01%; cada fill usa medio spread |
 | Riesgo base | 1% por trade, posición máxima 25%, exposición máxima 100%, ATR14 ×2, target 2R |
-| Sizing | stop_risk, fixed_notional, volatility_target; este último solo 1h en lab |
+| Sizing | stop_risk, fixed_notional, volatility_target; horario legacy, opt-in 4h/1d para Risk Managed Momentum V1 |
 | Apalancamiento lab | Sin apalancamiento, exposición máxima permitida 100% |
 | Perpetuos dedicados | USD-M isolated 1x; funding histórico, mark y liquidación modelados |
 | Supuestos perpetuos | `FuturesAssumptions`: mantenimiento 0.5%, fee de liquidación 0.5%; no reproduce tiers históricos/ADL |
@@ -63,7 +98,7 @@ no prueba una descarga 5m ni soporte de ese timeframe en lab.
 
 ## Estrategias implementadas
 
-Catálogo real: **32**, estado de metadata **research**. Versión 1.0.0 salvo
+Catálogo real: **36**, estado de metadata **research**. Versión 1.0.0 salvo
 trend_volatility_breakout_v1 1.0.1 (corrección de warmup).
 `L` = LONG_ONLY; `L/S/LS` = LONG_ONLY, SHORT_ONLY, LONG_SHORT. Son capacidades declaradas
 del adaptador, no resultados de validación económica ni garantía de YAML habilitado.
@@ -76,8 +111,10 @@ Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones e
 | bollinger_regime_reversal | 1.0.0 | L/S/LS | 1h | legacy_batch_006 / research |
 | channel_break_retest | 1.0.0 | L | 1h | ohlcv / research |
 | donchian_adx | 1.0.0 | L | 1h | ohlcv / research |
+| donchian_trend_v1 | 1.0.0 | L/S/LS | 4h | ohlcv / research |
 | dual_momentum | 1.0.0 | L | 1h | ohlcv / research |
 | ema_pullback | 1.0.0 | L | 1h | ohlcv / research |
+| funding_conditional_momentum_v1 | 1.0.0 | L/S/LS | 1h | perpetual_funding / research |
 | low_vol_pullback | 1.0.0 | L | 1h | ohlcv / research |
 | mean_reversion | 1.0.0 | L/S/LS | 1h, 4h, 1d | ohlcv / research |
 | mtf_bollinger | 1.0.0 | L/S/LS | 1h | legacy_mtf / research |
@@ -93,6 +130,8 @@ Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones e
 | range_mean_reversion_v1 | 1.0.0 | L/S/LS | 15m + contexto 1h | ohlcv, niveles absolutos opt-in / research |
 | regime_trend | 1.0.0 | L | 1h | ohlcv / research |
 | rsi_momentum_reset | 1.0.0 | L | 1h | ohlcv / research |
+| risk_managed_momentum_v1 | 1.0.0 | L/S/LS | 4h, 1d | ohlcv, sizing volatilidad opt-in / research |
+| rsi_momentum_regime_v1 | 1.0.0 | L/S/LS | 4h | ohlcv / research |
 | time_series_momentum | 1.0.0 | L/S/LS | 1h | ohlcv / research |
 | trend_acceleration | 1.0.0 | L | 1h | ohlcv / research |
 | trend_following | 1.0.0 | L/S/LS | 1h, 4h, 1d | ohlcv / research |
@@ -267,3 +306,47 @@ ejecutado por el agente. [Protocolo, adaptaciones y comandos](intraday-strategie
 Verificación: 863 tests aprobados (57 nuevos), Ruff/check y format correctos,
 dependencias sin conflictos; ambos experimentos FAST/FULL VALID. Solo pruebas
 sintéticas pequeñas de ejecución/reutilización/publicación; resultados económicos pendientes.
+
+## Literatura V1 (2026-10-04)
+
+Cuatro familias nuevas RESEARCH ONLY: Donchian4h, Risk Managed Momentum4h/1d,
+RSI Momentum4h y Funding Conditional1h. Una configuración por timeframe; tres modos,
+BTC/ETH y BASE/ADVERSE. 120 ejecuciones por experimento excepto diario84; total564,
+ninguna histórica real ejecutada por el agente. [Protocolo](literature-hypotheses-v1.md).
+
+Datos preparados offline bajo data/literature_v1/ desde USD-M15m auditado,
+agregación completa1h/4h/1d, sin señal15m ni alterar fuentes. Warmup EMA1000 barras:
+4h desde2020-07-01, diario desde2023-01-01; funding728h desde2020-02-01.
+Funding público archivado+REST retenido:7380 eventos por activo,2020-01-01→
+2026-09-25 16:00:00.002UTC,8h, sin settlements ausentes; offsetmáximo0.047s.
+Mark tiene216/72 horas ausentes BTC/ETH; cohorte común2451 días, nueve excluidos.
+
+PerpetualLabExecution y adapter perpetual_funding opt-in llaman al motor1x existente,
+funding incluido en PnL, margen/liquidación asumidos; días completos matched,
+liquidación/cash/reinicio de features entre gaps. Disponibilidad de funding asumida
+al settlement; publicación independiente/latencia desconocidas. No es paper/live.
+Los demás usan synthetic sin funding. Volatility sizing4h/1d exclusivo del nuevo
+Momentum, anualización explícita2190/365 y exposición5–25% fijada a entrada,
+sin rebalanceo continuo. Los guards legacy permanecen.
+
+Verificación: **928 tests passed**,65 nuevos;774 avisos de deprecación de reporting
+histórico. Ruff/check, formato, pip check correctos; cinco experimentos FULL VALID.
+Tests sintéticos pequeños incluyen fills/funding/MFE-MAE, causalidad, resume,
+compare y publicación. Resultados económicos y clasificación prudente pendientes;
+ningún cambio a forward/OKX ni a configuraciones/resultados históricos.
+
+
+## Risk Managed Momentum 4h: falsación congelada
+
+[Protocolo y comandos](rmm-final-falsification-v1.md): cuatro candidatos A/B/C/D, seis folds fijos,
+control fixed15%, vecinos ligados150/180/210, años y BASE/ADVERSE. Cuatro
+experimentos ordinarios singleton;704 backtests para ejecución local del usuario.
+POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE, sin nuevo holdout independiente.
+`lab.py falsification validate [--full]` verifica freeze/datos; `falsification report
+--runs RUN180 RUNFIXED RUN150 RUN210` audita fuentes y exporta compactos únicos,
+sin simular ni aprobar demo. Strategy/engine/global risk/forward sin cambios.
+
+Verificación:939 tests completos aprobados;11 dirigidos repetidos tras cierre del
+lock de candidatos/criterios. Ruff/format/pip correctos; cuatro FAST/FULL VALID,
+sin challenge histórico ejecutado. Clasificación final pendiente de resultados y
+revisión humana. El lock en configs/research queda registrado en provenance de runs.

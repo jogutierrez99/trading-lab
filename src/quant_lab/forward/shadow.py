@@ -52,15 +52,17 @@ class ShadowTracker:
         side = "LONG" if raw["side"] == "buy" else "SHORT"
         direction = 1 if side == "LONG" else -1
         entry, reference = float(raw["estimated_entry_price"]), float(raw["reference_price"])
-        stop = float(raw["stop_price"])
+        rmm = raw["execution_policy"] == "RMM_SIGNAL_4H"
+        stop = None if rmm else float(raw["stop_price"])
         if (
-            not all(isfinite(v) and v > 0 for v in (entry, reference, stop, quantity))
-            or direction * (entry - stop) <= 0
+            not all(isfinite(v) and v > 0 for v in (entry, reference, quantity))
+            or (not rmm and (not isfinite(stop) or stop <= 0 or direction * (entry - stop) <= 0))
+            or (rmm and (raw["stop_price"] is not None or self.max_holding_hours is not None))
         ):
             raise ValueError("Invalid shadow entry or stop")
         if not isclose(entry, self.costs.price(reference, direction), rel_tol=1e-10):
             raise ValueError("Intent price does not match inherited BASE costs")
-        tf = "15m" if raw["execution_policy"] == "OPTIONAL_15M_FILL" else "1h"
+        tf = "4h" if rmm else "15m" if raw["execution_policy"] == "OPTIONAL_15M_FILL" else "1h"
         stamp = pd.Timestamp(raw["timestamp"])
         if stamp.tzinfo is None or stamp.utcoffset() != pd.Timedelta(0):
             raise ValueError("Shadow entry requires UTC")
@@ -84,14 +86,16 @@ class ShadowTracker:
             contracts=str(contracts),
             contract_size=str(instrument.contract_size),
             notional=quantity * entry,
-            initial_stop=float(raw["stop_price"]),
-            current_stop=float(raw["stop_price"]),
-            stop_price=float(raw["stop_price"]),
-            risk_budget=float(raw["risk_budget"]),
-            initial_risk=abs(entry - float(raw["stop_price"])) * quantity,
+            initial_stop=stop,
+            current_stop=stop,
+            stop_price=stop,
+            risk_budget=None if rmm else float(raw["risk_budget"]),
+            initial_risk=None if rmm else abs(entry - stop) * quantity,
             status="OPEN",
             bars_held=0,
-            max_holding_bars=int(self.max_holding_hours * 3600 / STEPS[tf].total_seconds()),
+            max_holding_bars=None
+            if rmm
+            else int(self.max_holding_hours * 3600 / STEPS[tf].total_seconds()),
             management_timeframe=tf,
             holding_hours_limit=self.max_holding_hours,
             next_bar=stamp.floor(STEPS[tf]).isoformat(),
@@ -127,6 +131,9 @@ class ShadowTracker:
             funding="not_modelled",
         )
         p["entry_cost"] = p["entry_fee"] + p["entry_slippage"] + p["entry_spread"]
+        if rmm:
+            p["role"] = "SHADOW_CANDIDATE" if raw["strategy"].endswith("shadow") else "MAIN"
+            p["strategy_mode"] = "LONG_ONLY" if "long_only" in raw["strategy"] else "LONG_SHORT"
         p["total_cost"] = p["entry_cost"]
         self.mark(p, reference)
         self.positions[key] = p
@@ -148,7 +155,11 @@ class ShadowTracker:
         p["estimated_exit_cost"] = p["quantity"] * (
             reference * self.costs.adverse + exit_price * self.costs.fee
         )
-        p["distance_to_stop_pct"] = direction * (reference - p["current_stop"]) / reference * 100
+        p["distance_to_stop_pct"] = (
+            None
+            if p["current_stop"] is None
+            else direction * (reference - p["current_stop"]) / reference * 100
+        )
 
     def excursion(self, p, high, low):
         favorable, adverse = (high, low) if p["side"] == "LONG" else (low, high)
@@ -182,7 +193,10 @@ class ShadowTracker:
             p["coverage"] = "CONTINUOUS"
             side = 1 if p["side"] == "LONG" else -1
             partial = bar.timestamp < pd.Timestamp(p["entry_timestamp"])
-            touched = side * ((bar.low if side == 1 else bar.high) - p["current_stop"]) <= 0
+            touched = (
+                p["current_stop"] is not None
+                and side * ((bar.low if side == 1 else bar.high) - p["current_stop"]) <= 0
+            )
             if partial and touched:
                 p["coverage"] = "INDETERMINATE_ENTRY_BAR"
                 p["unrealized_pnl_gross"] = p["unrealized_pnl_net_estimate"] = None
@@ -210,7 +224,9 @@ class ShadowTracker:
             p["last_bar"] = bar.timestamp.isoformat()
             p["as_of"] = bar.close_time.isoformat()
             self.mark(p, bar.close)
-            if fill or p["bars_held"] >= p["max_holding_bars"]:
+            if fill or (
+                p["max_holding_bars"] is not None and p["bars_held"] >= p["max_holding_bars"]
+            ):
                 ref = fill[0] if fill else bar.close
                 self.mark(p, ref)
                 p["exit_reason"] = "STOP" if fill else "MAX_HOLDING"
@@ -242,6 +258,43 @@ class ShadowTracker:
                 )
                 p["unrealized_pnl_gross"] = p["unrealized_pnl_net_estimate"] = 0.0
                 self.emit("SHADOW_POSITION_CLOSED", p["shadow_position_id"], p.copy())
+
+            if p["status"] == "OPEN" and p["execution_policy"] == "RMM_SIGNAL_4H":
+                self.emit(
+                    "SHADOW_POSITION_UPDATED", identity(p["shadow_position_id"], bar.key), p.copy()
+                )
+
+    def signal_close(self, position_id, reference, timestamp):
+        p = self.positions[position_id]
+        if p["status"] != "OPEN" or p["execution_policy"] != "RMM_SIGNAL_4H":
+            raise ValueError("Signal-close applies only to open RMM positions")
+        side = 1 if p["side"] == "LONG" else -1
+        price = self.costs.price(reference, -side)
+        p.update(
+            status="CLOSED",
+            exit_price=price,
+            exit_reference_price=reference,
+            exit_timestamp=str(timestamp),
+            exit_time=str(timestamp),
+            exit_reason="SIGNAL",
+        )
+        p["holding_seconds"] = (
+            pd.Timestamp(timestamp) - pd.Timestamp(p["entry_timestamp"])
+        ).total_seconds()
+        p["as_of"] = str(timestamp)
+        p["reference_pnl_gross"] = monetary_pnl(
+            p["side"], p["reference_price"], reference, p["quantity"]
+        )
+        p["realized_pnl_gross"] = monetary_pnl(p["side"], p["entry_price"], price, p["quantity"])
+        p["exit_fee"] = price * p["quantity"] * self.costs.fee
+        p["exit_slippage"] = reference * p["quantity"] * self.config.slippage_pct / 100
+        p["exit_spread"] = reference * p["quantity"] * self.config.spread_pct / 200
+        p["exit_cost"] = p["exit_fee"] + p["exit_slippage"] + p["exit_spread"]
+        p["total_cost"] = p["entry_cost"] + p["exit_cost"]
+        p["realized_pnl_net"] = p["realized_pnl_gross"] - p["entry_fee"] - p["exit_fee"]
+        p["unrealized_pnl_gross"] = p["unrealized_pnl_net_estimate"] = 0.0
+        self.emit("SHADOW_POSITION_CLOSED", position_id, p.copy())
+        return p
 
 
 def validate_bar(bar):

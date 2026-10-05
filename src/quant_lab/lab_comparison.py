@@ -74,7 +74,7 @@ def compare(root: Path, experiments: list[str]) -> Path:
         variants = sorted({str(p.get("variant", "unspecified")) for p in resolved["parameters"]})
         grouping = ["period", "scenario", "mode"]
         if plan.get("diagnostic_periods"):
-            grouping = ["symbol", *grouping]
+            grouping = ["symbol", "timeframe", *grouping]
         for key, group in metrics.groupby(grouping, sort=True):
             identity = dict(zip(grouping, key, strict=True))
             period, scenario, mode = (identity[k] for k in ("period", "scenario", "mode"))
@@ -103,7 +103,21 @@ def compare(root: Path, experiments: list[str]) -> Path:
             }
             if "symbol" in identity:
                 row["symbol"] = identity["symbol"]
-            for metric in ("return_pct", "max_drawdown_pct", "sharpe", "expectancy"):
+                row["timeframe"] = identity["timeframe"]
+            metrics = ["return_pct", "max_drawdown_pct", "sharpe", "expectancy"]
+            if plan.get("diagnostic_periods"):
+                row["strategy"] = plan["strategy"]["id"]
+                metrics += [
+                    "closed_trades",
+                    "profit_factor",
+                    "cagr_pct",
+                    "sortino",
+                    "total_modeled_costs",
+                    "funding_pnl",
+                ]
+            for metric in metrics:
+                if metric not in valid:
+                    continue
                 values = pd.to_numeric(valid[metric], errors="coerce").dropna()
                 row["median_" + metric] = float(values.median()) if len(values) else None
             rows.append(row)

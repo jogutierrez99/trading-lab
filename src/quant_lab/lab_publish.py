@@ -27,6 +27,28 @@ COMPACT_COLUMNS = (
     "strategy_version",
     "win_rate_pct",
     "return_pct",
+    "cagr_pct",
+    "sortino",
+    "long_contribution",
+    "short_contribution",
+    "long_trades",
+    "short_trades",
+    "average_entry_momentum",
+    "average_entry_volatility",
+    "average_entry_scaling_pct",
+    "average_entry_rsi",
+    "average_entry_adx",
+    "average_breakout_strength_atr",
+    "entry_buckets",
+    "conditional_results",
+    "funding_events",
+    "liquidation_fees",
+    "bankruptcy_adjustment",
+    "matched_hours",
+    "excluded_hours",
+    "margin_model",
+    "mfe_mean_pct",
+    "mae_mean_pct",
     "profit_factor",
     "sharpe",
     "expectancy",
@@ -231,7 +253,24 @@ def publish(root: Path, identifier: str, max_bytes: int = 5_000_000) -> dict:
         compact["research_classification"] = compact.configuration_id.map(labels)
     columns = [name for name in COMPACT_COLUMNS if name in compact]
     payloads["metrics_compact.csv"] = compact[columns].to_csv(index=False).encode()
+    if "entry_diagnostics" in compact:
+        entries = []
+        for row in compact.to_dict("records"):
+            if not isinstance(row.get("entry_diagnostics"), str):
+                continue
+            identity = {
+                key: row[key]
+                for key in ("configuration_id", "symbol", "timeframe", "mode", "period", "scenario")
+            }
+            entries.extend(identity | item for item in json.loads(row["entry_diagnostics"]))
+        if entries:
+            payloads["entry_diagnostics.csv"] = pd.DataFrame(entries).to_csv(index=False).encode()
+        payloads["exact_parameters.json"] = json_bytes(evidence["resolved"]["parameters"], root)
     metadata = run_metadata(evidence, root, document) | {
+        "diagnostic_periods": plan.get("diagnostic_periods", {}),
+        "perpetual_sources": [
+            d["perpetual"] for d in evidence["resolved"]["datasets"] if "perpetual" in d
+        ],
         "source_sha256": source_hashes,
         "compact_selection": "All challenge rows, or TRAIN-ranked top_n main rows "
         "plus all selected WF TEST rows and predefined diagnostic periods. No TEST ranking.",
