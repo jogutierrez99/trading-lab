@@ -41,10 +41,13 @@ def test_implemented_discovery_is_idempotent():
     registry = StrategyRegistry().discover()
     expected = (
         "atr_breakout",
+        "atr_volatility_breakout",
         "bb_squeeze",
         "bollinger_regime_reversal",
         "channel_break_retest",
         "donchian_adx",
+        "donchian_atr_breakout",
+        "donchian_trend_breakout",
         "donchian_trend_v1",
         "dual_momentum",
         "ema_pullback",

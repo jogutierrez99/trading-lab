@@ -1,5 +1,30 @@
 # Estado actual del Trading Lab
 
+Extensión 2026-10-07: [ETH SHORT regime challenge V1](eth-short-regime-challenge-v1.md).
+Tres experimentos ETHUSDT1h SHORT_ONLY reutilizan grids/señales/riesgo de Trend
+Expansion; ATR/híbrida como hipótesis y Donchian control. 354 backtests previstos,
+cuatro WF originales y años diagnósticos predeclarados. Reporting con etiquetas
+causales dirección/ATR, muestra mínima descriptiva20 y dependencia de outliers;
+CLI validate/run/compare/publish y compactos auditados inmutables. Protocolo YAML
+fijado por hashes y registrado en provenance. Post-selección exploratoria del TEST;
+sin holdout independiente, clasificación económica automática ni aprobación paper.
+Verificación FAST/FULL,66 tests dirigidos aprobados y Ruff/check/format correctos;
+ningún challenge histórico
+ejecutado por Codex. Resultados económicos y revisión humana pendientes.
+
+Extensión 2026-10-06: [Trend / Expansion V1](trend-expansion-v1.md), implementación
+de Donchian1h e impulsoATR long/short y adapter Donchian+ATR que hereda entradas
+congeladas de trend_volatility_breakout_v1, con salidaDonchian opt-in. Benchmark
+ema_pullback sin cambios, soloLONG y salidaEMA original. Cuatro YAML ordinarios,
+BTC/ETH1h, BASE/ADVERSE, 1/6/3/6 configuraciones,1448 backtests locales previstos.
+Comparación mantiene activos separados; informes por regionesTRAIN/base y distribución
+de trades auditan ledger/result/equity y publican allowlist compacta única. Fase2
+congela nominación humana, cuatro salidas, sin ejecutar ni escoger supervivientes.
+FAST/FULL reales válidos; suite completa1030 tests y Ruff/check/format correctos,
+freeze RMM FAST conservado. Sin backtests históricos; historial reutilizado exploratorio,
+sin holdout independiente ni incorporación a forward/OKX. Verificación sintética
+y regresiones documentadas en el protocolo, no evidencia económica nueva.
+
 Extensión 2026-10-04: [RMM 4h OKX DEMO](forward-rmm-4h.md), cuatro alternativas
 independientes congeladas200/180/180/10, warmup1000. Reutiliza forward, SQLite,
 recovery, shadow y watcher; una MAIN seleccionada puede enviar market demo tras
@@ -98,7 +123,7 @@ no prueba una descarga 5m ni soporte de ese timeframe en lab.
 
 ## Estrategias implementadas
 
-Catálogo real: **36**, estado de metadata **research**. Versión 1.0.0 salvo
+Catálogo real: **39**, estado de metadata **research**. Versión 1.0.0 salvo
 trend_volatility_breakout_v1 1.0.1 (corrección de warmup).
 `L` = LONG_ONLY; `L/S/LS` = LONG_ONLY, SHORT_ONLY, LONG_SHORT. Son capacidades declaradas
 del adaptador, no resultados de validación económica ni garantía de YAML habilitado.
@@ -107,10 +132,13 @@ Los protocolos dedicados pueden evaluar otros timeframes mediante traducciones e
 | Strategy | Version | Modes | Timeframes lab | Adaptador / status |
 |---|---|---|---|---|
 | atr_breakout | 1.0.0 | L | 1h | ohlcv / research |
+| atr_volatility_breakout | 1.0.0 | L/S/LS | 1h | ohlcv / research |
 | bb_squeeze | 1.0.0 | L | 1h | ohlcv / research |
 | bollinger_regime_reversal | 1.0.0 | L/S/LS | 1h | legacy_batch_006 / research |
 | channel_break_retest | 1.0.0 | L | 1h | ohlcv / research |
 | donchian_adx | 1.0.0 | L | 1h | ohlcv / research |
+| donchian_atr_breakout | 1.0.0 | L/S/LS | 1h | ohlcv / research, entradas heredadas V1 |
+| donchian_trend_breakout | 1.0.0 | L/S/LS | 1h | ohlcv / research |
 | donchian_trend_v1 | 1.0.0 | L/S/LS | 4h | ohlcv / research |
 | dual_momentum | 1.0.0 | L | 1h | ohlcv / research |
 | ema_pullback | 1.0.0 | L | 1h | ohlcv / research |

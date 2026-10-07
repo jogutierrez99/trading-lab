@@ -71,7 +71,7 @@ No hacen falta `.env` ni credenciales privadas; imports y catálogo no descargan
 ```text
 trading-lab/
 ├── src/quant_lab/            configuración, datos, motores, métricas, runners
-│   ├── strategies/          BaseStrategy, registro y 36 implementaciones
+│   ├── strategies/          BaseStrategy, registro y 39 implementaciones
 │   ├── execution_policies/  políticas de timing separadas de señales
 │   └── lab_*.py             schema, datos, CLI, orquestación y reporting ordinario
 ├── scripts/                 entrypoints; lab.py vive aquí
@@ -254,6 +254,24 @@ el run completo solo localmente. Sin RSI/MTF/trailing ni incorporación a forwar
 [Estado inicial](research_results/trend_volatility_breakout/RESEARCH_STATUS.md):
 NEW_HYPOTHESIS; la rama RSI queda NOT_VALIDATED tras fallar robustez histórica,
 según la decisión del usuario. Se conservan sus candidatos, parámetros y resultados.
+
+## Trend / Expansion V1
+
+[ETH SHORT regime challenge V1](docs/eth-short-regime-challenge-v1.md): hipótesis
+ATR/híbrida y Donchian control, ETHUSDT1h SHORT_ONLY, grids anteriores intactos,
+cuatro WF y diagnósticos anuales. 354 backtests para ejecución local;
+`lab.py eth-short-regime validate --full`, `run`, `compare`, `publish latest`.
+Etiquetas causales descriptivas; selección posterior al TEST, sin holdout independiente
+ni aprobación paper. Compactos en research_results/trend_expansion/eth_short_regime/.
+
+[Protocolo y comandos](docs/trend-expansion-v1.md): benchmark `ema_pullback` congelado
+LONG_ONLY y tres familias breakout 1h simétricas: Donchian, impulso ATR y Donchian+ATR
+(entradas reutilizadas de Trend Volatility Breakout V1). BTC/ETH, BASE/ADVERSE,
+16 configuraciones de parámetros y 1448 backtests previstos para ejecución local.
+`lab.py trend-expansion validate [--full]` verifica los cuatro experimentos;
+`trend-expansion report` y `publish` generan compactos auditados sin simular.
+Fase2 prepara cuatro salidas solo para una configuración nominada explícitamente.
+Historial reutilizado exploratorio; sin supervivientes automáticos ni paper/live.
 
 ## Nuevas hipótesis intradía independientes
 

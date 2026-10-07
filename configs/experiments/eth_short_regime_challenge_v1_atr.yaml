@@ -1,0 +1,105 @@
+schema_version: 1
+experiment_id: eth_short_regime_challenge_v1_atr
+created_at: 2026-10-07 00:00:00+00:00
+description: ETH SHORT post-selection exploratory regime falsification. Frozen previous
+  grids; no independent holdout or paper approval. Donchian without ATR is control
+  only.
+app: ../app.yaml
+strategy:
+  id: atr_volatility_breakout
+  config: ../strategies/atr_volatility_breakout.yaml
+markets:
+- symbol: ETHUSDT
+  timeframe: 1h
+  dataset: ../../data/lab_1h_prices/ETHUSDT/1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4
+  dataset_id: 1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4
+  warmup_bars: 1000
+  dataset_format: bundle
+modes:
+- SHORT_ONLY
+strategy_parameters:
+  impulse_atr_multiplier:
+  - 0.75
+  - 1.0
+  - 1.25
+  atr_expansion_threshold:
+  - 1.1
+  - 1.25
+initial_cash: 10000.0
+costs:
+  trading_fee_pct: 0.05
+  slippage_pct: 0.03
+  spread_pct: 0.01
+execution:
+  market_mode: synthetic
+  direction: long
+  quantity_step: 1.0e-06
+  min_quantity: 1.0e-06
+  min_notional: 10.0
+  filter_assumption: Existing fixed lab quantity/exposure assumptions; USD-M prices,
+    synthetic collateralized execution; funding not modelled; no liquidations.
+  liquidate_at_end: true
+validation:
+  train:
+    start: &id001 2023-06-04 00:00:00+00:00
+    end: 2024-07-01 00:00:00+00:00
+  validation:
+    start: 2024-07-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  test:
+    start: 2025-07-01 00:00:00+00:00
+    end: &id002 2026-09-26 00:00:00+00:00
+  walk_forward:
+  - train:
+      start: 2023-07-01 00:00:00+00:00
+      end: 2024-07-01 00:00:00+00:00
+    test:
+      start: 2024-07-01 00:00:00+00:00
+      end: 2024-10-01 00:00:00+00:00
+  - train:
+      start: 2023-10-01 00:00:00+00:00
+      end: 2024-10-01 00:00:00+00:00
+    test:
+      start: 2024-10-01 00:00:00+00:00
+      end: 2025-01-01 00:00:00+00:00
+  - train:
+      start: 2024-01-01 00:00:00+00:00
+      end: 2025-01-01 00:00:00+00:00
+    test:
+      start: 2025-01-01 00:00:00+00:00
+      end: 2025-04-01 00:00:00+00:00
+  - train:
+      start: 2024-04-01 00:00:00+00:00
+      end: 2025-04-01 00:00:00+00:00
+    test:
+      start: 2025-04-01 00:00:00+00:00
+      end: 2025-07-01 00:00:00+00:00
+  cost_stress:
+    adverse:
+      trading_fee_pct: 0.1
+      slippage_pct: 0.06
+      spread_pct: 0.02
+filters:
+  minimum_trades: 1
+  maximum_drawdown_pct: 25.0
+  minimum_profit_factor: null
+  minimum_sharpe: null
+  positive_test: false
+  cost_stress_survival: false
+ranking:
+  metric: sharpe
+  descending: true
+  top_n: 3
+diagnostic_periods:
+  diagnostic_year_2023:
+    start: *id001
+    end: 2024-01-01 00:00:00+00:00
+  diagnostic_year_2024:
+    start: 2024-01-01 00:00:00+00:00
+    end: 2025-01-01 00:00:00+00:00
+  diagnostic_year_2025:
+    start: 2025-01-01 00:00:00+00:00
+    end: 2026-01-01 00:00:00+00:00
+  diagnostic_year_2026:
+    start: 2026-01-01 00:00:00+00:00
+    end: *id002

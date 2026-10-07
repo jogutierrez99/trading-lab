@@ -1,5 +1,12 @@
 # Arquitectura técnica actual
 
+ETH SHORT regime V1 reutiliza Experiment/prepare/run y almacenamiento ordinario.
+`lab_eth_short_regime.py` agrega CLI, auditoría y publicación por allowlist;
+`eth_short_regimes.py` calcula etiquetas causales exclusivamente para reporting.
+El entrypoint existente enruta `eth-short-regime` sin editar lab_cli congelado.
+No cambian estrategias, motor, selección WF ni interfaces forward/paper.
+[Protocolo](eth-short-regime-challenge-v1.md).
+
 Extensión RMM4h (2026-10-04): mismo ForwardEngine/feed/store/recovery/ShadowTracker;
 `forward/rmm.py` usa la estrategia original congelada. `DemoCoordinator` concilia
 órdenes/fills/checkpoint demo separados de ledgers shadow. `OKXDemoExecution` aporta
@@ -33,7 +40,13 @@ flowchart TD
     Store --> Reports[lab_reporting: ranking y ai_summary]
 ```
 
-`scripts/lab.py` delega en `lab_cli.main`. `prepare(full=False)` valida el plan;
+`scripts/lab.py` delega comandos ordinarios en `lab_cli.main`. La extensión
+`trend-expansion` se despacha desde `lab_trend_expansion.main` en el entrypoint,
+conservando los bytes de `lab_cli.py` fijados por el freeze RMM. Reutiliza prepare/run,
+auditoría de registros y publicación acotada; no añade otro motor ni almacenamiento.
+Su informe compara familias por activo/modo/coste, vecinos TRAIN y distribución
+de trades; la nominación de entradas para fase2 es humana y explícita.
+`prepare(full=False)` valida el plan;
 `prepare(full=True)` verifica también datos. `run` siempre usa FULL y ejecuta
 serialmente combinaciones y escenarios. No llama a descargas ni modelos de IA.
 

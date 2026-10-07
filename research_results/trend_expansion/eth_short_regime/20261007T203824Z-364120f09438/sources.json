@@ -1,0 +1,1612 @@
+[
+  {
+    "experiment": "eth_short_regime_challenge_v1_atr",
+    "run_id": "20261007T203617Z-52e2dc923989",
+    "strategy": "atr_volatility_breakout",
+    "strategy_version": "1.0.0",
+    "code_hash": "784f232aa64685c648b84e011942c14e1aa192ffa714ef9740bcffa4c7419b8e",
+    "git_commit": "856c8a712dc5545e131ed00ed094369f88b862d1",
+    "environment": {
+      "python": "3.12.14",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "dependencies": {
+        "pandas": "2.3.3",
+        "numpy": "2.3.5",
+        "pyarrow": "23.0.1",
+        "pydantic": "2.13.5",
+        "PyYAML": "6.0.3"
+      }
+    },
+    "datasets": [
+      {
+        "symbol": "ETHUSDT",
+        "timeframe": "1h",
+        "dataset_id": "1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+        "parquet_sha256": "45d54f213f24b4282a4a5ac972431aafb8d303456e4c202b548ec0e9196fb8ec",
+        "start": "2020-01-01 00:00:00+00:00",
+        "end": "2026-09-26 00:00:00+00:00"
+      }
+    ],
+    "markets": [
+      {
+        "symbol": "ETHUSDT",
+        "timeframe": "1h",
+        "warmup_bars": 1000
+      }
+    ],
+    "execution_assumptions": {
+      "market_mode": "synthetic",
+      "direction": "long",
+      "quantity_step": 1e-06,
+      "min_quantity": 1e-06,
+      "min_notional": 10.0,
+      "filter_assumption": "Existing fixed lab quantity/exposure assumptions; USD-M prices, synthetic collateralized execution; funding not modelled; no liquidations.",
+      "liquidate_at_end": true
+    },
+    "cost_assumptions": {
+      "base": {
+        "trading_fee_pct": 0.05,
+        "slippage_pct": 0.03,
+        "spread_pct": 0.01
+      },
+      "stress": {
+        "adverse": {
+          "trading_fee_pct": 0.1,
+          "slippage_pct": 0.06,
+          "spread_pct": 0.02
+        }
+      }
+    },
+    "validation": {
+      "train": {
+        "start": "2023-06-04T00:00:00Z",
+        "end": "2024-07-01T00:00:00Z"
+      },
+      "validation": {
+        "start": "2024-07-01T00:00:00Z",
+        "end": "2025-01-01T00:00:00Z"
+      },
+      "test": {
+        "start": "2025-07-01T00:00:00Z",
+        "end": "2026-09-26T00:00:00Z"
+      },
+      "walk_forward": [
+        {
+          "train": {
+            "start": "2023-07-01T00:00:00Z",
+            "end": "2024-07-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2024-07-01T00:00:00Z",
+            "end": "2024-10-01T00:00:00Z"
+          }
+        },
+        {
+          "train": {
+            "start": "2023-10-01T00:00:00Z",
+            "end": "2024-10-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2024-10-01T00:00:00Z",
+            "end": "2025-01-01T00:00:00Z"
+          }
+        },
+        {
+          "train": {
+            "start": "2024-01-01T00:00:00Z",
+            "end": "2025-01-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2025-01-01T00:00:00Z",
+            "end": "2025-04-01T00:00:00Z"
+          }
+        },
+        {
+          "train": {
+            "start": "2024-04-01T00:00:00Z",
+            "end": "2025-04-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2025-04-01T00:00:00Z",
+            "end": "2025-07-01T00:00:00Z"
+          }
+        }
+      ],
+      "cost_stress": {
+        "adverse": {
+          "trading_fee_pct": 0.1,
+          "slippage_pct": 0.06,
+          "spread_pct": 0.02
+        }
+      }
+    },
+    "historical_challenge": null,
+    "selection_context": "unknown; retrospective classification is not independent validation",
+    "candidates": null,
+    "classification": null,
+    "source": "results/eth_short_regime_challenge_v1_atr/20261007T203617Z-52e2dc923989",
+    "source_sha256": {
+      "run.json": "f881142c3a58babfb2d0ce7cec5e168c5fa9d8d710250a425b4f02931d5bd971",
+      "outcome.json": "2ab34ce61173fe0778e2f4860c54ae9460af69158c2552f7d63102a17cefcc10",
+      "plan.json": "6a6fd48b33b0ad1d1cd056bf65a33783a216d4b4052e713db904ef51c256168c",
+      "resolved.json": "56937fcc535bacc03a49106a50310dd09e0488598b60bc8d7331ffc87562e9af",
+      "provenance.json": "0b29c1164d16f36bf560543ddffd12113615d43dcd45df210d142c4aa0b70f8b",
+      "metrics.csv": "e772d43313a6a7c57f1921cebe6eaccf7ef4d008d4dbbfda09da71b74afcdc06"
+    },
+    "family": "atr",
+    "original_plan": {
+      "schema_version": 1,
+      "experiment_id": "eth_short_regime_challenge_v1_atr",
+      "created_at": "2026-10-07T00:00:00Z",
+      "description": "ETH SHORT post-selection exploratory regime falsification. Frozen previous grids; no independent holdout or paper approval. Donchian without ATR is control only.",
+      "app": "../app.yaml",
+      "strategy": {
+        "id": "atr_volatility_breakout",
+        "config": "../strategies/atr_volatility_breakout.yaml"
+      },
+      "markets": [
+        {
+          "symbol": "ETHUSDT",
+          "timeframe": "1h",
+          "dataset": "../../data/lab_1h_prices/ETHUSDT/1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+          "dataset_format": "bundle",
+          "dataset_id": "1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+          "warmup_bars": 1000,
+          "perpetual_data": null
+        }
+      ],
+      "modes": [
+        "SHORT_ONLY"
+      ],
+      "strategy_parameters": {
+        "impulse_atr_multiplier": [
+          0.75,
+          1.0,
+          1.25
+        ],
+        "atr_expansion_threshold": [
+          1.1,
+          1.25
+        ]
+      },
+      "initial_cash": 10000.0,
+      "costs": {
+        "trading_fee_pct": 0.05,
+        "slippage_pct": 0.03,
+        "spread_pct": 0.01
+      },
+      "execution": {
+        "market_mode": "synthetic",
+        "direction": "long",
+        "quantity_step": 1e-06,
+        "min_quantity": 1e-06,
+        "min_notional": 10.0,
+        "filter_assumption": "Existing fixed lab quantity/exposure assumptions; USD-M prices, synthetic collateralized execution; funding not modelled; no liquidations.",
+        "liquidate_at_end": true
+      },
+      "validation": {
+        "train": {
+          "start": "2023-06-04T00:00:00Z",
+          "end": "2024-07-01T00:00:00Z"
+        },
+        "validation": {
+          "start": "2024-07-01T00:00:00Z",
+          "end": "2025-01-01T00:00:00Z"
+        },
+        "test": {
+          "start": "2025-07-01T00:00:00Z",
+          "end": "2026-09-26T00:00:00Z"
+        },
+        "walk_forward": [
+          {
+            "train": {
+              "start": "2023-07-01T00:00:00Z",
+              "end": "2024-07-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2024-07-01T00:00:00Z",
+              "end": "2024-10-01T00:00:00Z"
+            }
+          },
+          {
+            "train": {
+              "start": "2023-10-01T00:00:00Z",
+              "end": "2024-10-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2024-10-01T00:00:00Z",
+              "end": "2025-01-01T00:00:00Z"
+            }
+          },
+          {
+            "train": {
+              "start": "2024-01-01T00:00:00Z",
+              "end": "2025-01-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2025-01-01T00:00:00Z",
+              "end": "2025-04-01T00:00:00Z"
+            }
+          },
+          {
+            "train": {
+              "start": "2024-04-01T00:00:00Z",
+              "end": "2025-04-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2025-04-01T00:00:00Z",
+              "end": "2025-07-01T00:00:00Z"
+            }
+          }
+        ],
+        "cost_stress": {
+          "adverse": {
+            "trading_fee_pct": 0.1,
+            "slippage_pct": 0.06,
+            "spread_pct": 0.02
+          }
+        }
+      },
+      "diagnostic_periods": {
+        "diagnostic_year_2023": {
+          "start": "2023-06-04T00:00:00Z",
+          "end": "2024-01-01T00:00:00Z"
+        },
+        "diagnostic_year_2024": {
+          "start": "2024-01-01T00:00:00Z",
+          "end": "2025-01-01T00:00:00Z"
+        },
+        "diagnostic_year_2025": {
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2026-01-01T00:00:00Z"
+        },
+        "diagnostic_year_2026": {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-09-26T00:00:00Z"
+        }
+      },
+      "filters": {
+        "minimum_trades": 1,
+        "maximum_drawdown_pct": 25.0,
+        "minimum_profit_factor": null,
+        "minimum_sharpe": null,
+        "positive_test": false,
+        "cost_stress_survival": false
+      },
+      "ranking": {
+        "metric": "sharpe",
+        "descending": true,
+        "top_n": 3
+      }
+    },
+    "resolved_strategy": {
+      "name": "atr_volatility_breakout",
+      "version": "1.0.0",
+      "enabled": true,
+      "market": {
+        "provider": "binance",
+        "symbol": "BTC/USDT",
+        "timeframe": "1h"
+      },
+      "parameters": {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "atr_reference_length": 50,
+        "atr_reference_method": "mean",
+        "atr_expansion_threshold": 1.1,
+        "impulse_atr_multiplier": 1.0
+      },
+      "risk": {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      }
+    },
+    "parameters": [
+      {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "atr_reference_length": 50,
+        "atr_reference_method": "mean",
+        "atr_expansion_threshold": 1.1,
+        "impulse_atr_multiplier": 0.75
+      },
+      {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "atr_reference_length": 50,
+        "atr_reference_method": "mean",
+        "atr_expansion_threshold": 1.1,
+        "impulse_atr_multiplier": 1.0
+      },
+      {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "atr_reference_length": 50,
+        "atr_reference_method": "mean",
+        "atr_expansion_threshold": 1.1,
+        "impulse_atr_multiplier": 1.25
+      },
+      {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "atr_reference_length": 50,
+        "atr_reference_method": "mean",
+        "atr_expansion_threshold": 1.25,
+        "impulse_atr_multiplier": 0.75
+      },
+      {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "atr_reference_length": 50,
+        "atr_reference_method": "mean",
+        "atr_expansion_threshold": 1.25,
+        "impulse_atr_multiplier": 1.0
+      },
+      {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "atr_reference_length": 50,
+        "atr_reference_method": "mean",
+        "atr_expansion_threshold": 1.25,
+        "impulse_atr_multiplier": 1.25
+      }
+    ],
+    "parameter_risks": [
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      }
+    ],
+    "app": {
+      "schema_version": 1,
+      "mode": "research",
+      "starting_capital": 10000.0,
+      "random_seed": 42,
+      "costs": {
+        "trading_fee_pct": 0.05,
+        "slippage_pct": 0.03,
+        "spread_pct": 0.01
+      },
+      "markets_file": "markets.yaml",
+      "risk_file": "risk.yaml",
+      "strategies_dir": "strategies"
+    },
+    "git_status": "M README.md\n M docs/ARCHITECTURE.md\n M docs/PROJECT_STATE.md\n M scripts/lab.py\n M src/quant_lab/lab_comparison.py\n M tests/unit/test_config.py\n M tests/unit/test_strategy.py\n?? configs/experiments/eth_short_regime_challenge_v1_atr.yaml\n?? configs/experiments/eth_short_regime_challenge_v1_donchian.yaml\n?? configs/experiments/eth_short_regime_challenge_v1_donchian_atr.yaml\n?? configs/experiments/trend_expansion_entry_atr_v1.yaml\n?? configs/experiments/trend_expansion_entry_donchian_atr_v1.yaml\n?? configs/experiments/trend_expansion_entry_donchian_v1.yaml\n?? configs/experiments/trend_expansion_entry_pullback_v1.yaml\n?? configs/profiles/trend_expansion/\n?? configs/research/eth_short_regime_challenge_v1.yaml\n?? configs/strategies/atr_volatility_breakout.yaml\n?? configs/strategies/donchian_atr_breakout.yaml\n?? configs/strategies/donchian_trend_breakout.yaml\n?? docs/eth-short-regime-challenge-v1.md\n?? docs/trend-expansion-v1.md\n?? research_results/trend_expansion/\n?? src/quant_lab/eth_short_regimes.py\n?? src/quant_lab/lab_eth_short_regime.py\n?? src/quant_lab/lab_trend_expansion.py\n?? src/quant_lab/strategies/atr_volatility_breakout.py\n?? src/quant_lab/strategies/donchian_atr_breakout.py\n?? src/quant_lab/strategies/donchian_trend_breakout.py\n?? src/quant_lab/trend_expansion_features.py\n?? tests/unit/test_atr_volatility_breakout.py\n?? tests/unit/test_donchian_atr_breakout.py\n?? tests/unit/test_donchian_trend_breakout.py\n?? tests/unit/test_eth_short_regime.py\n?? tests/unit/test_lab_trend_expansion.py",
+    "study_protocol": {
+      "study_id": "eth_short_regime_challenge_v1",
+      "protocol_version": 1,
+      "file_sha256": {
+        "configs/experiments/trend_expansion_entry_atr_v1.yaml": "d9491e565ada90af7c1c5243134f6ff10d36720aa3ef546cf928bc60b40fabfd",
+        "configs/experiments/eth_short_regime_challenge_v1_atr.yaml": "7df86f970d3e257a5b9c9cff18da5cfc3223ed5dd75e42200fee26ac994ec1a9",
+        "configs/strategies/atr_volatility_breakout.yaml": "ffea98b902659dc0903225506a0751e682b0ff8421f42c5d5a6950fafecdd58f",
+        "configs/experiments/trend_expansion_entry_donchian_atr_v1.yaml": "d5d0aef26afeacc12cea569a5b2d5366374f24fcc849c2555f74717e38b77f6c",
+        "configs/experiments/eth_short_regime_challenge_v1_donchian_atr.yaml": "4da4924aa6d28aec4c8106cced46afa63dca17daa9744dcfb6dfa2b731cd7116",
+        "configs/strategies/donchian_atr_breakout.yaml": "c0a79cf2eae783c3c13292a4257ac6a5b50c8127f20745a3fac7a2d9d50ca17c",
+        "configs/experiments/trend_expansion_entry_donchian_v1.yaml": "ec52e287ae427b7dc2929042d977d0b0fbb8d8d591e837bcf31e2e36aea3565f",
+        "configs/experiments/eth_short_regime_challenge_v1_donchian.yaml": "6a265b3c21d2d2f0abfc99dffebd017b40fcb8a5cb6a7842d0f8edf18dcf595f",
+        "configs/strategies/donchian_trend_breakout.yaml": "f3eb27a6bac9d5f508e58e32c9a29d7f4b2af50cf385557f9ee1a99564db7797",
+        "src/quant_lab/eth_short_regimes.py": "7f941be68fb91a7a3c72b752e80955906d00caefd7924177c753696a5950112a",
+        "src/quant_lab/lab_eth_short_regime.py": "86dbcee5b39cf98087e817ee28076fc5c55d73b151ac2622badb5215256b66d6",
+        "src/quant_lab/strategies/atr_volatility_breakout.py": "d0852f4863cbb3b62452bdbaef01c1d6baed9685c01712f895a53a9c53e91385",
+        "src/quant_lab/strategies/donchian_atr_breakout.py": "03b8ec3e47a2d9236d2c330943c5f4781cc5e6791cb5889bb2d2a88cdbb0c458",
+        "src/quant_lab/strategies/donchian_trend_breakout.py": "1d301ddf6c9f3e40005dc7a0737733536e43bcefd889536c50797b56c111b7bd",
+        "src/quant_lab/strategies/trend_volatility_breakout_v1.py": "c3138c2fb47b0c9ed56c6663fdece38bfd220b7cf764a8120241e0c9340fef1d",
+        "src/quant_lab/trend_expansion_features.py": "bce66379d1c0e001af42b22bdf2e7840923da9cb1a10614c48f6ee6b2c4f2399",
+        "src/quant_lab/features.py": "396f82a75b4ed7a2a90837dcce9beb23f88d39f2679cfcd5c41acac7153e2392",
+        "src/quant_lab/literature_features.py": "1558da7a8ef131b8d7c9ad482804626c3f8a1c824ed945cc63bc23a3fa61153e"
+      },
+      "minimum_descriptive_trades": 20,
+      "classification": "human_review_required",
+      "allowed_labels": [
+        "REJECTED",
+        "REGIME_DEPENDENT",
+        "ROBUST_RESEARCH_SURVIVOR",
+        "INSUFFICIENT_SAMPLE"
+      ],
+      "previous_evidence": "User-reported previous ETH SHORT TEST evidence; motivation only, not independently re-audited by this study."
+    },
+    "study_protocol_sha256": "458ae689016659228d6f923fce93ba495f405cf463f576189189881ba096eabc",
+    "methodological_warning": "This study is exploratory regime analysis based on hypotheses generated after observing previous TEST results. It is not an independent holdout and does not constitute paper-trading approval."
+  },
+  {
+    "experiment": "eth_short_regime_challenge_v1_donchian_atr",
+    "run_id": "20261007T203647Z-194d4424b93c",
+    "strategy": "donchian_atr_breakout",
+    "strategy_version": "1.0.0",
+    "code_hash": "784f232aa64685c648b84e011942c14e1aa192ffa714ef9740bcffa4c7419b8e",
+    "git_commit": "856c8a712dc5545e131ed00ed094369f88b862d1",
+    "environment": {
+      "python": "3.12.14",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "dependencies": {
+        "pandas": "2.3.3",
+        "numpy": "2.3.5",
+        "pyarrow": "23.0.1",
+        "pydantic": "2.13.5",
+        "PyYAML": "6.0.3"
+      }
+    },
+    "datasets": [
+      {
+        "symbol": "ETHUSDT",
+        "timeframe": "1h",
+        "dataset_id": "1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+        "parquet_sha256": "45d54f213f24b4282a4a5ac972431aafb8d303456e4c202b548ec0e9196fb8ec",
+        "start": "2020-01-01 00:00:00+00:00",
+        "end": "2026-09-26 00:00:00+00:00"
+      }
+    ],
+    "markets": [
+      {
+        "symbol": "ETHUSDT",
+        "timeframe": "1h",
+        "warmup_bars": 1000
+      }
+    ],
+    "execution_assumptions": {
+      "market_mode": "synthetic",
+      "direction": "long",
+      "quantity_step": 1e-06,
+      "min_quantity": 1e-06,
+      "min_notional": 10.0,
+      "filter_assumption": "Existing fixed lab quantity/exposure assumptions; USD-M prices, synthetic collateralized execution; funding not modelled; no liquidations.",
+      "liquidate_at_end": true
+    },
+    "cost_assumptions": {
+      "base": {
+        "trading_fee_pct": 0.05,
+        "slippage_pct": 0.03,
+        "spread_pct": 0.01
+      },
+      "stress": {
+        "adverse": {
+          "trading_fee_pct": 0.1,
+          "slippage_pct": 0.06,
+          "spread_pct": 0.02
+        }
+      }
+    },
+    "validation": {
+      "train": {
+        "start": "2023-06-04T00:00:00Z",
+        "end": "2024-07-01T00:00:00Z"
+      },
+      "validation": {
+        "start": "2024-07-01T00:00:00Z",
+        "end": "2025-01-01T00:00:00Z"
+      },
+      "test": {
+        "start": "2025-07-01T00:00:00Z",
+        "end": "2026-09-26T00:00:00Z"
+      },
+      "walk_forward": [
+        {
+          "train": {
+            "start": "2023-07-01T00:00:00Z",
+            "end": "2024-07-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2024-07-01T00:00:00Z",
+            "end": "2024-10-01T00:00:00Z"
+          }
+        },
+        {
+          "train": {
+            "start": "2023-10-01T00:00:00Z",
+            "end": "2024-10-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2024-10-01T00:00:00Z",
+            "end": "2025-01-01T00:00:00Z"
+          }
+        },
+        {
+          "train": {
+            "start": "2024-01-01T00:00:00Z",
+            "end": "2025-01-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2025-01-01T00:00:00Z",
+            "end": "2025-04-01T00:00:00Z"
+          }
+        },
+        {
+          "train": {
+            "start": "2024-04-01T00:00:00Z",
+            "end": "2025-04-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2025-04-01T00:00:00Z",
+            "end": "2025-07-01T00:00:00Z"
+          }
+        }
+      ],
+      "cost_stress": {
+        "adverse": {
+          "trading_fee_pct": 0.1,
+          "slippage_pct": 0.06,
+          "spread_pct": 0.02
+        }
+      }
+    },
+    "historical_challenge": null,
+    "selection_context": "unknown; retrospective classification is not independent validation",
+    "candidates": null,
+    "classification": null,
+    "source": "results/eth_short_regime_challenge_v1_donchian_atr/20261007T203647Z-194d4424b93c",
+    "source_sha256": {
+      "run.json": "8a33057da7e649e8a44b0f9440c7ea705d1f75b551a7608525348e4da6c6c650",
+      "outcome.json": "2ab34ce61173fe0778e2f4860c54ae9460af69158c2552f7d63102a17cefcc10",
+      "plan.json": "d162d1aeb76b00c32ceb1fbf576f0fc74ce3aae48f8ee96851b4de5702e642a4",
+      "resolved.json": "a753d374a117fce53e6563e508e8e9ddabd5f635dec13fa128074161c8aa648c",
+      "provenance.json": "0b29c1164d16f36bf560543ddffd12113615d43dcd45df210d142c4aa0b70f8b",
+      "metrics.csv": "4aa12f311c2c747cfe870612cbef79b77e8e8e1174181dc28b00622e92acf91e"
+    },
+    "family": "donchian_atr",
+    "original_plan": {
+      "schema_version": 1,
+      "experiment_id": "eth_short_regime_challenge_v1_donchian_atr",
+      "created_at": "2026-10-07T00:00:00Z",
+      "description": "ETH SHORT post-selection exploratory regime falsification. Frozen previous grids; no independent holdout or paper approval. Donchian without ATR is control only.",
+      "app": "../app.yaml",
+      "strategy": {
+        "id": "donchian_atr_breakout",
+        "config": "../strategies/donchian_atr_breakout.yaml"
+      },
+      "markets": [
+        {
+          "symbol": "ETHUSDT",
+          "timeframe": "1h",
+          "dataset": "../../data/lab_1h_prices/ETHUSDT/1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+          "dataset_format": "bundle",
+          "dataset_id": "1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+          "warmup_bars": 1000,
+          "perpetual_data": null
+        }
+      ],
+      "modes": [
+        "SHORT_ONLY"
+      ],
+      "strategy_parameters": {
+        "breakout_length": [
+          30,
+          40,
+          50
+        ],
+        "atr_expansion_threshold": [
+          1.1,
+          1.25
+        ]
+      },
+      "initial_cash": 10000.0,
+      "costs": {
+        "trading_fee_pct": 0.05,
+        "slippage_pct": 0.03,
+        "spread_pct": 0.01
+      },
+      "execution": {
+        "market_mode": "synthetic",
+        "direction": "long",
+        "quantity_step": 1e-06,
+        "min_quantity": 1e-06,
+        "min_notional": 10.0,
+        "filter_assumption": "Existing fixed lab quantity/exposure assumptions; USD-M prices, synthetic collateralized execution; funding not modelled; no liquidations.",
+        "liquidate_at_end": true
+      },
+      "validation": {
+        "train": {
+          "start": "2023-06-04T00:00:00Z",
+          "end": "2024-07-01T00:00:00Z"
+        },
+        "validation": {
+          "start": "2024-07-01T00:00:00Z",
+          "end": "2025-01-01T00:00:00Z"
+        },
+        "test": {
+          "start": "2025-07-01T00:00:00Z",
+          "end": "2026-09-26T00:00:00Z"
+        },
+        "walk_forward": [
+          {
+            "train": {
+              "start": "2023-07-01T00:00:00Z",
+              "end": "2024-07-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2024-07-01T00:00:00Z",
+              "end": "2024-10-01T00:00:00Z"
+            }
+          },
+          {
+            "train": {
+              "start": "2023-10-01T00:00:00Z",
+              "end": "2024-10-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2024-10-01T00:00:00Z",
+              "end": "2025-01-01T00:00:00Z"
+            }
+          },
+          {
+            "train": {
+              "start": "2024-01-01T00:00:00Z",
+              "end": "2025-01-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2025-01-01T00:00:00Z",
+              "end": "2025-04-01T00:00:00Z"
+            }
+          },
+          {
+            "train": {
+              "start": "2024-04-01T00:00:00Z",
+              "end": "2025-04-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2025-04-01T00:00:00Z",
+              "end": "2025-07-01T00:00:00Z"
+            }
+          }
+        ],
+        "cost_stress": {
+          "adverse": {
+            "trading_fee_pct": 0.1,
+            "slippage_pct": 0.06,
+            "spread_pct": 0.02
+          }
+        }
+      },
+      "diagnostic_periods": {
+        "diagnostic_year_2023": {
+          "start": "2023-06-04T00:00:00Z",
+          "end": "2024-01-01T00:00:00Z"
+        },
+        "diagnostic_year_2024": {
+          "start": "2024-01-01T00:00:00Z",
+          "end": "2025-01-01T00:00:00Z"
+        },
+        "diagnostic_year_2025": {
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2026-01-01T00:00:00Z"
+        },
+        "diagnostic_year_2026": {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-09-26T00:00:00Z"
+        }
+      },
+      "filters": {
+        "minimum_trades": 1,
+        "maximum_drawdown_pct": 25.0,
+        "minimum_profit_factor": null,
+        "minimum_sharpe": null,
+        "positive_test": false,
+        "cost_stress_survival": false
+      },
+      "ranking": {
+        "metric": "sharpe",
+        "descending": true,
+        "top_n": 3
+      }
+    },
+    "resolved_strategy": {
+      "name": "donchian_atr_breakout",
+      "version": "1.0.0",
+      "enabled": true,
+      "market": {
+        "provider": "binance",
+        "symbol": "BTC/USDT",
+        "timeframe": "1h"
+      },
+      "parameters": {
+        "trend_length": 200,
+        "slope_lookback": 5,
+        "breakout_length": 20,
+        "atr_length": 14,
+        "atr_reference_length": 50,
+        "atr_expansion_threshold": 1.0,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10
+      },
+      "risk": {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      }
+    },
+    "parameters": [
+      {
+        "trend_length": 200,
+        "slope_lookback": 5,
+        "breakout_length": 30,
+        "atr_length": 14,
+        "atr_reference_length": 50,
+        "atr_expansion_threshold": 1.1,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10
+      },
+      {
+        "trend_length": 200,
+        "slope_lookback": 5,
+        "breakout_length": 40,
+        "atr_length": 14,
+        "atr_reference_length": 50,
+        "atr_expansion_threshold": 1.1,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10
+      },
+      {
+        "trend_length": 200,
+        "slope_lookback": 5,
+        "breakout_length": 50,
+        "atr_length": 14,
+        "atr_reference_length": 50,
+        "atr_expansion_threshold": 1.1,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10
+      },
+      {
+        "trend_length": 200,
+        "slope_lookback": 5,
+        "breakout_length": 30,
+        "atr_length": 14,
+        "atr_reference_length": 50,
+        "atr_expansion_threshold": 1.25,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10
+      },
+      {
+        "trend_length": 200,
+        "slope_lookback": 5,
+        "breakout_length": 40,
+        "atr_length": 14,
+        "atr_reference_length": 50,
+        "atr_expansion_threshold": 1.25,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10
+      },
+      {
+        "trend_length": 200,
+        "slope_lookback": 5,
+        "breakout_length": 50,
+        "atr_length": 14,
+        "atr_reference_length": 50,
+        "atr_expansion_threshold": 1.25,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10
+      }
+    ],
+    "parameter_risks": [
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      }
+    ],
+    "app": {
+      "schema_version": 1,
+      "mode": "research",
+      "starting_capital": 10000.0,
+      "random_seed": 42,
+      "costs": {
+        "trading_fee_pct": 0.05,
+        "slippage_pct": 0.03,
+        "spread_pct": 0.01
+      },
+      "markets_file": "markets.yaml",
+      "risk_file": "risk.yaml",
+      "strategies_dir": "strategies"
+    },
+    "git_status": "M README.md\n M docs/ARCHITECTURE.md\n M docs/PROJECT_STATE.md\n M scripts/lab.py\n M src/quant_lab/lab_comparison.py\n M tests/unit/test_config.py\n M tests/unit/test_strategy.py\n?? configs/experiments/eth_short_regime_challenge_v1_atr.yaml\n?? configs/experiments/eth_short_regime_challenge_v1_donchian.yaml\n?? configs/experiments/eth_short_regime_challenge_v1_donchian_atr.yaml\n?? configs/experiments/trend_expansion_entry_atr_v1.yaml\n?? configs/experiments/trend_expansion_entry_donchian_atr_v1.yaml\n?? configs/experiments/trend_expansion_entry_donchian_v1.yaml\n?? configs/experiments/trend_expansion_entry_pullback_v1.yaml\n?? configs/profiles/trend_expansion/\n?? configs/research/eth_short_regime_challenge_v1.yaml\n?? configs/strategies/atr_volatility_breakout.yaml\n?? configs/strategies/donchian_atr_breakout.yaml\n?? configs/strategies/donchian_trend_breakout.yaml\n?? docs/eth-short-regime-challenge-v1.md\n?? docs/trend-expansion-v1.md\n?? research_results/trend_expansion/\n?? src/quant_lab/eth_short_regimes.py\n?? src/quant_lab/lab_eth_short_regime.py\n?? src/quant_lab/lab_trend_expansion.py\n?? src/quant_lab/strategies/atr_volatility_breakout.py\n?? src/quant_lab/strategies/donchian_atr_breakout.py\n?? src/quant_lab/strategies/donchian_trend_breakout.py\n?? src/quant_lab/trend_expansion_features.py\n?? tests/unit/test_atr_volatility_breakout.py\n?? tests/unit/test_donchian_atr_breakout.py\n?? tests/unit/test_donchian_trend_breakout.py\n?? tests/unit/test_eth_short_regime.py\n?? tests/unit/test_lab_trend_expansion.py",
+    "study_protocol": {
+      "study_id": "eth_short_regime_challenge_v1",
+      "protocol_version": 1,
+      "file_sha256": {
+        "configs/experiments/trend_expansion_entry_atr_v1.yaml": "d9491e565ada90af7c1c5243134f6ff10d36720aa3ef546cf928bc60b40fabfd",
+        "configs/experiments/eth_short_regime_challenge_v1_atr.yaml": "7df86f970d3e257a5b9c9cff18da5cfc3223ed5dd75e42200fee26ac994ec1a9",
+        "configs/strategies/atr_volatility_breakout.yaml": "ffea98b902659dc0903225506a0751e682b0ff8421f42c5d5a6950fafecdd58f",
+        "configs/experiments/trend_expansion_entry_donchian_atr_v1.yaml": "d5d0aef26afeacc12cea569a5b2d5366374f24fcc849c2555f74717e38b77f6c",
+        "configs/experiments/eth_short_regime_challenge_v1_donchian_atr.yaml": "4da4924aa6d28aec4c8106cced46afa63dca17daa9744dcfb6dfa2b731cd7116",
+        "configs/strategies/donchian_atr_breakout.yaml": "c0a79cf2eae783c3c13292a4257ac6a5b50c8127f20745a3fac7a2d9d50ca17c",
+        "configs/experiments/trend_expansion_entry_donchian_v1.yaml": "ec52e287ae427b7dc2929042d977d0b0fbb8d8d591e837bcf31e2e36aea3565f",
+        "configs/experiments/eth_short_regime_challenge_v1_donchian.yaml": "6a265b3c21d2d2f0abfc99dffebd017b40fcb8a5cb6a7842d0f8edf18dcf595f",
+        "configs/strategies/donchian_trend_breakout.yaml": "f3eb27a6bac9d5f508e58e32c9a29d7f4b2af50cf385557f9ee1a99564db7797",
+        "src/quant_lab/eth_short_regimes.py": "7f941be68fb91a7a3c72b752e80955906d00caefd7924177c753696a5950112a",
+        "src/quant_lab/lab_eth_short_regime.py": "86dbcee5b39cf98087e817ee28076fc5c55d73b151ac2622badb5215256b66d6",
+        "src/quant_lab/strategies/atr_volatility_breakout.py": "d0852f4863cbb3b62452bdbaef01c1d6baed9685c01712f895a53a9c53e91385",
+        "src/quant_lab/strategies/donchian_atr_breakout.py": "03b8ec3e47a2d9236d2c330943c5f4781cc5e6791cb5889bb2d2a88cdbb0c458",
+        "src/quant_lab/strategies/donchian_trend_breakout.py": "1d301ddf6c9f3e40005dc7a0737733536e43bcefd889536c50797b56c111b7bd",
+        "src/quant_lab/strategies/trend_volatility_breakout_v1.py": "c3138c2fb47b0c9ed56c6663fdece38bfd220b7cf764a8120241e0c9340fef1d",
+        "src/quant_lab/trend_expansion_features.py": "bce66379d1c0e001af42b22bdf2e7840923da9cb1a10614c48f6ee6b2c4f2399",
+        "src/quant_lab/features.py": "396f82a75b4ed7a2a90837dcce9beb23f88d39f2679cfcd5c41acac7153e2392",
+        "src/quant_lab/literature_features.py": "1558da7a8ef131b8d7c9ad482804626c3f8a1c824ed945cc63bc23a3fa61153e"
+      },
+      "minimum_descriptive_trades": 20,
+      "classification": "human_review_required",
+      "allowed_labels": [
+        "REJECTED",
+        "REGIME_DEPENDENT",
+        "ROBUST_RESEARCH_SURVIVOR",
+        "INSUFFICIENT_SAMPLE"
+      ],
+      "previous_evidence": "User-reported previous ETH SHORT TEST evidence; motivation only, not independently re-audited by this study."
+    },
+    "study_protocol_sha256": "458ae689016659228d6f923fce93ba495f405cf463f576189189881ba096eabc",
+    "methodological_warning": "This study is exploratory regime analysis based on hypotheses generated after observing previous TEST results. It is not an independent holdout and does not constitute paper-trading approval."
+  },
+  {
+    "experiment": "eth_short_regime_challenge_v1_donchian",
+    "run_id": "20261007T203717Z-2caf5e37e706",
+    "strategy": "donchian_trend_breakout",
+    "strategy_version": "1.0.0",
+    "code_hash": "784f232aa64685c648b84e011942c14e1aa192ffa714ef9740bcffa4c7419b8e",
+    "git_commit": "856c8a712dc5545e131ed00ed094369f88b862d1",
+    "environment": {
+      "python": "3.12.14",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "dependencies": {
+        "pandas": "2.3.3",
+        "numpy": "2.3.5",
+        "pyarrow": "23.0.1",
+        "pydantic": "2.13.5",
+        "PyYAML": "6.0.3"
+      }
+    },
+    "datasets": [
+      {
+        "symbol": "ETHUSDT",
+        "timeframe": "1h",
+        "dataset_id": "1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+        "parquet_sha256": "45d54f213f24b4282a4a5ac972431aafb8d303456e4c202b548ec0e9196fb8ec",
+        "start": "2020-01-01 00:00:00+00:00",
+        "end": "2026-09-26 00:00:00+00:00"
+      }
+    ],
+    "markets": [
+      {
+        "symbol": "ETHUSDT",
+        "timeframe": "1h",
+        "warmup_bars": 1000
+      }
+    ],
+    "execution_assumptions": {
+      "market_mode": "synthetic",
+      "direction": "long",
+      "quantity_step": 1e-06,
+      "min_quantity": 1e-06,
+      "min_notional": 10.0,
+      "filter_assumption": "Existing fixed lab quantity/exposure assumptions; USD-M prices, synthetic collateralized execution; funding not modelled; no liquidations.",
+      "liquidate_at_end": true
+    },
+    "cost_assumptions": {
+      "base": {
+        "trading_fee_pct": 0.05,
+        "slippage_pct": 0.03,
+        "spread_pct": 0.01
+      },
+      "stress": {
+        "adverse": {
+          "trading_fee_pct": 0.1,
+          "slippage_pct": 0.06,
+          "spread_pct": 0.02
+        }
+      }
+    },
+    "validation": {
+      "train": {
+        "start": "2023-06-04T00:00:00Z",
+        "end": "2024-07-01T00:00:00Z"
+      },
+      "validation": {
+        "start": "2024-07-01T00:00:00Z",
+        "end": "2025-01-01T00:00:00Z"
+      },
+      "test": {
+        "start": "2025-07-01T00:00:00Z",
+        "end": "2026-09-26T00:00:00Z"
+      },
+      "walk_forward": [
+        {
+          "train": {
+            "start": "2023-07-01T00:00:00Z",
+            "end": "2024-07-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2024-07-01T00:00:00Z",
+            "end": "2024-10-01T00:00:00Z"
+          }
+        },
+        {
+          "train": {
+            "start": "2023-10-01T00:00:00Z",
+            "end": "2024-10-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2024-10-01T00:00:00Z",
+            "end": "2025-01-01T00:00:00Z"
+          }
+        },
+        {
+          "train": {
+            "start": "2024-01-01T00:00:00Z",
+            "end": "2025-01-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2025-01-01T00:00:00Z",
+            "end": "2025-04-01T00:00:00Z"
+          }
+        },
+        {
+          "train": {
+            "start": "2024-04-01T00:00:00Z",
+            "end": "2025-04-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2025-04-01T00:00:00Z",
+            "end": "2025-07-01T00:00:00Z"
+          }
+        }
+      ],
+      "cost_stress": {
+        "adverse": {
+          "trading_fee_pct": 0.1,
+          "slippage_pct": 0.06,
+          "spread_pct": 0.02
+        }
+      }
+    },
+    "historical_challenge": null,
+    "selection_context": "unknown; retrospective classification is not independent validation",
+    "candidates": null,
+    "classification": null,
+    "source": "results/eth_short_regime_challenge_v1_donchian/20261007T203717Z-2caf5e37e706",
+    "source_sha256": {
+      "run.json": "3a44fa2397fe87cdff6d580de17aeec854137b9374250b0644c0494a7b9bcb39",
+      "outcome.json": "38ff79414949bf4c6f443245548fabe8be6cebcd88d8aa0da31cce6a1d78e243",
+      "plan.json": "5734f60f95523c8ffdb76728ac6b92dd741d4c9d74ab4efb25ea455e4d0eec20",
+      "resolved.json": "0e1f09beb1d8c1adbfe94c71d34e2194d9d6ed5efbc4e4f7efa3e290a10a6142",
+      "provenance.json": "0b29c1164d16f36bf560543ddffd12113615d43dcd45df210d142c4aa0b70f8b",
+      "metrics.csv": "260cce7c2dca772e7fc3bbb02d947e4f4f86a24a7cdc0908ae09df47321463f2"
+    },
+    "family": "donchian",
+    "original_plan": {
+      "schema_version": 1,
+      "experiment_id": "eth_short_regime_challenge_v1_donchian",
+      "created_at": "2026-10-07T00:00:00Z",
+      "description": "ETH SHORT post-selection exploratory regime falsification. Frozen previous grids; no independent holdout or paper approval. Donchian without ATR is control only.",
+      "app": "../app.yaml",
+      "strategy": {
+        "id": "donchian_trend_breakout",
+        "config": "../strategies/donchian_trend_breakout.yaml"
+      },
+      "markets": [
+        {
+          "symbol": "ETHUSDT",
+          "timeframe": "1h",
+          "dataset": "../../data/lab_1h_prices/ETHUSDT/1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+          "dataset_format": "bundle",
+          "dataset_id": "1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4",
+          "warmup_bars": 1000,
+          "perpetual_data": null
+        }
+      ],
+      "modes": [
+        "SHORT_ONLY"
+      ],
+      "strategy_parameters": {
+        "breakout_length": [
+          30,
+          40,
+          50
+        ]
+      },
+      "initial_cash": 10000.0,
+      "costs": {
+        "trading_fee_pct": 0.05,
+        "slippage_pct": 0.03,
+        "spread_pct": 0.01
+      },
+      "execution": {
+        "market_mode": "synthetic",
+        "direction": "long",
+        "quantity_step": 1e-06,
+        "min_quantity": 1e-06,
+        "min_notional": 10.0,
+        "filter_assumption": "Existing fixed lab quantity/exposure assumptions; USD-M prices, synthetic collateralized execution; funding not modelled; no liquidations.",
+        "liquidate_at_end": true
+      },
+      "validation": {
+        "train": {
+          "start": "2023-06-04T00:00:00Z",
+          "end": "2024-07-01T00:00:00Z"
+        },
+        "validation": {
+          "start": "2024-07-01T00:00:00Z",
+          "end": "2025-01-01T00:00:00Z"
+        },
+        "test": {
+          "start": "2025-07-01T00:00:00Z",
+          "end": "2026-09-26T00:00:00Z"
+        },
+        "walk_forward": [
+          {
+            "train": {
+              "start": "2023-07-01T00:00:00Z",
+              "end": "2024-07-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2024-07-01T00:00:00Z",
+              "end": "2024-10-01T00:00:00Z"
+            }
+          },
+          {
+            "train": {
+              "start": "2023-10-01T00:00:00Z",
+              "end": "2024-10-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2024-10-01T00:00:00Z",
+              "end": "2025-01-01T00:00:00Z"
+            }
+          },
+          {
+            "train": {
+              "start": "2024-01-01T00:00:00Z",
+              "end": "2025-01-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2025-01-01T00:00:00Z",
+              "end": "2025-04-01T00:00:00Z"
+            }
+          },
+          {
+            "train": {
+              "start": "2024-04-01T00:00:00Z",
+              "end": "2025-04-01T00:00:00Z"
+            },
+            "test": {
+              "start": "2025-04-01T00:00:00Z",
+              "end": "2025-07-01T00:00:00Z"
+            }
+          }
+        ],
+        "cost_stress": {
+          "adverse": {
+            "trading_fee_pct": 0.1,
+            "slippage_pct": 0.06,
+            "spread_pct": 0.02
+          }
+        }
+      },
+      "diagnostic_periods": {
+        "diagnostic_year_2023": {
+          "start": "2023-06-04T00:00:00Z",
+          "end": "2024-01-01T00:00:00Z"
+        },
+        "diagnostic_year_2024": {
+          "start": "2024-01-01T00:00:00Z",
+          "end": "2025-01-01T00:00:00Z"
+        },
+        "diagnostic_year_2025": {
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2026-01-01T00:00:00Z"
+        },
+        "diagnostic_year_2026": {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-09-26T00:00:00Z"
+        }
+      },
+      "filters": {
+        "minimum_trades": 1,
+        "maximum_drawdown_pct": 25.0,
+        "minimum_profit_factor": null,
+        "minimum_sharpe": null,
+        "positive_test": false,
+        "cost_stress_survival": false
+      },
+      "ranking": {
+        "metric": "sharpe",
+        "descending": true,
+        "top_n": 3
+      }
+    },
+    "resolved_strategy": {
+      "name": "donchian_trend_breakout",
+      "version": "1.0.0",
+      "enabled": true,
+      "market": {
+        "provider": "binance",
+        "symbol": "BTC/USDT",
+        "timeframe": "1h"
+      },
+      "parameters": {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "breakout_length": 40
+      },
+      "risk": {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      }
+    },
+    "parameters": [
+      {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "breakout_length": 30
+      },
+      {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "breakout_length": 40
+      },
+      {
+        "trend_filter": "ema_slope",
+        "trend_length": 200,
+        "fast_length": 50,
+        "slope_lookback": 5,
+        "atr_length": 14,
+        "atr_stop_multiplier": 2.0,
+        "reward_risk": 2.0,
+        "exit_method": "risk",
+        "exit_length": 10,
+        "breakout_length": 50
+      }
+    ],
+    "parameter_risks": [
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      },
+      {
+        "risk_per_trade_pct": 1.0,
+        "max_position_pct": 25.0,
+        "max_exposure_pct": 100.0,
+        "stop_method": "atr",
+        "atr_multiplier": 2.0,
+        "risk_reward": 2.0,
+        "atr_period": 14,
+        "sizing_method": "stop_risk",
+        "position_pct": 25.0,
+        "stop_enabled": true,
+        "take_profit_enabled": true,
+        "trailing_atr_multiplier": null,
+        "max_holding_bars": null,
+        "trailing_basis": "close",
+        "volatility_period": 720,
+        "target_volatility_pct": 20.0,
+        "min_position_pct": 5.0
+      }
+    ],
+    "app": {
+      "schema_version": 1,
+      "mode": "research",
+      "starting_capital": 10000.0,
+      "random_seed": 42,
+      "costs": {
+        "trading_fee_pct": 0.05,
+        "slippage_pct": 0.03,
+        "spread_pct": 0.01
+      },
+      "markets_file": "markets.yaml",
+      "risk_file": "risk.yaml",
+      "strategies_dir": "strategies"
+    },
+    "git_status": "M README.md\n M docs/ARCHITECTURE.md\n M docs/PROJECT_STATE.md\n M scripts/lab.py\n M src/quant_lab/lab_comparison.py\n M tests/unit/test_config.py\n M tests/unit/test_strategy.py\n?? configs/experiments/eth_short_regime_challenge_v1_atr.yaml\n?? configs/experiments/eth_short_regime_challenge_v1_donchian.yaml\n?? configs/experiments/eth_short_regime_challenge_v1_donchian_atr.yaml\n?? configs/experiments/trend_expansion_entry_atr_v1.yaml\n?? configs/experiments/trend_expansion_entry_donchian_atr_v1.yaml\n?? configs/experiments/trend_expansion_entry_donchian_v1.yaml\n?? configs/experiments/trend_expansion_entry_pullback_v1.yaml\n?? configs/profiles/trend_expansion/\n?? configs/research/eth_short_regime_challenge_v1.yaml\n?? configs/strategies/atr_volatility_breakout.yaml\n?? configs/strategies/donchian_atr_breakout.yaml\n?? configs/strategies/donchian_trend_breakout.yaml\n?? docs/eth-short-regime-challenge-v1.md\n?? docs/trend-expansion-v1.md\n?? research_results/trend_expansion/\n?? src/quant_lab/eth_short_regimes.py\n?? src/quant_lab/lab_eth_short_regime.py\n?? src/quant_lab/lab_trend_expansion.py\n?? src/quant_lab/strategies/atr_volatility_breakout.py\n?? src/quant_lab/strategies/donchian_atr_breakout.py\n?? src/quant_lab/strategies/donchian_trend_breakout.py\n?? src/quant_lab/trend_expansion_features.py\n?? tests/unit/test_atr_volatility_breakout.py\n?? tests/unit/test_donchian_atr_breakout.py\n?? tests/unit/test_donchian_trend_breakout.py\n?? tests/unit/test_eth_short_regime.py\n?? tests/unit/test_lab_trend_expansion.py",
+    "study_protocol": {
+      "study_id": "eth_short_regime_challenge_v1",
+      "protocol_version": 1,
+      "file_sha256": {
+        "configs/experiments/trend_expansion_entry_atr_v1.yaml": "d9491e565ada90af7c1c5243134f6ff10d36720aa3ef546cf928bc60b40fabfd",
+        "configs/experiments/eth_short_regime_challenge_v1_atr.yaml": "7df86f970d3e257a5b9c9cff18da5cfc3223ed5dd75e42200fee26ac994ec1a9",
+        "configs/strategies/atr_volatility_breakout.yaml": "ffea98b902659dc0903225506a0751e682b0ff8421f42c5d5a6950fafecdd58f",
+        "configs/experiments/trend_expansion_entry_donchian_atr_v1.yaml": "d5d0aef26afeacc12cea569a5b2d5366374f24fcc849c2555f74717e38b77f6c",
+        "configs/experiments/eth_short_regime_challenge_v1_donchian_atr.yaml": "4da4924aa6d28aec4c8106cced46afa63dca17daa9744dcfb6dfa2b731cd7116",
+        "configs/strategies/donchian_atr_breakout.yaml": "c0a79cf2eae783c3c13292a4257ac6a5b50c8127f20745a3fac7a2d9d50ca17c",
+        "configs/experiments/trend_expansion_entry_donchian_v1.yaml": "ec52e287ae427b7dc2929042d977d0b0fbb8d8d591e837bcf31e2e36aea3565f",
+        "configs/experiments/eth_short_regime_challenge_v1_donchian.yaml": "6a265b3c21d2d2f0abfc99dffebd017b40fcb8a5cb6a7842d0f8edf18dcf595f",
+        "configs/strategies/donchian_trend_breakout.yaml": "f3eb27a6bac9d5f508e58e32c9a29d7f4b2af50cf385557f9ee1a99564db7797",
+        "src/quant_lab/eth_short_regimes.py": "7f941be68fb91a7a3c72b752e80955906d00caefd7924177c753696a5950112a",
+        "src/quant_lab/lab_eth_short_regime.py": "86dbcee5b39cf98087e817ee28076fc5c55d73b151ac2622badb5215256b66d6",
+        "src/quant_lab/strategies/atr_volatility_breakout.py": "d0852f4863cbb3b62452bdbaef01c1d6baed9685c01712f895a53a9c53e91385",
+        "src/quant_lab/strategies/donchian_atr_breakout.py": "03b8ec3e47a2d9236d2c330943c5f4781cc5e6791cb5889bb2d2a88cdbb0c458",
+        "src/quant_lab/strategies/donchian_trend_breakout.py": "1d301ddf6c9f3e40005dc7a0737733536e43bcefd889536c50797b56c111b7bd",
+        "src/quant_lab/strategies/trend_volatility_breakout_v1.py": "c3138c2fb47b0c9ed56c6663fdece38bfd220b7cf764a8120241e0c9340fef1d",
+        "src/quant_lab/trend_expansion_features.py": "bce66379d1c0e001af42b22bdf2e7840923da9cb1a10614c48f6ee6b2c4f2399",
+        "src/quant_lab/features.py": "396f82a75b4ed7a2a90837dcce9beb23f88d39f2679cfcd5c41acac7153e2392",
+        "src/quant_lab/literature_features.py": "1558da7a8ef131b8d7c9ad482804626c3f8a1c824ed945cc63bc23a3fa61153e"
+      },
+      "minimum_descriptive_trades": 20,
+      "classification": "human_review_required",
+      "allowed_labels": [
+        "REJECTED",
+        "REGIME_DEPENDENT",
+        "ROBUST_RESEARCH_SURVIVOR",
+        "INSUFFICIENT_SAMPLE"
+      ],
+      "previous_evidence": "User-reported previous ETH SHORT TEST evidence; motivation only, not independently re-audited by this study."
+    },
+    "study_protocol_sha256": "458ae689016659228d6f923fce93ba495f405cf463f576189189881ba096eabc",
+    "methodological_warning": "This study is exploratory regime analysis based on hypotheses generated after observing previous TEST results. It is not an independent holdout and does not constitute paper-trading approval."
+  }
+]
