@@ -96,6 +96,12 @@ class OKXDemoBroker(ReadOnlyBroker):
             result = self._request(path, headers)
         except HTTPError as exc:
             raise RuntimeError(f"OKX read-only HTTP status {exc.code}") from None
+        except OSError as exc:
+            # URLError, socket failures and timeouts must reach the runner's
+            # bounded continuity recovery, without exposing transport details.
+            raise ConnectionError(
+                f"OKX read-only transport failed ({type(exc).__name__})"
+            ) from None
         except Exception as exc:
             # Do not expose headers, account response bodies or credentials through exceptions.
             raise RuntimeError(f"OKX read-only transport failed ({type(exc).__name__})") from None

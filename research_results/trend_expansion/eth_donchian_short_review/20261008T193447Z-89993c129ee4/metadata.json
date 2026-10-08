@@ -1,0 +1,31 @@
+{
+  "status": "REVIEWED",
+  "audited_records": 96,
+  "audited_trade_instances": 4720,
+  "dataset_validation": "FULL",
+  "newest_local_eth_1h_manifest_end": "2026-09-26 00:00:00+00:00",
+  "new_local_manifest_after_observed_test": false,
+  "statistical_decision": "PROSPECTIVE_VALIDATION_REQUIRED",
+  "operational_decision": "ARCHITECTURE_REVIEW_REQUIRED",
+  "backtests_executed": 0,
+  "orders_sent": 0,
+  "publication_schema_version": 1,
+  "published_at": "2026-10-08T19:34:47.578862+00:00",
+  "max_file_bytes": 5000000,
+  "skipped": {},
+  "artifacts_sha256": {
+    "summary.csv": "93a2253d5c88303d862afa96cc0ca551aa9c009813296e43fa34a0936d2b7747",
+    "historical_evidence.csv": "d8678b416d127dd8d21f61cf5f9a47b3607fc0bc5baab981e82b3f17dd6e207f",
+    "parameter_robustness.csv": "d8dabddd4c81fd89878ef726943aeaae01ea330bb7d05f699cbb411ccc75a75b",
+    "cost_sensitivity.csv": "8cc8404b917880d96bb5de0ea8d5b026e7e13cee9a81bdfde7f299c98cfd1080",
+    "outlier_dependency.csv": "fb6153fdb40be29135f9583e9355201755a2afccb210cec594adc09fae71e17e",
+    "regime_comparison.csv": "209968a41d9f345ceeaa831fe895e6967cfd7cb7d7a3d0f022e0decb791f49cc",
+    "candidate_verdicts.csv": "2df3b3ad48f90abfe80d8ae6953b317bd5e08c51b92e6d5c8367d00e32d792a7",
+    "forward_readiness.md": "f432bd418cf67ae8f51113de0b6dd6b229f966c5538de99f56042b2c3da8c80c",
+    "portfolio_compatibility.md": "9829807a2966a23ebc23c76d743210f3884fb4ded31eeae47d35de78b50b5fcb",
+    "conclusions.md": "61cdc1e01943d0981ef418d152546f0ec66291c3ea03a58106fb94ab119247a9",
+    "prospective_protocol.yaml": "2d8822fdde6ff5fc8ebdff93f0b885cb2806c7e029c752a49e7df10698c28f20",
+    "sources.json": "8e897a233bd0cd6212c9b3a37c1f3882bcea437a8f0042733ff69dec4565d8f3"
+  },
+  "note": "Compact research notebook, not full backtest storage. Legacy PASS is not paper eligibility. No Git commit/push performed."
+}

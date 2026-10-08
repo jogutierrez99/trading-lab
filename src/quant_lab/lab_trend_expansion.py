@@ -665,6 +665,10 @@ def main(argv: list[str] | None = None) -> int:
     prefix = argparse.ArgumentParser(add_help=False)
     prefix.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     options, remaining = prefix.parse_known_args(argv)
+    if remaining and remaining[0] == "eth-short-history":
+        from quant_lab.lab_eth_short_history import main as historical_main
+
+        return historical_main(options.root.resolve(), remaining[1:])
     if remaining and remaining[0] == "eth-short-regime":
         from quant_lab.lab_eth_short_regime import main as regime_main
 

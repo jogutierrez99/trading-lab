@@ -257,6 +257,12 @@ según la decisión del usuario. Se conservan sus candidatos, parámetros y resu
 
 ## Trend / Expansion V1
 
+[ETH SHORT historical falsification V1](docs/eth-short-historical-falsification-v1.md):
+dos regiones ATR/híbrida congeladas de la publicación anterior; 2020 parcial tras
+warmup1000, 2021/2022 completos y BASE/ADVERSE. 72 backtests locales, sin ranking
+ni selección; `lab.py eth-short-history validate --full`, `run <challenge-id>`,
+`compare`, `publish latest`. Usa challenges históricos existentes; no toca forward.
+
 [ETH SHORT regime challenge V1](docs/eth-short-regime-challenge-v1.md): hipótesis
 ATR/híbrida y Donchian control, ETHUSDT1h SHORT_ONLY, grids anteriores intactos,
 cuatro WF y diagnósticos anuales. 354 backtests para ejecución local;
@@ -305,3 +311,14 @@ POST-SELECTION FALSIFICATION / ROBUSTNESS CHALLENGE, sin nuevo holdout independi
 `lab.py falsification validate [--full]` verifica freeze/datos; `falsification report
 --runs RUN180 RUNFIXED RUN150 RUN210` audita fuentes y exporta compactos únicos,
 sin simular ni aprobar demo. Strategy/engine/global risk/forward sin cambios.
+
+## ETH Donchian SHORT: revisión de evidencia y protocolo prospectivo
+
+[Auditoría y comandos](docs/eth-donchian-short-review.md): revisión ligera de los
+72 backtests históricos y24 TEST recientes, sin repetir simulaciones.
+`scripts/review_eth_donchian_short.py validate --full` verifica fuentes/datos;
+`report --full` publica un suplemento exclusivo
+en research_results/trend_expansion/eth_donchian_short_review/. Seis candidatos
+REGIME_DEPENDENT, nueva evidencia pendiente; preregistro futuro sin órdenes.
+El adaptador Donchian SIGNAL_ONLY requiere revisión de arquitectura y no se implementa
+en esta fase. RMM y sesiones forward existentes conservados.

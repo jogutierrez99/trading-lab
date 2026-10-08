@@ -56,7 +56,25 @@ Se mantienen todos los guards demo y reconciliación del protocolo original. Liv
 continúa bloqueado. No se arrancó una observación real ni se enviaron órdenes o
 mensajes durante esta implementación; los tests usan datos y transporte simulados.
 
-## Diagnosticar un envío incierto
+## Incidencias de conexión y órdenes demo
+
+### Fallo de lectura del reloj en SIGNAL_ONLY
+
+Corrección 2026-10-08: `URLError`, timeout y otros `OSError` del broker GET-only
+se propagan como `ConnectionError` sanitizado. Durante la observación activan la
+recuperación existente: DATA_GAP, pausa de decisiones, backoff y auditoría REST
+antes de reconectar. Si persisten, se detiene al alcanzar `max_reconnects`.
+No se utiliza un reloj caducado cuando falla su refresco. Rechazos HTTP/API,
+redirects y respuestas inválidas siguen siendo errores; el transporte POST demo
+no cambia ni se reenvían órdenes por esta corrección.
+
+Un traceback anterior que solo indica `URLError` no permite identificar DNS,
+TLS o timeout. Conservar la sesión fallida y su journal; volver a ejecutar el
+comando SIGNAL_ONLY anterior crea otra sesión. No verificar la sesión fallida:
+el cambio de código exige una nueva observación válida y recibo vigente.
+Verificación con transporte simulado, sin conectar a OKX ni iniciar un forward real.
+
+### Consulta de órdenes demo
 
 Una excepción de transporte durante POST no prueba que OKX rechazara la orden.
 SUBMITTING se guarda antes de enviar; conservar journal y clOrdId, sin reenviar.

@@ -1,0 +1,150 @@
+schema_version: 1
+app: ../app.yaml
+strategy:
+  id: atr_volatility_breakout
+  config: ../strategies/atr_volatility_breakout.yaml
+markets:
+- symbol: ETHUSDT
+  timeframe: 1h
+  dataset: ../../data/lab_1h_prices/ETHUSDT/1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4
+  dataset_format: bundle
+  dataset_id: 1006e4cb8296ab8d1574317f2927c7feb975bbd25a5f195a8c7d97a17d7b70e4
+  warmup_bars: 1000
+  perpetual_data: null
+initial_cash: 10000.0
+costs:
+  trading_fee_pct: 0.05
+  slippage_pct: 0.03
+  spread_pct: 0.01
+execution:
+  market_mode: synthetic
+  direction: long
+  quantity_step: 1.0e-06
+  min_quantity: 1.0e-06
+  min_notional: 10.0
+  filter_assumption: Existing fixed lab quantity/exposure assumptions; USD-M prices,
+    synthetic collateralized execution; funding not modelled; no liquidations.
+  liquidate_at_end: true
+experiment_id: eth_short_historical_falsification_v1_atr
+created_at: 2026-10-07 00:00:00+00:00
+description: Frozen whole ETH SHORT parameter region from published Regime Challenge
+  V1. Historical 2020-2022 falsification only; no ranking, retuning or paper approval.
+selection_context: selected_using_previously_observed_test
+freeze_policy: no_parameter_changes_after_challenge
+candidates:
+- candidate_id: atr_00
+  mode: SHORT_ONLY
+  parameters:
+    trend_filter: ema_slope
+    trend_length: 200
+    fast_length: 50
+    slope_lookback: 5
+    atr_length: 14
+    atr_stop_multiplier: 2.0
+    reward_risk: 2.0
+    exit_method: risk
+    exit_length: 10
+    atr_reference_length: 50
+    atr_reference_method: mean
+    atr_expansion_threshold: 1.1
+    impulse_atr_multiplier: 0.75
+- candidate_id: atr_01
+  mode: SHORT_ONLY
+  parameters:
+    trend_filter: ema_slope
+    trend_length: 200
+    fast_length: 50
+    slope_lookback: 5
+    atr_length: 14
+    atr_stop_multiplier: 2.0
+    reward_risk: 2.0
+    exit_method: risk
+    exit_length: 10
+    atr_reference_length: 50
+    atr_reference_method: mean
+    atr_expansion_threshold: 1.1
+    impulse_atr_multiplier: 1.0
+- candidate_id: atr_02
+  mode: SHORT_ONLY
+  parameters:
+    trend_filter: ema_slope
+    trend_length: 200
+    fast_length: 50
+    slope_lookback: 5
+    atr_length: 14
+    atr_stop_multiplier: 2.0
+    reward_risk: 2.0
+    exit_method: risk
+    exit_length: 10
+    atr_reference_length: 50
+    atr_reference_method: mean
+    atr_expansion_threshold: 1.1
+    impulse_atr_multiplier: 1.25
+- candidate_id: atr_03
+  mode: SHORT_ONLY
+  parameters:
+    trend_filter: ema_slope
+    trend_length: 200
+    fast_length: 50
+    slope_lookback: 5
+    atr_length: 14
+    atr_stop_multiplier: 2.0
+    reward_risk: 2.0
+    exit_method: risk
+    exit_length: 10
+    atr_reference_length: 50
+    atr_reference_method: mean
+    atr_expansion_threshold: 1.25
+    impulse_atr_multiplier: 0.75
+- candidate_id: atr_04
+  mode: SHORT_ONLY
+  parameters:
+    trend_filter: ema_slope
+    trend_length: 200
+    fast_length: 50
+    slope_lookback: 5
+    atr_length: 14
+    atr_stop_multiplier: 2.0
+    reward_risk: 2.0
+    exit_method: risk
+    exit_length: 10
+    atr_reference_length: 50
+    atr_reference_method: mean
+    atr_expansion_threshold: 1.25
+    impulse_atr_multiplier: 1.0
+- candidate_id: atr_05
+  mode: SHORT_ONLY
+  parameters:
+    trend_filter: ema_slope
+    trend_length: 200
+    fast_length: 50
+    slope_lookback: 5
+    atr_length: 14
+    atr_stop_multiplier: 2.0
+    reward_risk: 2.0
+    exit_method: risk
+    exit_length: 10
+    atr_reference_length: 50
+    atr_reference_method: mean
+    atr_expansion_threshold: 1.25
+    impulse_atr_multiplier: 1.25
+historical_challenge:
+  requested:
+    start: 2020-01-01 00:00:00+00:00
+    end: 2023-01-01 00:00:00+00:00
+  warmup_start: 2020-01-01 00:00:00+00:00
+  segments:
+  - label: year_2020
+    start: 2020-02-11 16:00:00+00:00
+    end: 2021-01-01 00:00:00+00:00
+  - label: year_2021
+    start: 2021-01-01 00:00:00+00:00
+    end: 2022-01-01 00:00:00+00:00
+  - label: year_2022
+    start: 2022-01-01 00:00:00+00:00
+    end: 2023-01-01 00:00:00+00:00
+  cost_stress:
+    adverse:
+      trading_fee_pct: 0.1
+      slippage_pct: 0.06
+      spread_pct: 0.02

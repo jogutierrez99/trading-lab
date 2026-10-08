@@ -1,0 +1,30 @@
+study_id: eth_donchian_short_prospective_v1
+status: ARCHITECTURE_REVIEW_REQUIRED
+mode: signal_only
+trading_enabled: false
+send_orders: false
+allow_live_trading: false
+freeze_time_utc: '2026-10-08T19:29:52.669109+00:00'
+earliest_signal_close_utc: '2026-10-09T00:00:00Z'
+historical_report: reports/eth-short-history/20261008T184034Z-7804ae2eafb6
+recent_publication: research_results/trend_expansion/eth_short_regime/20261007T203824Z-364120f09438
+minimum_calendar_days: 180
+minimum_closed_trades_per_candidate: 100
+minimum_positive_candidates_both_costs: 4
+minimum_positive_neighbor_edges_both_costs: 4
+maximum_drawdown_pct: 15.0
+bootstrap_block_days: 7
+bootstrap_replicates: 10000
+bootstrap_seed: 271828
+familywise_alpha: 0.05
+file_sha256:
+  reports/eth-short-history/20261008T184034Z-7804ae2eafb6/outcome.json: 357042561b59336d6874e0220ddeb8c2bcbac5f68453d490e1449a5604e82cc7
+  research_results/trend_expansion/eth_short_regime/20261007T203824Z-364120f09438/metadata.json: 696d9d467e8fe89c90f3e54370c06a10de3c54b35b9584ef3c1cb4cbf594acf9
+  configs/research/eth_short_historical_falsification_v1.yaml: a6ae3444cf217f4186142a87d95b5e2e2314efd18ff6b53d283424f5eaea8109
+  src/quant_lab/lab_eth_short_history.py: 6a14db35cadc4d71515d34fafa496f15e9cf6ca8b643f1b27a260a5cfbce324d
+  src/quant_lab/lab_cli.py: a9bd82660446cea7a176110ffe73baac6c00bac25437eb921b68ae0fb60368f7
+  docs/eth-donchian-short-review/conclusions.md: 61cdc1e01943d0981ef418d152546f0ec66291c3ea03a58106fb94ab119247a9
+  docs/eth-donchian-short-review/forward_readiness.md: f432bd418cf67ae8f51113de0b6dd6b229f966c5538de99f56042b2c3da8c80c
+  docs/eth-donchian-short-review/portfolio_compatibility.md: 9829807a2966a23ebc23c76d743210f3884fb4ded31eeae47d35de78b50b5fcb
+  src/quant_lab/eth_donchian_review.py: 0f3174baf8e3c106fe6587584eb5f2a73a6036137e675e5d902218110d1dec5c
+  scripts/review_eth_donchian_short.py: cce86b89b5d8993c3903612cb7529d76abe0a3bcae77bed324b214e24a9668ad

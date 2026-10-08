@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 from decimal import Decimal
+from urllib.error import HTTPError, URLError
 
 import numpy as np
 import pandas as pd
@@ -73,6 +74,61 @@ def candles(n=290):
         },
         index=pd.date_range("2026-01-01", periods=n, freq="1h", tz="UTC"),
     )
+
+
+@pytest.mark.parametrize(
+    "error",
+    [URLError("private details"), TimeoutError("private details"), OSError("private details")],
+)
+def test_readonly_transport_failure_is_recoverable_and_sanitized(error):
+    def request(*_):
+        raise error
+
+    with pytest.raises(ConnectionError, match="OKX read-only transport failed") as caught:
+        OKXDemoBroker(request=request).server_time()
+    assert "private details" not in str(caught.value)
+    assert caught.value.__suppress_context__
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        HTTPError("private url", 403, "private details", {}, None),
+        ValueError("private details"),
+        RuntimeError("OKX redirect refused"),
+    ],
+)
+def test_readonly_non_connection_failure_remains_fatal(error):
+    def request(*_):
+        raise error
+
+    with pytest.raises(RuntimeError) as caught:
+        OKXDemoBroker(request=request).server_time()
+    assert not isinstance(caught.value, ConnectionError)
+    assert "private" not in str(caught.value)
+
+
+def test_expired_okx_clock_blocks_until_successful_refresh(monkeypatch):
+    from quant_lab.market_data import okx
+
+    monotonic = [100.0]
+    monkeypatch.setattr(okx.time, "monotonic", lambda: monotonic[0])
+    stamp = pd.Timestamp("2026-01-01", tz="UTC")
+    responses = [stamp, URLError("private details"), stamp + pd.Timedelta(seconds=40)]
+
+    def request(*_):
+        response = responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return {"code": "0", "data": [{"ts": str(response.value // 1000000)}]}
+
+    feed = OKXMarketData(OKXDemoBroker(request=request), [])
+    assert feed.now() == stamp
+    monotonic[0] += 31
+    with pytest.raises(ConnectionError):
+        feed.now()
+    assert feed._clock == stamp and feed._clock_at == 100.0
+    assert feed.now() == stamp + pd.Timedelta(seconds=40)
 
 
 def test_contracts_round_down_and_never_use_max_leverage():

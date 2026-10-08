@@ -2,6 +2,7 @@
 
 from dataclasses import asdict
 from decimal import Decimal
+from urllib.error import URLError
 
 import numpy as np
 import pandas as pd
@@ -163,13 +164,16 @@ def test_sizing_uses_instrument_contract_metadata(tmp_path):
     store.close()
 
 
-def test_runner_reconnects_recovers_and_stops_after_bounded_update(tmp_path, monkeypatch):
+@pytest.mark.parametrize("clock_failures", [0, 1, 2, 10])
+def test_runner_reconnects_recovers_and_stops_after_bounded_update(
+    tmp_path, monkeypatch, clock_failures
+):
     pytest.importorskip("websockets")
     from quant_lab.forward import runner
     from quant_lab.mtf_features import STEPS
 
     config, inherited, _ = load_config(DEFAULT_CONFIG)
-    config = config.model_copy(update={"warmup_bars": 250})
+    config = config.model_copy(update={"warmup_bars": 250, "max_reconnects": 2})
     endpoint = pd.Timestamp("2026-02-01", tz="UTC")
     instruments = {
         i: Instrument(
@@ -179,6 +183,20 @@ def test_runner_reconnects_recovers_and_stops_after_bounded_update(tmp_path, mon
     }
     calls = []
 
+    from quant_lab.brokers.okx_demo import OKXDemoBroker
+    from quant_lab.market_data.okx import OKXMarketData
+
+    remaining = clock_failures
+
+    def request(path, headers):
+        nonlocal remaining
+        assert path == "/api/v5/public/time"
+        calls.append(("clock",))
+        if remaining:
+            remaining -= 1
+            raise URLError("sensitive transport details")
+        return {"code": "0", "data": [{"ts": str(endpoint.value // 1000000)}]}
+
     class Broker:
         def get_instrument(self, instrument):
             return instruments[instrument]
@@ -186,6 +204,7 @@ def test_runner_reconnects_recovers_and_stops_after_bounded_update(tmp_path, mon
     class Feed:
         def __init__(self, broker, instruments):
             self.round = 0
+            self.clock = OKXMarketData(OKXDemoBroker(request=request), [])
 
         def history(self, instrument, timeframe, count, since=None):
             calls.append(("history", instrument, timeframe, since))
@@ -199,6 +218,8 @@ def test_runner_reconnects_recovers_and_stops_after_bounded_update(tmp_path, mon
             ]
 
         def now(self):
+            if self.round == 1 and clock_failures:
+                return self.clock.now()
             return endpoint + pd.Timedelta(minutes=15 if self.round >= 2 else 0)
 
         def quote(self, *args):
@@ -208,6 +229,7 @@ def test_runner_reconnects_recovers_and_stops_after_bounded_update(tmp_path, mon
             self.round += 1
             calls.append(("connect", self.round))
             if self.round == 1:
+                self.now()  # Real clock refresh/broker path from the reported traceback.
                 raise ConnectionError("synthetic disconnect")
             yield Bar(config.instruments["ETH"], "15m", endpoint, 100, 101, 99, 100, 10)
 
@@ -218,6 +240,16 @@ def test_runner_reconnects_recovers_and_stops_after_bounded_update(tmp_path, mon
     monkeypatch.setattr(runner, "OKXMarketData", Feed)
     monkeypatch.setattr(runner, "provenance", lambda _: {"code_sha256": "bounded-test"})
     monkeypatch.setattr(runner.time, "sleep", lambda _: None)
+    if clock_failures > config.max_reconnects:
+        with pytest.raises(RuntimeError, match="Reconnect limit reached"):
+            runner.run(DEFAULT_CONFIG, max_updates=1)
+        assert ("connect", 2) not in calls
+        metadata = list(tmp_path.glob("*/session.json"))
+        import json
+
+        assert json.loads(metadata[0].read_text(encoding="utf-8"))["status"] == "failed"
+        assert "sensitive" not in list(tmp_path.glob("*/errors.log"))[0].read_text(encoding="utf-8")
+        return
     runner.run(DEFAULT_CONFIG, max_updates=1)
     assert ("connect", 2) in calls
     assert sum(c[0] == "history" for c in calls) == 12

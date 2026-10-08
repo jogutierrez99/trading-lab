@@ -1,5 +1,16 @@
 # Estado actual del Trading Lab
 
+Extensión 2026-10-07: [ETH SHORT historical falsification V1](eth-short-historical-falsification-v1.md).
+Dos regiones completas ATR/híbrida copiadas de los parámetros resueltos publicados
+en20261007T203824Z-364120f09438. ETHUSDT1h SHORT_ONLY, 2020 desde02-11 16UTC tras
+1000h de warmup, 2021/2022 completos. Dos Challenge existentes,36 backtests cada uno,
+sin ranking, optimización ni WF. CLI validate/run/compare/publish y compactos anuales,
+vecinos/costes/distribución/outliers y clasificación manual pendiente. FAST/FULL válidos;
+50 tests dirigidos aprobados, Ruff/check/format correctos; ningún challenge histórico
+ejecutado por Codex.
+Referencia2025-2026 ya observada; falsación histórica adicional, sin independencia
+futura ni aprobación paper/forward. Señales/riesgo/backend/protocolos previos intactos.
+
 Extensión 2026-10-07: [ETH SHORT regime challenge V1](eth-short-regime-challenge-v1.md).
 Tres experimentos ETHUSDT1h SHORT_ONLY reutilizan grids/señales/riesgo de Trend
 Expansion; ATR/híbrida como hipótesis y Donchian control. 354 backtests previstos,
@@ -378,3 +389,26 @@ Verificación:939 tests completos aprobados;11 dirigidos repetidos tras cierre d
 lock de candidatos/criterios. Ruff/format/pip correctos; cuatro FAST/FULL VALID,
 sin challenge histórico ejecutado. Clasificación final pendiente de resultados y
 revisión humana. El lock en configs/research queda registrado en provenance de runs.
+
+## ETH Donchian SHORT: revisión prospectiva (2026-10-08)
+
+[Protocolo y comandos](eth-donchian-short-review.md). Revisión separada de evidencia
+histórica local ejecutada por el usuario y TEST reciente publicado:96 registros,
+4720 instancias de trades dependientes; hashes/contabilidad SHORT/costes/riesgo/cap
+comprobados, dataset congelado FULL válido. Sin backtests ni actividad de broker.
+Los otros diagnósticos recientes se reutilizan con hashes; no se reauditan sus ledgers.
+Manifest local ETH1h máximo2026-09-26; no nueva validación independiente disponible.
+Seis variantes REGIME_DEPENDENT; decisión PROSPECTIVE_VALIDATION_REQUIRED, sin
+promoción de metadata ni elegibilidad paper/live. Resultados compactos exclusivos en
+research_results/trend_expansion/eth_donchian_short_review/.
+
+Preregistro estricto futuro congela criterios/costes/muestra/vecinos, signal_only y
+flags de órdenes false; no es ForwardConfig. Adaptador stop-risk/SL/TP, feed y ledger
+aislado requieren arquitectura y QA futura: ARCHITECTURE_REVIEW_REQUIRED. RMM no se
+modifica; cartera solo evaluada como viabilidad, sin correlación/DD combinado.
+
+Verificación de esta revisión:202 tests dirigidos distintos aprobados (21 nuevos),
+Ruff global y formato420 archivos correctos, git diff --check correcto. Se corrigió
+una aserción inicial del test de solapamientos y su repetición pasa. Dos auditorías
+FULL equivalentes y regeneración en memoria de summary/vecinos coinciden;12 hashes
+de exportación comprobados. Sin suite completa ni certificación del adaptador futuro.

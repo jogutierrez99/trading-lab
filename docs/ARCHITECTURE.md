@@ -1,5 +1,12 @@
 # Arquitectura técnica actual
 
+`lab_eth_short_history.py` congela dos regiones del informe ETH SHORT anterior y
+coordina perfiles del schema `lab_challenge.Challenge`: años HISTORICAL_CHALLENGE,
+sin TRAIN/TEST ficticios ni ranking. Reutiliza prepare_challenge/run_challenge,
+StudyBackend, auditoría y publicación por allowlist; diagnósticos de régimen
+existentes sin filtros. `eth-short-history` se despacha desde el wrapper actual.
+[Protocolo](eth-short-historical-falsification-v1.md); core congelado sin cambios.
+
 ETH SHORT regime V1 reutiliza Experiment/prepare/run y almacenamiento ordinario.
 `lab_eth_short_regime.py` agrega CLI, auditoría y publicación por allowlist;
 `eth_short_regimes.py` calcula etiquetas causales exclusivamente para reporting.
