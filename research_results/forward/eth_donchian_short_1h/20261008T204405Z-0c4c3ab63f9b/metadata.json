@@ -1,0 +1,12 @@
+{
+  "kind": "technical_implementation_acceptance",
+  "status": "SIGNAL_ONLY_BLOCKED",
+  "publication_schema_version": 1,
+  "published_at": "2026-10-08T20:44:05.061658+00:00",
+  "max_file_bytes": 1000000,
+  "skipped": {},
+  "artifacts_sha256": {
+    "acceptance.json": "ed58e4406b5b3a368b0e388794c94c8e0418bdd538682ca99893852f58cd50ff"
+  },
+  "note": "Compact research notebook, not full backtest storage. Legacy PASS is not paper eligibility. No Git commit/push performed."
+}

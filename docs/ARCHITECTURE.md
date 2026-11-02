@@ -1,5 +1,12 @@
 # Arquitectura técnica actual
 
+Donchian forward1h (2026-10-08): protocolo/entrypoint independiente
+`forward/donchian_config.py`, `donchian.py`, `donchian_runner.py`; reutiliza Store,
+feed y funciones de sizing/costes/protecciones sin editar RMM ni legacy.
+Doce cuentas, next-open observado, checkpoint/recovery y journal propios.
+Watcher opt-in en notifications/donchian_watcher.py, fuera del runner financiero.
+[Arquitectura y límites](forward-eth-donchian-short-1h.md); aceptación pública pendiente.
+
 `lab_eth_short_history.py` congela dos regiones del informe ETH SHORT anterior y
 coordina perfiles del schema `lab_challenge.Challenge`: años HISTORICAL_CHALLENGE,
 sin TRAIN/TEST ficticios ni ranking. Reutiliza prepare_challenge/run_challenge,

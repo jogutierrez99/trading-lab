@@ -412,3 +412,38 @@ Ruff global y formato420 archivos correctos, git diff --check correcto. Se corri
 una aserción inicial del test de solapamientos y su repetición pasa. Dos auditorías
 FULL equivalentes y regeneración en memoria de summary/vecinos coinciden;12 hashes
 de exportación comprobados. Sin suite completa ni certificación del adaptador futuro.
+
+## Donchian forward aislado (2026-10-08)
+
+[Adaptador y comandos](forward-eth-donchian-short-1h.md): entrypoint independiente
+run_donchian_forward.py, seis Donchian1.0.0 congeladas ETH1h SHORT_ONLY × dos costes,
+doce cuentas10000 separadas. Reutiliza risk/CostModel/protective_fill, feed GET público,
+parse_bar/CandleBook y Store; no edita lógica financiera compartida ni RMM.
+Next-open capturado<=90s, MISSED_ENTRY sin backfill, protección conservadora y costes
+ambos lados. SQLite/checkpoint atómico y OS lock propios; --resume conserva mismo
+stream de cuentas en un nuevo segmento enlazado. Gaps reconstruidos por OHLC marcado
+REST_RECONSTRUCTED quedan fuera de conteo limpio y requieren revisión. DD>15% pausa
+entradas, no reinicia capital ni cierra posiciones automáticamente.
+
+Watcher Donchian separado en capa notifications, opcional; estado/lock propios y
+alertas agrupadas, sin modificar watcher/secretos RMM. No se inició sesión real,
+se enviaron órdenes o mensajes ni se alteró proceso/journal activo. Reinicio RMM no
+necesario para esta integración; estado real del proceso no certificado por archivos.
+Entrega inicial SIGNAL_ONLY_BLOCKED; comprobación pública posterior acepta instrumento
+y1000 velas1h actuales. Preflight sin claves privadas, recibo vigente obligatorio antes
+de run; feed/moneda OKX distintos de Binance. Criterios estadísticos originales intactos.
+
+Verificación:252 tests dirigidos distintos aprobados (38 Donchian nuevos,150 forward/
+RMM/ejecución,64 notificaciones), Ruff global y formato431 archivos correctos.
+Modo/flags públicos y configuración técnica válidos; módulos compartidos/riesgo/
+parámetros RMM y preregistro sin diff respecto HEAD. Corrigidos fallos iniciales de
+event payload y fixtures; repetición final102/102 nuevas+notificaciones correcta.
+Public preflight, sesión larga, Telegram real y suite completa omitidos; nada se
+ejecutó contra el broker ni el journal activo del usuario.
+
+Corrección del discovery Donchian: OKX devuelve `quoteCcy=""` en FUTURES (campo de
+SPOT/MARGIN); se conserva el valor raw y se valida `settleCcy` USD/USDC mediante el
+parser compartido intacto.43 tests Donchian aprobados, Ruff/check/format dirigidos
+correctos. GET público posterior verifica ETH-USD_UM_XPERP-310328 y1000 velas1h
+continuas hasta2026-10-08T21:00Z, sin crear recibo, sesión, órdenes o mensajes.
+El usuario debe generar su recibo vigente; no se verificó observación prolongada.

@@ -1,0 +1,58 @@
+{
+  "study_id": "eth_donchian_short_prospective_v1",
+  "status": "SIGNAL_ONLY_BLOCKED",
+  "blocked_reason": "Current public instrument metadata and confirmed 1000-bar feed acceptance not executed; user preflight required.",
+  "baseline_head": "fbcbed2a33210ffbcf99ef01e3de5ed5873f2a5b",
+  "baseline_clean": true,
+  "rmm_shared_financial_files_unchanged": true,
+  "rmm_restart": "NO_NECESARIO",
+  "actual_rmm_process_status": "NOT_VERIFIED",
+  "real_sessions_started": 0,
+  "exchange_orders_sent": 0,
+  "telegram_messages_sent": 0,
+  "tests": {
+    "new_donchian": 38,
+    "forward_rmm_execution_regression": 150,
+    "notifications": 64,
+    "total_distinct": 252,
+    "final_new_and_notifications": 102,
+    "failed_remaining": 0,
+    "network": "mocked only",
+    "full_suite": "not run"
+  },
+  "provenance": {
+    "code_sha256": "801b5e945fff944239110cbbfaa4f20d06875e627e017aa47427b9af887a98c7",
+    "files": {
+      "forward/donchian.py": "9a8be275a892f661ba9d82e61a1dfec8e73b23632b182274e0a0e9f7c38be0cd",
+      "forward/donchian_config.py": "d7dc69982e0d7d5f3329fd305a6fa21abe332cd6fee57901e20db25f42303a7f",
+      "forward/donchian_runner.py": "69b301b5bed7ba24974ba1f6576e767bc74631f8f2b8c9b8199d3b3ad75ec508",
+      "forward/store.py": "354d67f5ef7547da3d4a728e204b6eba4d886b7fe8c7065be5bbbe1de5b66293",
+      "risk.py": "dfcfde6cf79b792dda39eb78ce8a2ba92f8bdb51bfecf5bd3c3e74b8b7fd58be",
+      "backtest.py": "42a582117a29c152e8a19597a3522db794faf335acef1fb793e9f527d0388a81",
+      "config.py": "2e66b3c2574f903305fd35bb86ddcf5d10ac5b943ca38623b21f485d6e04026a",
+      "execution_config.py": "aad24e2c7697f23279dabe63959793b9b5497e14a5978777a8c637dbf1cc6b3a",
+      "market_data/okx.py": "1fa8f080a37930b7b4f083451782699f5fee043fd0478a0c213fddbf0108ff6c",
+      "brokers/okx_demo.py": "c1afe3af059be31969bf6ee829b94b879a44d0bf272d572de985f16a17d93382",
+      "brokers/instruments.py": "3f8c69520a20ee3a13c45943e8e84fbd4ce01f83243be017d17a0ea504d4f285",
+      "features.py": "396f82a75b4ed7a2a90837dcce9beb23f88d39f2679cfcd5c41acac7153e2392",
+      "strategies/base.py": "96feba6411822f119ed735b78b2222dc7ac232e0f62f8ef9d0f767d1a3248daf",
+      "strategies/donchian_atr_breakout.py": "03b8ec3e47a2d9236d2c330943c5f4781cc5e6791cb5889bb2d2a88cdbb0c458",
+      "strategies/trend_volatility_breakout_v1.py": "c3138c2fb47b0c9ed56c6663fdece38bfd220b7cf764a8120241e0c9340fef1d",
+      "trend_expansion_features.py": "bce66379d1c0e001af42b22bdf2e7840923da9cb1a10614c48f6ee6b2c4f2399",
+      "eth_donchian_review.py": "0f3174baf8e3c106fe6587584eb5f2a73a6036137e675e5d902218110d1dec5c",
+      "lab_eth_short_history.py": "6a14db35cadc4d71515d34fafa496f15e9cf6ca8b643f1b27a260a5cfbce324d"
+    },
+    "git_revision": "fbcbed2a33210ffbcf99ef01e3de5ed5873f2a5b",
+    "git_status": "M README.md\n M docs/ARCHITECTURE.md\n M docs/PROJECT_STATE.md\n M docs/eth-donchian-short-review.md\n?? configs/forward/okx_demo_eth_donchian_short_1h.yaml\n?? docs/forward-eth-donchian-short-1h.md\n?? scripts/donchian_notification_watcher.py\n?? scripts/run_donchian_forward.py\n?? src/quant_lab/forward/donchian.py\n?? src/quant_lab/forward/donchian_config.py\n?? src/quant_lab/forward/donchian_runner.py\n?? src/quant_lab/notifications/donchian_watcher.py\n?? tests/unit/test_donchian_forward.py",
+    "python": "3.12.14",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "dependencies": {
+      "pandas": "2.3.3",
+      "numpy": "2.3.5",
+      "pyarrow": "23.0.1",
+      "pydantic": "2.13.5",
+      "PyYAML": "6.0.3"
+    }
+  },
+  "documentation": "docs/forward-eth-donchian-short-1h.md"
+}

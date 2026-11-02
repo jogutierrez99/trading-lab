@@ -1,5 +1,9 @@
 # ETH Donchian + ATR SHORT: revisión y preregistro prospectivo
 
+Actualización operativa posterior: el [adaptador Donchian aislado](forward-eth-donchian-short-1h.md)
+ya está implementado. La revisión y sus documentos congelados conservan la evaluación
+arquitectónica original; la aceptación del feed público actual sigue pendiente.
+
 Revisión acotada de evidencia **ya observada**, sin nueva selección ni simulaciones.
 La herramienta `scripts/review_eth_donchian_short.py` valida el protocolo y audita
 72 registros históricos y24 TEST recientes. `--full` comprueba además el dataset

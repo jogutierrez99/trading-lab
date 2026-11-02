@@ -1,0 +1,25 @@
+schema_version: 1
+study_id: eth_donchian_short_prospective_v1
+broker: okx
+environment: demo
+mode: signal_only
+trading_enabled: false
+send_orders: false
+allow_live_trading: false
+symbol: ETHUSDT
+timeframe: 1h
+direction: SHORT_ONLY
+strategy_version: 1.0.0
+instrument: AUTO
+candidates:
+  - donchian_atr_00
+  - donchian_atr_01
+  - donchian_atr_02
+  - donchian_atr_03
+  - donchian_atr_04
+  - donchian_atr_05
+warmup_bars: 1000
+output: ../../results/forward/eth_donchian_short_1h
+poll_seconds: 2.0
+maximum_open_latency_seconds: 90
+heartbeat_seconds: 300

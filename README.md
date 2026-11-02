@@ -322,3 +322,12 @@ en research_results/trend_expansion/eth_donchian_short_review/. Seis candidatos
 REGIME_DEPENDENT, nueva evidencia pendiente; preregistro futuro sin órdenes.
 El adaptador Donchian SIGNAL_ONLY requiere revisión de arquitectura y no se implementa
 en esta fase. RMM y sesiones forward existentes conservados.
+
+## Donchian ETH SHORT 1h: adaptador SIGNAL_ONLY
+
+[Arquitectura, seguridad y comandos Windows](docs/forward-eth-donchian-short-1h.md).
+`scripts/run_donchian_forward.py` añade validate/preflight/run/sessions/status y
+reanudación explícita de las doce cuentas hipotéticas congeladas. Journal/locks
+aislados de RMM; `scripts/donchian_notification_watcher.py` es un observador opcional.
+Sin órdenes ni reinicio RMM necesario. La aceptación pública actual del instrumento
+y warmup debe pasar antes del arranque; QA offline no demuestra ventaja económica.
