@@ -158,6 +158,11 @@ def reports(path: Path, experiment: Experiment, rows: list[dict], context: dict,
         )
     lines += [
         f"Modes: {', '.join(experiment.modes)}",
+        *(
+            ["Executed periods: TRAIN and VALIDATION only. TEST was excluded."]
+            if context.get("selected_periods")
+            else []
+        ),
         "",
         "```json",
         json.dumps(experiment.validation.model_dump(mode="json"), indent=2),
@@ -207,7 +212,9 @@ def reports(path: Path, experiment: Experiment, rows: list[dict], context: dict,
         completed[metrics] = completed[metrics].apply(pd.to_numeric).astype(float)
         grouped = completed.groupby(["period", "scenario"], sort=True)[metrics].median()
         lines += [
-            "Median metrics across configurations (including TRAIN/validation/final TEST):",
+            "Median metrics across the executed TRAIN/validation periods:"
+            if context.get("selected_periods")
+            else "Median metrics across configurations (including TRAIN/validation/final TEST):",
             "",
             "```csv",
             grouped.to_csv().strip(),

@@ -1,5 +1,44 @@
 # Quant Trading Lab
 
+[Identidad de procesos endurecida](docs/orchestration-process-identity.md): PID y
+nacimiento nativo, estado desconocido conservador y limpieza por handles propios.
+SQLite v7 aditiva, sin completar atributos históricos ni relanzar trabajos por PID obsoleto.
+
+El [paso4.6](docs/orchestration-step-4.6.md) está preparado para una prueba técnica
+con una orden manual: registro, implementación con presupuesto1+2, comprobaciones
+nativas, seis backtests sintéticos pequeños, auditoría determinista y preview Telegram.
+[Repetición real documentada](docs/orchestration-step-4.6-path-recovery.md):
+NOTICE_PREPARED tras corregir rutas Git/Windows y recuperar explícitamente el bloqueo.
+Presupuesto3/3 conservado, seis backtests sintéticos y aviso DRAFT, sin envío.
+Éxito técnico tras reparación, sin validación económica/demo ni éxito al primer intento.
+
+El [paso4.5](docs/orchestration-step-4.5.md) verifica el recorrido histórico completo
+con `verify-pilot`, en solo lectura y sin red. Cinco etapas verificadas,2219 referencias;
+SQLite y evidencias intactas,121 pruebas dirigidas aprobadas. Cierre técnico del piloto,
+no una nueva ejecución E2E ni automatización desatendida. IA real/economía/demo pendientes.
+
+El [paso4.4](docs/orchestration-step-4.4.md) añade auditoría determinista de evidencia
+existente, informe inmutable y outbox Telegram manual. Piloto real auditado:
+NO_DECISION, sintético/sin operaciones, sin validación económica ni demo.
+127 tests dirigidos aprobados; [Telegram real aceptado](docs/orchestration-step-4.4-telegram-acceptance.md),
+message_id136, un intento. Circuito técnico4.4 comprobado; cierre integrado4.5 arriba.
+Adaptador IA probado con proveedor simulado; integración IA real pendiente.
+
+El [paso4.3](docs/orchestration-step-4.3.md) añade ejecución manual determinista con
+runner real, datos locales fijados, reserva única y recibos. El piloto corregido1.0.1
+completó3 backtests sintéticos mediante una [reparación manual con identidad nueva](docs/pilot-native-index-repair-applied.md),
+conservando origen y presupuesto3/3. No implica validación económica ni permiso demo.
+
+El [paso 4.2](docs/orchestration-step-4.2.md) añade preparación y ejecución **manual**
+con Codex CLI en worktrees aislados, recibos y reconciliación. Probado con ejecutable
+simulado y Codex real: piloto aceptado tras reparación manual de formato, con recibo
+verificado y estado SUCCEEDED. No es evidencia económica.
+Ver [diagnóstico y evidencia](docs/orchestration-step-4.2-diagnosis.md). Sin backtests ni scheduling.
+
+El [coordinador local, paso 4.1](docs/orchestration-step-4.1.md) admite fichas
+manuales HypothesisManifest, deduplica y registra candidatas/tareas en SQLite propia.
+CLI `python scripts/orchestrator.py --help`; sin modelos, scheduling ni backtests.
+
 Laboratorio modular de investigación cuantitativa con datos históricos públicos de
 Binance. Separa estrategias, configuración experimental, simulación y análisis para
 repetir hipótesis con datos, costes y versiones identificables. Un backtest describe
@@ -210,7 +249,8 @@ python -m pip check
 Para documentación/YAML, usa verificación dirigida según [WORKFLOW](docs/WORKFLOW.md).
 Codex implementa y comprueba; el usuario lanza estudios largos localmente.
 Las [cuatro skills](AGENTS.md#skills-del-repositorio) guían implementación, configuración,
-análisis seleccionado y validación sin orquestación multiagente.
+análisis seleccionado y validación. El coordinador manual externo tiene el alcance
+limitado documentado en [paso 4.1](docs/orchestration-step-4.1.md).
 
 ## Protocolos conservados
 

@@ -1,0 +1,57 @@
+"""Frozen close-time engulfing hypothesis; no execution or economic evidence."""
+
+import pandas as pd
+
+from quant_lab.config import StrictModel
+from quant_lab.strategies.base import BaseStrategy
+
+
+class Parameters(StrictModel):
+    """No adjustable parameters in this frozen hypothesis."""
+
+
+class ManualEngulfingBreakoutV1Strategy(BaseStrategy[Parameters]):
+    name = "manual_engulfing_breakout_v1"
+    version = "1.0.0"
+    description = "Bullish close above the contiguous previous bearish candle high"
+    status = "research"
+    created_at = "2026-11-03T08:00:00+00:00"
+    lab_timeframes = ("1h",)
+    lab_modes = ("LONG_ONLY",)
+    lab_execution = "ohlcv"
+    parameter_model = Parameters
+
+    @classmethod
+    def required_warmup(cls, parameters: dict, timeframe: str) -> int:
+        return 100
+
+    def prepare_features(self, candles: pd.DataFrame) -> pd.DataFrame:
+        result = candles.copy()
+        result["previous_high"] = candles.high.shift(1)
+        result["previous_low"] = candles.low.shift(1)
+        result["previous_bearish"] = candles.close.shift(1) < candles.open.shift(1)
+        result["valid_previous"] = candles.timestamp.diff() == pd.Timedelta(hours=1)
+        result["ready"] = [i >= 100 for i in range(len(candles))]
+        return result
+
+    def generate_long_entries(self, f) -> list[bool]:
+        return (
+            (
+                f.ready
+                & f.valid_previous
+                & f.previous_bearish
+                & (f.close > f.open)
+                & (f.close > f.previous_high)
+            )
+            .fillna(False)
+            .tolist()
+        )
+
+    def generate_long_exits(self, f) -> list[bool]:
+        return (f.ready & f.valid_previous & (f.close < f.previous_low)).fillna(False).tolist()
+
+    def generate_short_entries(self, features) -> list[bool]:
+        return [False] * len(features)
+
+    def generate_short_exits(self, features) -> list[bool]:
+        return [False] * len(features)

@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "ledger": "C:/Users/joshu/AppData/Local/Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Local/TL42/964b59/orchestrator.sqlite3",
+  "state_directory": "C:/Users/joshu/AppData/Local/TLFlow1BillingWorker/state",
+  "dossiers": ["C:/Users/joshu/AppData/Local/TLF1UA07"],
+  "interval_seconds": 300,
+  "max_age_hours": 48,
+  "invocation_seconds": 120,
+  "allow_model_audit": false,
+  "secrets_env_file": "C:/Users/joshu/OneDrive/Escritorio/WEBS/Back_testing/trading-lab/.env"
+}

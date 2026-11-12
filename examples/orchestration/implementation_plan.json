@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0",
+  "operation": "NEW_STRATEGY",
+  "target": "manual_engulfing_breakout_v1",
+  "specification_reviewed": true,
+  "review_note": "Piloto de implementacion: reglas completas y tests sinteticos; sin datos ni backtests. Revisar la ficha antes de lanzar.",
+  "max_wall_seconds": 900,
+  "check_timeout_seconds": 60
+}

@@ -1,5 +1,30 @@
 # Workflow: Strategy → Experiment → Run → Results
 
+Al inspeccionar o reconciliar procesos, consultar [identidad nativa](orchestration-process-identity.md):
+REUSED indica que el proceso original no es el ocupante actual del PID; no terminar
+ese ocupante ni relanzar el trabajo por ese motivo. UNKNOWN de identidad bloquea;
+EXITED/REUSED necesitan recibos para establecer éxito. Registros antiguos sin
+nacimiento permanecen incompletos; nunca usar el proceso actual para rellenarlos.
+
+Para preparar/iniciar después el [circuito técnico4.6](orchestration-step-4.6.md):
+circuit-doctor → una orden circuit-run → circuit-show. Preparación probada con
+ejecutable simulado; el operador lanza el Codex real fuera de esta sesión.
+La orden avanza hasta DRAFT/preview o bloqueo explícito, nunca envía Telegram.
+Repetir sin --resume solo consulta; incertidumbre exige reconciliación previa.
+
+Para [consultar/verificar el recorrido histórico completo4.5](orchestration-step-4.5.md):
+`python -B scripts/orchestrator.py --db RUTA verify-pilot examples/orchestration/pilot_verification.json --format text`.
+IDs/pins explícitos; solo lectura, sin red, migraciones o cambios de estado. JSON por
+defecto y export separado opcional; código2 ante evidencia ausente/contradictoria.
+No usar comandos run/send/reconcile para repetir esta verificación. El cierre técnico
+histórico no es nueva ejecución ni autorización para paso5/demo.
+
+Después de una ejecución4.3 existente: [circuito manual4.4](orchestration-step-4.4.md),
+solicitud con IDs/hashes exactos → audit → audit-show → notify-preview → envío explícito
+del operador. Sin repetir backtests. Fallos de auditoría/Telegram no reabren ejecución.
+UNKNOWN/SENDING de entrega exige reconciliación; no reenviar por timeout.
+El piloto sintético no tiene validación económica/demo;4.4 no autoriza el paso5.
+
 Leer [estado](PROJECT_STATE.md), [arquitectura](ARCHITECTURE.md) y
 [reglas](RESEARCH_RULES.md) antes de cambiar investigación. Para campos y ejemplos
 YAML completos, usar [lab-workflow.md](lab-workflow.md); no duplicar schemas en Python.
@@ -8,6 +33,11 @@ YAML completos, usar [lab-workflow.md](lab-workflow.md); no duplicar schemas en 
 
 | Petición | Capa y procedimiento |
 |---|---|
+| Backtest manual desde el coordinador | [Paso4.3](orchestration-step-4.3.md): prepare-execution → validate-execution → run-execution → execution; un trabajo pesado, datos locales y recibo, sin modelo; seleccionar explícitamente la identidad verificada |
+| Reparación técnica manual autorizada del piloto | [Procedimiento y evidencia](pilot-native-index-repair-applied.md): apply-technical-repair acotado a patch/hashes revisados; identidad nueva, mismo task, sin reset3/3 ni modelo; la reparación actual ya está aplicada |
+| Implementación manual con Codex CLI | [Paso4.2](orchestration-step-4.2.md): doctor → prepare → revisar request → run → attempt/show; UNKNOWN exige reconcile, sin backtests |
+| Reparar un fallo exclusivo de formato en una entrega | repair-format explícito con confirmación y motivo; conserva originales, exige AST idéntico y repite checks; no llama al modelo |
+| Registrar una ficha manual sin ejecutar investigación | `scripts/orchestrator.py validate/register/list/show`; [paso 4.1](orchestration-step-4.1.md), SQLite propia, revisión manual pendiente |
 | Nuevas reglas causales de entrada/salida | Strategy, tests y perfil; skill create-strategy |
 | Otro activo, timeframe, modo, parámetro o periodo | Experiment YAML; skill create-experiment |
 | Otra política 15m/funding/arquitectura V1–V4 | Perfil y protocolo dedicado; no introducir campos ajenos en lab |

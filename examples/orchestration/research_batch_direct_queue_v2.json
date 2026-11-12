@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "source_reference": "local:research-direct-queue-sawtooth-v2",
+  "captured_at_utc": "2026-11-06T10:00:00Z",
+  "ideas": [
+    {
+      "idea_id": "sawtooth_cross_1h",
+      "notes": "Datos sintéticos completamente especificados por receta determinista. El objetivo es probar el alta directa hasta cola, sin backtest. El dataset se define aquí y no requiere insumos externos.",
+      "facts": {
+        "market_hypothesis": "En la serie técnica de diente de sierra, un cruce ascendente de 101 USDT puede preceder al tramo alcista. Hipótesis sintética para verificar la cola.",
+        "data_requirements": {
+          "assets": [
+            "BTC/USDT"
+          ],
+          "timeframe": "1h",
+          "horizon": "508 velas horarias UTC, apertura inicial 2000-05-31T20:00:00Z, fin exclusivo 2000-06-22T00:00:00Z. Para i=0..507: close=100+0.5*(i mod 8), open=close anterior (100 si i=0), high=max(open,close)+0.25, low=min(open,close)-0.25, volumen=1 BTC. Sin aleatoriedad.",
+          "warmup_bars": 4,
+          "gap_policy": "Rechazar gaps, duplicados y OHLCV inválidas, sin relleno. Usar 4 velas previas por tramo sin originar fills.",
+          "funding_policy": "NOT_MODELLED",
+          "dataset_refs": [
+            "synthetic:sawtooth_1h_v1:20000531T200000Z:508"
+          ],
+          "availability": "UNVERIFIED"
+        },
+        "signal_spec": {
+          "long_entry": "Al cierre T: close[T-1] <= 101 y close[T] > 101.",
+          "long_exit": "Al cierre T: close[T-1] >= 102 y close[T] < 102.",
+          "short_entry": null,
+          "short_exit": null,
+          "unsupported_modes": [
+            "SHORT_ONLY"
+          ],
+          "availability": "CANDLE_CLOSE",
+          "feature_definitions": "Comparar cierre T y T-1, sin datos futuros. Cuatro barras de precarga por ventana. Una posición long."
+        },
+        "parameter_space": {
+          "parameters": {},
+          "combination_limit": 1,
+          "limit_rationale": "Umbrales fijados de antemano, sin grid ni selección."
+        },
+        "execution_assumptions": {
+          "market_mode": "synthetic",
+          "runner_protocol": "StudyBackend v1; OHLCV sintético, una posición long, sin datos de mercado.",
+          "entry_timing": "NEXT_OPEN",
+          "trading_fee_pct": 0.05,
+          "slippage_pct": 0.03,
+          "spread_pct": 0.01,
+          "stop": "Sin stop ni trailing. Solo salida por cruce a próxima apertura o liquidación al final del tramo.",
+          "target": "Sin objetivo ni time stop.",
+          "sizing": "10.000 USDT de capital inicial independiente por tramo, 10% fijo del equity en posición sin apalancamiento ni piramidación, máximo 10% de exposición al abrir. Cantidad mínima y paso 0.000001 BTC, truncar hacia abajo, nocional mínimo 10 USDT.",
+          "intrabar_policy": "Sin órdenes intrabar. Señal al cierre, fill a la siguiente apertura; no reabrir en la misma apertura. Liquidar al cierre final. Comisión 0.05% del nocional de cada fill y ajuste adverso 0.03% más medio spread de 0.005% por lado."
+        },
+        "evaluation_plan": {
+          "train": {
+            "start": "2000-06-01T00:00:00Z",
+            "end": "2000-06-08T00:00:00Z"
+          },
+          "validation": {
+            "start": "2000-06-08T00:00:00Z",
+            "end": "2000-06-15T00:00:00Z"
+          },
+          "test": {
+            "start": "2000-06-15T00:00:00Z",
+            "end": "2000-06-22T00:00:00Z"
+          },
+          "holdout_status": "UNKNOWN",
+          "holdout_risk": "Inicio inclusivo y fin exclusivo. TEST reservado. Serie técnica sin evidencia económica.",
+          "walk_forward": "No aplica, configuración única sin ajuste.",
+          "primary_metric": "Operaciones cerradas y expectancy neta en USDT por cierre, separadas por tramo. Sin cierres, expectancy null.",
+          "falsification": "Si VALIDATION registra operaciones pero expectancy neta <= 0, la hipótesis no se sostiene en el ejemplo. Sin cierres, evidencia insuficiente. La aceptación de ingesta solo comprueba QUEUED.",
+          "robustness_plan": "Sin barrido. En una fase futura, verificar causalidad por prefijos y sensibilidad a costes duplicados; TEST permanece reservado."
+        },
+        "novelty": {
+          "prior_work": "Serie técnica y reglas de cruce para probar alta directa; no se evaluó mercado.",
+          "known_searches": null,
+          "known_variants": null
+        },
+        "expected_compute_class": "SMALL",
+        "requires_new_strategy_code": true,
+        "liquidity_assumption": "Liquidez sintética suficiente para completar las órdenes dentro del límite del 10% de equity al abrir. La serie no representa un libro de órdenes. Sin fills parciales, impacto de mercado ni cambios de liquidez; usar el spread y deslizamiento fijos declarados."
+      }
+    }
+  ]
+}

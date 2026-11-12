@@ -1,0 +1,38 @@
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Consultar expedientes existentes de Flujo 1. Configuración deshabilitada para revisión.</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <TimeTrigger>
+      <Repetition>
+        <Interval>PT5M</Interval>
+        <StopAtDurationEnd>false</StopAtDurationEnd>
+      </Repetition>
+      <StartBoundary>2026-11-07T00:00:00+01:00</StartBoundary>
+      <Enabled>true</Enabled>
+    </TimeTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Operator">
+      <UserId>S-1-5-21-3911501925-257942222-3809395359-1001</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <Enabled>false</Enabled>
+    <ExecutionTimeLimit>PT3M</ExecutionTimeLimit>
+  </Settings>
+  <Actions Context="Operator">
+    <Exec>
+      <Command>C:\Users\joshu\OneDrive\Escritorio\WEBS\Back_testing\trading-lab\.venv\Scripts\python.exe</Command>
+      <Arguments>-B &quot;C:\Users\joshu\OneDrive\Escritorio\WEBS\Back_testing\trading-lab\scripts\poll_flow1_billing.py&quot; --config &quot;C:\Users\joshu\OneDrive\Escritorio\WEBS\Back_testing\trading-lab\examples\orchestration\flow1_billing_worker.json&quot;</Arguments>
+      <WorkingDirectory>C:\Users\joshu\OneDrive\Escritorio\WEBS\Back_testing\trading-lab</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>

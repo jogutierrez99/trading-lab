@@ -1,0 +1,302 @@
+--- a/src/quant_lab/strategies/manual_engulfing_breakout_v1.py
++++ b/src/quant_lab/strategies/manual_engulfing_breakout_v1.py
+@@ -12,7 +12,7 @@
+ 
+ class ManualEngulfingBreakoutV1Strategy(BaseStrategy[Parameters]):
+     name = "manual_engulfing_breakout_v1"
+-    version = "1.0.0"
++    version = "1.0.1"
+     description = "Bullish close above the contiguous previous bearish candle high"
+     status = "research"
+     created_at = "2026-11-03T08:00:00+00:00"
+@@ -30,7 +30,7 @@
+         result["previous_high"] = candles.high.shift(1)
+         result["previous_low"] = candles.low.shift(1)
+         result["previous_bearish"] = candles.close.shift(1) < candles.open.shift(1)
+-        result["valid_previous"] = candles.timestamp.diff() == pd.Timedelta(hours=1)
++        result["valid_previous"] = candles.index.to_series().diff() == pd.Timedelta(hours=1)
+         result["ready"] = [i >= 100 for i in range(len(candles))]
+         return result
+ 
+--- a/configs/strategies/manual_engulfing_breakout_v1.yaml
++++ b/configs/strategies/manual_engulfing_breakout_v1.yaml
+@@ -1,6 +1,6 @@
+ # Frozen implementation pilot; disabled pending human review. No backtest evidence.
+ name: manual_engulfing_breakout_v1
+-version: 1.0.0
++version: 1.0.1
+ enabled: false
+ market:
+   provider: binance
+--- a/tests/unit/test_manual_engulfing_breakout_v1.py
++++ b/tests/unit/test_manual_engulfing_breakout_v1.py
+@@ -1,53 +1,72 @@
+-"""Synthetic rule boundaries and causal prefix regressions; no market data."""
++"""PROPOSAL ONLY: copy into a review snapshot, never certify the historical delivery."""
++
++import hashlib
++import json
++from dataclasses import asdict
++from datetime import UTC, datetime, timedelta
++from pathlib import Path
+ 
+ import pandas as pd
+ import pytest
++import yaml
+ from pydantic import ValidationError
+ 
+-from quant_lab.config import StrategyConfig
+-from quant_lab.strategies.manual_engulfing_breakout_v1 import (
+-    ManualEngulfingBreakoutV1Strategy,
+-    Parameters,
+-)
++from quant_lab.config import StrategyConfig, load_yaml
++from quant_lab.history import HistoryRequest
++from quant_lab.history_cache import save_bundle
++from quant_lab.lab_runner import prepare, run
++from quant_lab.lab_schema import Experiment
++from quant_lab.strategies import manual_engulfing_breakout_v1 as pilot
+ from quant_lab.strategies.registry import StrategyRegistry
+ 
+ 
+ def strategy():
+-    return ManualEngulfingBreakoutV1Strategy(
+-        StrategyConfig(name="manual_engulfing_breakout_v1", enabled=True)
+-    )
+-
+-
+-def candles():
++    return pilot.ManualEngulfingBreakoutV1Strategy(
++        StrategyConfig(name="manual_engulfing_breakout_v1", version="1.0.1", enabled=True)
++    )
++
++
++def put(frame, row, columns, value):
++    frame.loc[frame.index[row], columns] = value
++
++
++def candles(count=110):
+     frame = pd.DataFrame(
+-        {
+-            "timestamp": pd.date_range("2022-01-01", periods=110, freq="h", tz="UTC"),
+-            "open": 10.0,
+-            "high": 12.0,
+-            "low": 8.0,
+-            "close": 9.0,
+-            "volume": 1.0,
+-        }
+-    )
+-    frame.loc[100, ["close", "high"]] = [13.0, 14.0]
+-    frame.loc[101, "close"] = 7.0
++        {"open": 10.0, "high": 12.0, "low": 8.0, "close": 9.0, "volume": 1.0},
++        index=pd.date_range("2000-01-01", periods=count, freq="h", tz="UTC", name="open_time"),
++    )
++    if count > 100:
++        put(frame, 100, ["close", "high"], [13.0, 14.0])
++    if count > 101:
++        put(frame, 101, ["close", "low"], [7.0, 6.0])
+     return frame
+ 
+ 
+-def test_contract():
+-    registry = StrategyRegistry().discover()
+-    assert registry.implementation(strategy().name) is ManualEngulfingBreakoutV1Strategy
+-    assert strategy().lab_modes == ("LONG_ONLY",)
+-    assert strategy().required_warmup({}, "1h") == 100
++def test_contract_alignment_first_row_and_input_unchanged():
++    frame = candles()
++    before = frame.copy(deep=True)
++    assert isinstance(frame.index, pd.DatetimeIndex) and str(frame.index.tz) == "UTC"
++    assert list(frame) == ["open", "high", "low", "close", "volume"]
++    obj = strategy()
++    assert obj.lab_timeframes == ("1h",) and obj.required_warmup({}, "1h") == 100
++    assert obj.lab_modes == ("LONG_ONLY",)
++    assert StrategyRegistry().discover().implementation(obj.name) is type(obj)
+     with pytest.raises(ValidationError):
+-        Parameters.model_validate({"unexpected": 1})
+-    signals = strategy().generate_signals(candles())
+-    assert signals.long_entries[100]
+-    assert signals.long_exits[101]
+-    assert not any(signals.long_entries[:100])
+-    assert not any(signals.long_exits[:100])
++        pilot.Parameters.model_validate({"unexpected": 1})
++    features = obj.prepare_features(frame)
++    assert features.index.equals(frame.index)
++    assert not features.valid_previous.iloc[0] and features.valid_previous.iloc[1:].all()
++    assert features[["valid_previous", "previous_bearish", "ready"]].notna().all().all()
++    assert (
++        features.previous_high.iloc[:1].isna().all()
++    )  # Expected causal shift, not future filling.
++    assert features.previous_high.iloc[1:].notna().all()
++    signals = obj.generate_signals(frame)
++    assert signals.long_entries[100] and signals.long_exits[101]
++    for values in asdict(signals).values():
++        assert len(values) == len(frame) and all(type(value) is bool for value in values)
+     assert not any(signals.short_entries + signals.short_exits)
+-    assert all(type(v) is bool for v in signals.long_entries + signals.long_exits)
++    pd.testing.assert_frame_equal(frame, before)
+ 
+ 
+ @pytest.mark.parametrize(
+@@ -60,38 +79,137 @@
+         (100, "close", float("nan")),
+     ],
+ )
+-def test_entry_rejections(row, column, value):
+-    frame = candles()
+-    frame.loc[row, column] = value
++def test_strict_entry_rejections(row, column, value):
++    frame = candles()
++    put(frame, row, column, value)
+     assert not strategy().generate_signals(frame).long_entries[100]
+ 
+ 
+ def test_exit_equality_and_nan():
+     for value in (8.0, float("nan")):
+         frame = candles()
+-        frame.loc[101, "close"] = value
++        put(frame, 101, "close", value)
+         assert not strategy().generate_signals(frame).long_exits[101]
+ 
+ 
+-def test_gaps_block_both_signals():
+-    for row, field in ((100, "long_entries"), (101, "long_exits")):
+-        frame = candles()
+-        frame.loc[row:, "timestamp"] += pd.Timedelta(hours=1)
+-        assert not getattr(strategy().generate_signals(frame), field)[row]
+-
+-
+-def test_warmup_and_prefix_invariance():
+-    frame = candles()
+-    frame.loc[98, ["close", "high"]] = [13.0, 14.0]
+-    frame.loc[99, "close"] = 7.0
+-    original = frame.copy(deep=True)
+-    full = strategy().prepare_features(frame)
++@pytest.mark.parametrize("row,field", [(100, "long_entries"), (101, "long_exits")])
++def test_gaps_block_only_the_noncontiguous_comparison(row, field):
++    frame = candles()
++    frame.index = pd.DatetimeIndex(
++        [
++            time + (pd.Timedelta(hours=1) if i >= row else pd.Timedelta(0))
++            for i, time in enumerate(frame.index)
++        ],
++        name="open_time",
++    )
++    features = strategy().prepare_features(frame)
++    assert not features.valid_previous.iloc[row] and features.valid_previous.iloc[row + 1]
++    assert not getattr(strategy().generate_signals(frame), field)[row]
++    assert features.index.equals(frame.index)
++
++
++def test_empty_first_observation_and_warmup_boundary():
++    for count in (0, 1, 99, 100):
++        signals = strategy().generate_signals(candles(count))
++        assert not any(signals.long_entries + signals.long_exits)
++    frame = candles()
++    put(frame, 98, ["close", "high"], [13.0, 14.0])
++    put(frame, 99, ["close", "low"], [7.0, 6.0])
+     signals = strategy().generate_signals(frame)
+     assert not any(signals.long_entries[:100] + signals.long_exits[:100])
+-    for end in (1, 99, 100, 101, 102, 110):
+-        prefix = frame.iloc[:end]
+-        pd.testing.assert_frame_equal(strategy().prepare_features(prefix), full.iloc[:end])
+-        partial = strategy().generate_signals(prefix)
+-        for field in ("long_entries", "long_exits", "short_entries", "short_exits"):
+-            assert getattr(partial, field) == getattr(signals, field)[:end]
+-    pd.testing.assert_frame_equal(frame, original)
++    assert strategy().generate_signals(candles()).long_entries[100]
++
++
++def test_future_append_preserves_features_and_all_signals():
++    full = candles(150)
++    put(full, 120, ["close", "high"], [50.0, 51.0])
++    expected_features = strategy().prepare_features(full)
++    expected_signals = strategy().generate_signals(full)
++    for stop in (1, 99, 100, 101, 102, 110, 150):
++        prefix = full.iloc[:stop]
++        pd.testing.assert_frame_equal(
++            strategy().prepare_features(prefix), expected_features.iloc[:stop]
++        )
++        actual = strategy().generate_signals(prefix)
++        for field, values in asdict(expected_signals).items():
++            assert getattr(actual, field) == values[:stop]
++
++
++def test_real_runner_synthetic_only(tmp_path):
++    root = Path(__file__).resolve().parents[2]
++    frame = candles(244)
++    start, end = (
++        frame.index[100].to_pydatetime(),
++        (frame.index[-1] + pd.Timedelta(hours=1)).to_pydatetime(),
++    )
++    request = HistoryRequest(start=start, end=end, warmup_bars=100)
++    bundle = save_bundle(
++        tmp_path / "data",
++        frame,
++        request,
++        [
++            {
++                "kind": "SYNTHETIC_TECHNICAL",
++                "fixture_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
++            }
++        ],
++    )
++    profile_path = root / "configs/strategies/manual_engulfing_breakout_v1.yaml"
++    original_profile = profile_path.read_bytes()
++    profile = yaml.safe_load(original_profile)
++    assert profile["enabled"] is False and profile["version"] == "1.0.1"
++    profile["enabled"] = True
++    execution_profile = tmp_path / "execution-profile.yaml"
++    execution_profile.write_text(yaml.safe_dump(profile), encoding="utf-8")
++
++    def period(days):
++        return {"start": start + timedelta(days=days), "end": start + timedelta(days=days + 2)}
++
++    raw = {
++        "experiment_id": "pilot_compatibility_proposal_only",
++        "created_at": datetime.now(UTC),
++        "description": "SYNTHETIC TECHNICAL PROPOSAL; not an accepted implementation",
++        "app": str(root / "configs/app.yaml"),
++        "strategy": {"id": "manual_engulfing_breakout_v1", "config": str(execution_profile)},
++        "markets": [
++            {
++                "symbol": "BTCUSDT",
++                "timeframe": "1h",
++                "dataset": str(bundle),
++                "dataset_id": bundle.name,
++                "warmup_bars": 100,
++            }
++        ],
++        "strategy_parameters": {},
++        "modes": ["LONG_ONLY"],
++        "execution": {
++            "market_mode": "spot",
++            "quantity_step": 0.000001,
++            "min_quantity": 0.000001,
++            "min_notional": 1.0,
++            "filter_assumption": "Fixed synthetic fixture",
++        },
++        "validation": {"train": period(0), "validation": period(2), "test": period(4)},
++    }
++    experiment_path = tmp_path / "experiment.yaml"
++    experiment_path.write_text(yaml.safe_dump(raw), encoding="utf-8")
++    experiment = load_yaml(experiment_path, Experiment)
++    context = prepare(experiment_path, experiment, full=True)
++    assert context["backtests"] == 3 and len(context["frames"][0]) == 244
++    assert "timestamp" not in context["frames"][0]
++    directory = run(experiment_path, experiment, root, output=tmp_path / "results")
++    assert json.loads((directory / "outcome.json").read_text()) == {
++        "status": "COMPLETE",
++        "backtests": 3,
++    }
++    assert profile_path.read_bytes() == original_profile
++    metadata = [json.loads(path.read_text()) for path in directory.glob("*/metadata.json")]
++    train_id = next(
++        path.parent
++        for path in directory.glob("*/metadata.json")
++        if json.loads(path.read_text())["period"] == "train"
++    )
++    result = json.loads((train_id / "result.json").read_text())
++    assert result["trades"]  # Exercises actual fills, without optimizing their outcome.
++    assert pd.Timestamp(result["trades"][0]["entry_time"]) == frame.index[101]
++    assert {item["period"] for item in metadata} == {"train", "validation", "test"}

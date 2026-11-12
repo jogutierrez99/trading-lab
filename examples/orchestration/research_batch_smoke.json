@@ -1,0 +1,100 @@
+{
+  "schema_version": "1.0",
+  "source_reference": "local:research-smoke-demo",
+  "captured_at_utc": "2026-11-06T08:00:00Z",
+  "ideas": [
+    {
+      "idea_id": "breakout_synthetic",
+      "notes": "Ficha didáctica completa para probar la cola. No se ejecutará una estrategia.",
+      "facts": {
+        "market_hypothesis": "En una serie didáctica sintética, una ruptura del máximo de 20 velas puede persistir.",
+        "data_requirements": {
+          "assets": [
+            "BTC/USDT"
+          ],
+          "timeframe": "1h",
+          "horizon": "Ventanas didácticas UTC en una serie sintética propuesta.",
+          "warmup_bars": 200,
+          "gap_policy": "Rechazar cualquier gap en warmup o periodo evaluado; no rellenar.",
+          "funding_policy": "NOT_MODELLED",
+          "dataset_refs": [
+            "synthetic:fixture_breakout_1h"
+          ],
+          "availability": "UNVERIFIED"
+        },
+        "signal_spec": {
+          "long_entry": "Al cierre T, close[T] > max(high[T-20:T]); no incluir high[T].",
+          "long_exit": "Al cierre T, close[T] < min(low[T-10:T]); no incluir low[T].",
+          "short_entry": null,
+          "short_exit": null,
+          "unsupported_modes": [
+            "SHORT_ONLY"
+          ],
+          "availability": "CANDLE_CLOSE",
+          "feature_definitions": "Maximo/minimo rolling desplazados una barra; ATR14 Wilder causal; primeras 200 barras sin entradas. Ventanas en barras completas."
+        },
+        "parameter_space": {
+          "parameters": {
+            "entry_window": {
+              "values": [
+                20
+              ],
+              "rationale": "Referencia unica, sin seleccion."
+            },
+            "exit_window": {
+              "values": [
+                10
+              ],
+              "rationale": "Salida unica predeclarada."
+            }
+          },
+          "combination_limit": 1,
+          "limit_rationale": "Solo probar el contrato; ninguna simulacion en esta entrega."
+        },
+        "execution_assumptions": {
+          "market_mode": "synthetic",
+          "runner_protocol": "StudyBackend v1; ejemplo de ingesta con datos sintéticos de prueba.",
+          "entry_timing": "NEXT_OPEN",
+          "trading_fee_pct": 0.05,
+          "slippage_pct": 0.03,
+          "spread_pct": 0.01,
+          "stop": "ATR14 Wilder x2 disponible al cierre de entrada, bracket fijado a next-open.",
+          "target": "2R desde next-open; sin trailing ni time stop.",
+          "sizing": "stop_risk 1% capital; max_position_pct 25, max_exposure_pct 100; sin piramidacion.",
+          "intrabar_policy": "Stop-first si stop y target coinciden; gaps al precio adverso disponible. Costes en ambos lados."
+        },
+        "evaluation_plan": {
+          "train": {
+            "start": "2000-01-01T00:00:00Z",
+            "end": "2000-02-01T00:00:00Z"
+          },
+          "validation": {
+            "start": "2000-02-01T00:00:00Z",
+            "end": "2000-03-01T00:00:00Z"
+          },
+          "test": {
+            "start": "2000-03-01T00:00:00Z",
+            "end": "2000-04-01T00:00:00Z"
+          },
+          "holdout_status": "UNKNOWN",
+          "holdout_risk": "Serie sintética didáctica, sin evidencia de mercado.",
+          "walk_forward": "No previsto en este ejemplo singleton; requeriria protocolo nuevo.",
+          "primary_metric": "Expectancy neta TRAIN; sin seleccion de parametros.",
+          "falsification": "Rechazar si expectancy neta validation <=0; TEST solo diagnostico retrospectivo.",
+          "robustness_plan": "Futuro stress predeclarado con costes x2 y periodos anuales; no ejecutado."
+        },
+        "novelty": {
+          "prior_work": "Solapa Donchian; ejemplo de contrato, no familia nueva.",
+          "known_searches": null,
+          "known_variants": null
+        },
+        "expected_compute_class": "SMALL",
+        "requires_new_strategy_code": false
+      }
+    },
+    {
+      "idea_id": "mean_reversion_notes",
+      "notes": "Explorar reversión a la media. Faltan señales, datos y supuestos."
+    }
+  ]
+}

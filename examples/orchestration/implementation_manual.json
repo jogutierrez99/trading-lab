@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "hypothesis_id": "manual_engulfing_implementation_001",
+  "created_at_utc": "2026-11-03T08:00:00Z",
+  "researcher_version": "manual/1.0",
+  "title": "Piloto de implementacion de engulfing breakout; sin evidencia economica",
+  "market_hypothesis": "Una vela alcista que supera el high de una vela bajista previa podria preceder continuidad. Hipotesis no probada.",
+  "rationale": "Prueba pequena de implementacion de reglas causales concretas; no requiere ejecutar historia.",
+  "source_refs": [
+    {"reference": "repo:docs/RESEARCH_RULES.md", "accessed_on": "2026-11-03", "verification": "MANUAL"}
+  ],
+  "data_requirements": {
+    "assets": ["BTC/USDT"],
+    "timeframe": "1h",
+    "horizon": "Solo fixtures sinteticos en 4.2; propuesta historica 2022-02-01 a 2022-06-01 UTC, fin exclusivo.",
+    "warmup_bars": 100,
+    "gap_policy": "No rellenar gaps. Una comparacion con vela previa requiere timestamps contiguos de 1h; si no lo son, entradas y salidas false en esa fila.",
+    "funding_policy": "NOT_APPLICABLE",
+    "dataset_refs": ["Datos historicos pendientes; innecesarios para implementar y probar senales sinteticas."],
+    "availability": "PENDING"
+  },
+  "signal_spec": {
+    "long_entry": "Al cierre T: close[T]>open[T] AND close[T-1]<open[T-1] AND close[T]>high[T-1]. Todas las comparaciones estrictas. No entradas antes de la fila 100, contada desde 0. Requiere vela previa contigua.",
+    "long_exit": "Al cierre T: close[T]<low[T-1], comparacion estricta; primeras 100 filas false; requiere vela previa contigua.",
+    "short_entry": null,
+    "short_exit": null,
+    "unsupported_modes": ["SHORT_ONLY"],
+    "availability": "CANDLE_CLOSE",
+    "feature_definitions": "previous_high=high.shift(1), previous_low=low.shift(1), previous_bearish=(close.shift(1)<open.shift(1)); valid_previous=timestamp.diff()==1h. Sin rolling centrado, backfill ni indicadores adicionales. NaN produce false. Nombre del modulo/registro manual_engulfing_breakout_v1, version1.0.0, Parameters vacio estricto, metadata research, LONG_ONLY y lab_timeframes1h. No crear experimento historico; usar BaseStrategy sin modificar motor."
+  },
+  "parameter_space": {
+    "parameters": {},
+    "combination_limit": 1,
+    "limit_rationale": "Reglas congeladas sin parametros ajustables; cero barridos."
+  },
+  "execution_assumptions": {
+    "market_mode": "spot",
+    "runner_protocol": "StudyBackend v1; ohlcv spot LONG_ONLY; solo implementacion en 4.2",
+    "entry_timing": "NEXT_OPEN",
+    "trading_fee_pct": 0.05,
+    "slippage_pct": 0.03,
+    "spread_pct": 0.01,
+    "stop": "RiskConfig existente: ATR14 Wilder x2, stop_risk. No calcular fills ni stops en la estrategia.",
+    "target": "RiskConfig existente: 2R, sin trailing y sin time stop.",
+    "sizing": "RiskConfig existente: risk_per_trade_pct1, max_position_pct25, max_exposure_pct100. Sin piramidacion. YAML nuevo deshabilitado hasta revision humana.",
+    "intrabar_policy": "Contrato existente stop-first y gaps adversos; sin cambios de ejecucion."
+  },
+  "evaluation_plan": {
+    "train": {"start": "2022-02-01T00:00:00Z", "end": "2022-04-01T00:00:00Z"},
+    "validation": {"start": "2022-04-01T00:00:00Z", "end": "2022-05-01T00:00:00Z"},
+    "test": {"start": "2022-05-01T00:00:00Z", "end": "2022-06-01T00:00:00Z"},
+    "holdout_status": "CONSUMED",
+    "holdout_risk": "Historia ya observada por el proyecto; no evidencia independiente. Ninguna ejecucion historica en 4.2.",
+    "walk_forward": "No previsto para esta prueba de implementacion.",
+    "primary_metric": "En esta entrega: tests de contrato, condiciones positivas/negativas, igualdad de umbrales, gaps, warmup, short false y prefix-invariance. Sin metrica economica medida.",
+    "falsification": "La implementacion falla si contradice cualquiera de las reglas exactas o usa datos futuros.",
+    "robustness_plan": "Comprobar causalidad con prefijos sinteticos y casos frontera. Evidencia economica y backtests corresponden a otro paso."
+  },
+  "novelty": {
+    "prior_work": "Piloto tecnico, no afirmacion de novedad financiera. Comprobar registro antes de crear; no alterar estrategias existentes.",
+    "known_searches": null,
+    "known_variants": null
+  },
+  "limitations": ["No hay backtests ni ventaja economica demostrada.", "Solo single timeframe spot; datos historicos pendientes."],
+  "expected_compute_class": "SMALL",
+  "requires_new_strategy_code": true,
+  "status": "PROPOSED"
+}

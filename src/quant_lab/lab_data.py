@@ -80,9 +80,9 @@ def inspect_bundle(base: Path, market: Market) -> dict:
     }
 
 
-def check_periods(info: dict, market: Market, experiment: Experiment) -> None:
+def check_periods(info: dict, market: Market, experiment: Experiment, *, periods=None) -> None:
     step = candle_step(market.timeframe)
-    for label, period in experiment_periods(experiment):
+    for label, period in experiment_periods(experiment) if periods is None else periods:
         start, end = pd.Timestamp(period.start), pd.Timestamp(period.end)
         left = start - market.warmup_bars * step
         if start != start.floor(step) or end != end.floor(step):

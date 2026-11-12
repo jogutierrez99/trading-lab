@@ -1,0 +1,9 @@
+# Frozen implementation pilot; disabled pending human review. No backtest evidence.
+name: manual_engulfing_breakout_v1
+version: 1.0.0
+enabled: false
+market:
+  provider: binance
+  symbol: BTC/USDT
+  timeframe: 1h
+parameters: {}

@@ -1,0 +1,97 @@
+"""Synthetic rule boundaries and causal prefix regressions; no market data."""
+
+import pandas as pd
+import pytest
+from pydantic import ValidationError
+
+from quant_lab.config import StrategyConfig
+from quant_lab.strategies.manual_engulfing_breakout_v1 import (
+    ManualEngulfingBreakoutV1Strategy,
+    Parameters,
+)
+from quant_lab.strategies.registry import StrategyRegistry
+
+
+def strategy():
+    return ManualEngulfingBreakoutV1Strategy(
+        StrategyConfig(name="manual_engulfing_breakout_v1", enabled=True)
+    )
+
+
+def candles():
+    frame = pd.DataFrame(
+        {
+            "timestamp": pd.date_range("2022-01-01", periods=110, freq="h", tz="UTC"),
+            "open": 10.0,
+            "high": 12.0,
+            "low": 8.0,
+            "close": 9.0,
+            "volume": 1.0,
+        }
+    )
+    frame.loc[100, ["close", "high"]] = [13.0, 14.0]
+    frame.loc[101, "close"] = 7.0
+    return frame
+
+
+def test_contract():
+    registry = StrategyRegistry().discover()
+    assert registry.implementation(strategy().name) is ManualEngulfingBreakoutV1Strategy
+    assert strategy().lab_modes == ("LONG_ONLY",)
+    assert strategy().required_warmup({}, "1h") == 100
+    with pytest.raises(ValidationError):
+        Parameters.model_validate({"unexpected": 1})
+    signals = strategy().generate_signals(candles())
+    assert signals.long_entries[100]
+    assert signals.long_exits[101]
+    assert not any(signals.long_entries[:100])
+    assert not any(signals.long_exits[:100])
+    assert not any(signals.short_entries + signals.short_exits)
+    assert all(type(v) is bool for v in signals.long_entries + signals.long_exits)
+
+
+@pytest.mark.parametrize(
+    "row,column,value",
+    [
+        (100, "close", 12.0),
+        (100, "open", 13.0),
+        (99, "close", 10.0),
+        (99, "high", float("nan")),
+        (100, "close", float("nan")),
+    ],
+)
+def test_entry_rejections(row, column, value):
+    frame = candles()
+    frame.loc[row, column] = value
+    assert not strategy().generate_signals(frame).long_entries[100]
+
+
+def test_exit_equality_and_nan():
+    for value in (8.0, float("nan")):
+        frame = candles()
+        frame.loc[101, "close"] = value
+        assert not strategy().generate_signals(frame).long_exits[101]
+
+
+def test_gaps_block_both_signals():
+    for row, field in ((100, "long_entries"), (101, "long_exits")):
+        frame = candles()
+        frame.loc[row:, "timestamp"] += pd.Timedelta(hours=1)
+        assert not getattr(strategy().generate_signals(frame), field)[row]
+
+
+def test_warmup_and_prefix_invariance():
+    frame = candles()
+    frame.loc[98, ["close", "high"]] = [13.0, 14.0]
+    frame.loc[99, "close"] = 7.0
+    original = frame.copy(deep=True)
+    full = strategy().prepare_features(frame)
+    signals = strategy().generate_signals(frame)
+    assert not any(signals.long_entries[:100] + signals.long_exits[:100])
+    for end in (1, 99, 100, 101, 102, 110):
+        prefix = frame.iloc[:end]
+        pd.testing.assert_frame_equal(strategy().prepare_features(prefix), full.iloc[:end])
+        partial = strategy().generate_signals(prefix)
+        for field in ("long_entries", "long_exits", "short_entries", "short_exits"):
+            assert getattr(partial, field) == getattr(signals, field)[:end]
+    pd.testing.assert_frame_equal(frame, original)

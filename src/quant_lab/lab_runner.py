@@ -40,7 +40,18 @@ def parameter_risk(cls, risk, parameters):
     )
 
 
-def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
+def prepare(path: Path, experiment: Experiment, full: bool = False, *, period_names=None) -> dict:
+    periods = tuple(experiment_periods(experiment))
+    if period_names is not None:
+        if (
+            period_names != ("train", "validation")
+            or experiment.execution.market_mode not in {"spot", "synthetic"}
+            or experiment.validation.cost_stress
+            or experiment.validation.walk_forward
+            or experiment.diagnostic_periods
+        ):
+            raise ValueError("Partial execution requires explicit TRAIN/VALIDATION and BASE only")
+        periods = tuple((name, getattr(experiment.validation, name)) for name in period_names)
     base = path.parent
     registry = StrategyRegistry().discover()
     cls = registry.implementation(experiment.strategy.id)
@@ -113,7 +124,12 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         ):
             raise ValueError("Volatility sizing is hourly; use cross-market runner for translation")
         info = inspect_bundle(base, market)
-        check_periods(info, market, experiment)
+        if period_names is not None and (
+            market.dataset_format != "bundle"
+            or pd.Timestamp(info["end"]) > pd.Timestamp(experiment.validation.validation.end)
+        ):
+            raise ValueError("Partial execution requires bounded bundles excluding TEST")
+        check_periods(info, market, experiment, periods=periods)
         if perpetual:
             from quant_lab.literature_data import complete_days, inspect_aux, load_aux
 
@@ -126,7 +142,7 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
             aux_info = inspect_aux(base, market)
             info["perpetual"] = aux_info
             metadata = aux_info["manifest"]
-            for label, period in experiment_periods(experiment):
+            for label, period in periods:
                 left = pd.Timestamp(period.start) - market.warmup_bars * pd.Timedelta(hours=1)
                 if pd.Timestamp(metadata["funding_start"]) > left or pd.Timestamp(
                     metadata["funding_end"]
@@ -142,7 +158,7 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         datasets.append(info)
         if full:
             frame = load_bundle(info)
-            for label, period in experiment_periods(experiment):
+            for label, period in periods:
                 view, segment = window(frame, market, period)
                 validate_segment(view, segment)
                 if len(view) != market.warmup_bars + int(
@@ -160,9 +176,13 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
             raise ValueError(f"Stress {name} must not lower any base cost")
     count = len(configs) * len(datasets) * len(experiment.modes) * len(scenarios)
     count *= (
-        3
-        + len(getattr(experiment, "diagnostic_periods", {}))
-        + len(experiment.validation.walk_forward)
+        len(periods)
+        if period_names is not None
+        else (
+            3
+            + len(getattr(experiment, "diagnostic_periods", {}))
+            + len(experiment.validation.walk_forward)
+        )
     )
     count += (
         len(datasets)
@@ -188,6 +208,7 @@ def prepare(path: Path, experiment: Experiment, full: bool = False) -> dict:
         backtests=count,
         auxiliary=auxiliary,
         funding_days=common_days,
+        selected_periods=period_names,
     )
 
 
@@ -291,13 +312,18 @@ def run(
     *,
     resume: str | None = None,
     check_only: bool = False,
+    period_names=None,
 ) -> Path | dict:
     from quant_lab.lab_reporting import reports
 
-    context = prepare(path, experiment, full=True)  # All data verified before creating a run.
+    if period_names is not None and resume is not None:
+        raise ValueError("Partial executions use their original coordinator receipt")
+    context = prepare(path, experiment, full=True, period_names=period_names)
     context["execution"] = experiment.execution
     code = provenance(root)
     plan = experiment.model_dump(mode="json")
+    if period_names is not None:
+        plan["selected_periods"] = list(period_names)
     resolved = {
         "app": context["app"].model_dump(mode="json"),
         "strategy": context["template"].model_dump(mode="json"),
@@ -426,7 +452,8 @@ def run(
         for market, frame in zip(experiment.markets, context["frames"], strict=True):
             for mode in experiment.modes:
                 periods = [
-                    (k, getattr(experiment.validation, k)) for k in ("train", "validation", "test")
+                    (k, getattr(experiment.validation, k))
+                    for k in (period_names or ("train", "validation", "test"))
                 ]
                 periods += list(experiment.diagnostic_periods.items())
                 for label, period in periods:

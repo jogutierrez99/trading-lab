@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "circuit_id": "circuit46_pulse_001",
+  "manifest": {
+    "schema_version": "1.0",
+    "hypothesis_id": "technical_circuit_pulse_001",
+    "created_at_utc": "2026-11-04T20:46:19.113117Z",
+    "researcher_version": "technical_circuit_v1",
+    "title": "Technical candle pulse integration; no financial hypothesis",
+    "market_hypothesis": "None: artificial candle-body pulse to exercise the software integration, not an alpha claim.",
+    "rationale": "Distinct from engulfing/breakout: close-versus-open pulse with no breakout level, plus a doji no-operation control.",
+    "source_refs": [
+      {
+        "reference": "repo:docs/orchestration-step-4.6.md",
+        "accessed_on": "2026-11-04",
+        "verification": "MANUAL"
+      }
+    ],
+    "data_requirements": {
+      "assets": [
+        "BTC/USDT",
+        "ETH/USDT"
+      ],
+      "timeframe": "1h",
+      "horizon": "Six generated days starting2000-01-10 plus20 warmup hours; never market history.",
+      "warmup_bars": 20,
+      "gap_policy": "UTC DatetimeIndex, sorted/unique. Entry requires previous index exactly1h earlier. Never access candles.timestamp or create a timestamp column.",
+      "funding_policy": "NOT_APPLICABLE",
+      "dataset_refs": [
+        "Generated deterministically by circuit_fixture.py after verified implementation"
+      ],
+      "availability": "PENDING"
+    },
+    "signal_spec": {
+      "long_entry": "At close T, row position>=20: close[T]>open[T] AND close[T-1]<=open[T-1] AND index[T]-index[T-1]==1h. All first20 rows false; doji is not bullish.",
+      "long_exit": "At close T, row position>=20: close[T]<open[T]. First20 rows false; doji false.",
+      "short_entry": null,
+      "short_exit": null,
+      "unsupported_modes": [
+        "SHORT_ONLY"
+      ],
+      "availability": "CANDLE_CLOSE",
+      "feature_definitions": "Implement integration_candle_pulse_v1 version1.0.0, research, Parameters empty StrictModel rejecting unknown fields. BaseStrategy, lab_timeframes=(1h,), lab_modes=(LONG_ONLY,), lab_execution=ohlcv; required_warmup returns20. prepare_features copies OHLCV indexed by UTC DatetimeIndex and retains alignment. Compute bullish/nonbullish(previous shifted1), bearish and contiguous index differences. Return Python bools for each row; both short methods always false. No timestamp column, no future data or input mutation. Write meaningful native-index/warmup/gap/long/short/prefix tests. Keep strategy YAML enabled:false. No experiment/history changes. Set created_at to explicit timezone-aware UTC, e.g.2026-11-04T00:00:00Z (not a bare date)."
+    },
+    "parameter_space": {
+      "parameters": {},
+      "combination_limit": 1,
+      "limit_rationale": "Reglas congeladas sin parametros ajustables; cero barridos."
+    },
+    "execution_assumptions": {
+      "market_mode": "spot",
+      "runner_protocol": "StudyBackend v1 / lab_experiment_v1; spot LONG_ONLY, six bounded synthetic cases. Signals at close, fills next open; no changes to engine.",
+      "entry_timing": "NEXT_OPEN",
+      "trading_fee_pct": 0.05,
+      "slippage_pct": 0.03,
+      "spread_pct": 0.01,
+      "stop": "Existing RiskConfig ATR14 Wilder x2; strategy does not implement fills or protective execution.",
+      "target": "Existing2R, no trailing/time stop; do not tune to improve results.",
+      "sizing": "Existing risk1pct, maximum position25pct/exposure100pct. Operational YAML disabled; enable only the identified execution copy.",
+      "intrabar_policy": "Contrato existente stop-first y gaps adversos; sin cambios de ejecucion."
+    },
+    "evaluation_plan": {
+      "train": {
+        "start": "2000-01-10T00:00:00Z",
+        "end": "2000-01-12T00:00:00Z"
+      },
+      "validation": {
+        "start": "2000-01-12T00:00:00Z",
+        "end": "2000-01-14T00:00:00Z"
+      },
+      "test": {
+        "start": "2000-01-14T00:00:00Z",
+        "end": "2000-01-16T00:00:00Z"
+      },
+      "holdout_status": "UNKNOWN",
+      "holdout_risk": "Entirely artificial data; no independent financial holdout is claimed or consumed.",
+      "walk_forward": "Not part of technical integration.",
+      "primary_metric": "Complete pipeline and nonzero closed trades for active BTC case in each period; zero ETH trades. No return/PF threshold.",
+      "falsification": "Block if native compatibility, causal rule tests, evidence identity, or active/inactive technical coverage fails.",
+      "robustness_plan": "No economic or parameter optimization; only deterministic software fixtures."
+    },
+    "novelty": {
+      "prior_work": "New pulse fixture, not engulfing or a budget-reset clone. No claim of economic novelty.",
+      "known_searches": 0,
+      "known_variants": 1
+    },
+    "limitations": [
+      "Technical integration only; no economic inference, demo or live approval.",
+      "A doji dataset deliberately yields no trades; pulse cases need entries/exits, not profitability."
+    ],
+    "expected_compute_class": "SMALL",
+    "requires_new_strategy_code": true,
+    "status": "PROPOSED"
+  },
+  "implementation": {
+    "schema_version": "1.0",
+    "operation": "NEW_STRATEGY",
+    "target": "integration_candle_pulse_v1",
+    "specification_reviewed": true,
+    "review_note": "Frozen technical integration card prepared under user4.6 scope; review before operator launch. No trading activation.",
+    "max_wall_seconds": 300,
+    "check_timeout_seconds": 45
+  },
+  "initial_attempts": 1,
+  "technical_repairs": 2,
+  "fixture": "CANDLE_PULSE_V1",
+  "audit_mode": "DETERMINISTIC_ONLY",
+  "telegram": "PREVIEW_ONLY",
+  "max_invocation_seconds": 1500,
+  "max_backtests": 6,
+  "max_candles": 328,
+  "max_dataset_bytes": 2000000
+}

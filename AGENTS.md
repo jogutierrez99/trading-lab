@@ -168,8 +168,51 @@ installed. When the request matches, read the corresponding file (or invoke by p
 - An already executed run: [analyze-results](skills/analyze-results/SKILL.md).
 - A stricter candidate validation protocol: [validate-strategy](skills/validate-strategy/SKILL.md).
 
-Use one agent workflow; do not introduce a multi-agent research/orchestration system.
+Use one agent workflow for implementation. Steps 4.1–4.2 permit a separate deterministic
+Python coordinator for manual HypothesisManifest validation, candidate/task registration,
+deduplication, state history and queries in its own SQLite, plus manually activated
+Codex CLI implementation in isolated branches/worktrees, with bounded attempts,
+quick checks, receipts and explicit reconciliation. Integration tests use a simulated
+executable; do not invoke real Codex nested during development. This exception does not
+authorize researcher agents, scheduling or OKX integration.
+Step 4.3 additionally permits a deterministic, manually invoked backtest executor using
+existing validated lab runners, isolated execution copies/results, pinned local datasets,
+bounded volume/time, one reserved heavy job and explicit uncertain-run reconciliation.
+No model stays active during execution. Technical acceptance uses synthetic data or TRAIN;
+never consume reserved TEST/holdouts merely to verify orchestration. No automatic sweeps,
+downloads, strategy repairs, economic promotion or demo authorization are implied.
+An explicitly authorized manual compatibility repair uses its own identity/provenance
+and reviewed scope. Never reset model attempt budgets or rewrite historical receipts.
+Step 4.4 permits bounded read-only audits of existing runs, immutable new dossiers and
+a coordinator-owned manual Telegram outbox. Preview is the default; real send requires
+an explicit operator command and a configured verified private recipient. During this
+implementation use simulated Telegram only. Do not change forward watchers or run new
+backtests for audit acceptance. An optional independent auditor adapter requires an
+explicit configured provider, strict evidence/output contracts and reconciled global
+API accounting capped at 20 EUR/month. Unknown spend blocks new calls; no implicit
+provider, automatic permission retry, economic promotion or demo authorization.
+Step 4.5 integrated historical verification must use read-only/query-only snapshots:
+no initialization/migration, state mutation, new jobs, models, backtests or network.
+Export only new reports outside inspected evidence. Never simulate incidents on the
+real pilot, reset budgets or equate reconstruction with a new unattended end-to-end run.
+Step 4.6 permits a manually started deterministic connector between existing stages:
+one distinct technical card, one initial Codex attempt and at most two permitted
+technical repairs, verified native deliveries, bounded deterministic synthetic runner,
+DETERMINISTIC_ONLY audit and Telegram preview only. Never nest real Codex during
+development; use simulated executables. The operator starts the real trial later.
+Preserve the previous pilot's 3/3 budget. Stop uncertain stages for reconciliation;
+never automatically relaunch uncertain executions or deliveries. No manual edits during
+the trial, model-auditor APIs, real Telegram send or daily scheduling are authorized.
+All existing research, immutable-results, workload and trading protections remain in force.
+Post-4.6 OpenAI audit supplements require the explicit audit-openai command, a
+verified deterministic source, a separate dossier and the canonical global API
+ledger. Development tests simulate the provider. A manual real acceptance requires
+a current reviewed cost bound and reconciled spend. Keep the circuit deterministic.
 Skills do not authorize long computations beyond the AI EXECUTION POLICY.
+Flujo 1 also permits explicit, on-demand research intake from an operator-supplied
+batch. Use one bounded structured API request through the canonical global ledger,
+retain source and outcome, validate with HypothesisManifest, and stop at manual
+review or the coordinator queue. Simulate the provider in development.
 
 ## Maintaining operational memory
 

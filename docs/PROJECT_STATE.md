@@ -1,5 +1,163 @@
 # Estado actual del Trading Lab
 
+[Entrada de investigación bajo demanda](orchestration-research-intake.md) con
+selección de una idea, fuente archivada, presupuesto API global y registro
+idempotente hasta revisión manual o cola. El alta exige supuestos de ejecución
+y liquidez y planes de evaluación y robustez; los resultados se evalúan tras
+ejecutar. La aceptación real del lote sintético v3 verificó una llamada, un
+trabajo QUEUED y repetición idempotente. El modelo aportó observaciones y el
+coordinador verificó la ficha con los hechos de la fuente.
+
+[Conciliación OpenAI bajo demanda](orchestration-openai-billing.md) verifica
+Usage y Costs, conserva la evidencia y libera la reserva de forma atómica. El
+auditor mantiene el bloqueo global hasta que el cargo sea atribuible. La vía
+Admin requiere una credencial separada. El ciclo de Flujo 1 admite diferencias
+entre instantáneas del mismo ámbito, con referencia previa a la reserva y
+partidas facturadas que cuadren con el incremento de Usage. Verificado offline.
+
+[Ensayo secuencial de Flujo 1](orchestration-flow1-sequential.md) enlaza una
+tarea de investigación con la implementación, la ejecución sintética y la
+auditoría determinista. Guarda el expediente hasta la conciliación del
+investigador. El ensayo real manual llegó a DRAFT y su auditor se concilió
+manualmente. El segundo ensayo real completó NOTICE_PREPARED tras reanudar
+la consulta de facturación. Ambos cargos se conciliaron por instantáneas
+programáticas, con una llamada por proveedor y un solo DRAFT sin envíos.
+El primer arranque se interrumpió por timeout y la consulta se reanudó por
+la mañana. La hora de publicación del cargo se desconoce. Se preparó una
+orden persistente con ventana de consulta y bloqueo por ledger. La tarea
+queda deshabilitada y la recuperación de un pendiente real mediante el
+Programador de tareas sigue por verificar.
+
+[Ensayo RMM 4H](orchestration-rmm-train-validation.md) preparado para comparar
+baseline congelado y variante verificada en 24 casos BASE de TRAIN/VALIDATION.
+La comparación histórica acotada terminó con ambos runs completos tras una
+reparación de lanzamiento de Codex con MXC. El expediente conserva la ficha
+sellada, los dos intentos y el informe emparejado verificado. La auditoría
+determinista contrastó ambos ledgers y dejó la vista previa de Telegram en
+DRAFT. TEST, ADVERSE y controles pendientes, sin evaluación económica final.
+
+[Auditor OpenAI](orchestration-openai-auditor.md) integrado como suplemento explícito
+de una auditoría determinista verificada. Una petición `gpt-6.1-sol`, esquema estricto,
+recibo independiente y reserva en la contabilidad global de 20 €/mes. Diagnóstico
+del run 4.6 verificó seis casos sintéticos, clave presente y reserva máxima de
+18,08 €. Aceptación real `COMPLETED` con una petición, 896 tokens de entrada y 240
+de salida. Coste calculado inicial 0,02 €. El CSV de costes confirmó 0,004192 USD,
+conciliados como 0,01 € conservador. Saldo global disponible 19,99 € para noviembre UTC.
+El dictamen determinista original conserva su hash.
+
+[Aceptación final 4.6 en Windows](orchestration-step-4.6-acceptance.md) completada.
+Ficha `c46_pair_final` de confirmación por dos velas, presupuesto 1+2 y SQLite v7
+dedicada. Verifica identidades nativas, seis casos sintéticos y recibos antes del
+aviso DRAFT. Una orden real llegó a NOTICE_PREPARED en el primer intento, sin
+reparaciones ni reanudación manual. Run 20261105T193241Z-dd5fe4efd45a y cero envíos.
+La base operativa v6 y los dos presupuestos 3/3 se conservan.
+
+Endurecimiento posterior4.6: [identidad nativa de procesos](orchestration-process-identity.md).
+PID+nacimiento FILETIME100ns exacto en Windows, handles/jobs propios; distinguir
+RUNNING/EXITED/REUSED/UNKNOWN, sin señales a procesos ajenos por PID reutilizado.
+SQLite v7 aditiva nullable, lectura v5/v6/v7; no se inventan atributos históricos.
+Un PID obsoleto no da éxito ni relanza trabajos: reconciliación exige recibos.
+Verificación solo con procesos temporales/simulación; sin repetir piloto ni modelos
+reales, Telegram o APIs. Ambos presupuestos3/3 y expedientes se conservan.
+Verificación final:139 unitarias+71 integraciones completas=210 distintas aprobadas;
+fallos iniciales y ajustes documentados. Ruff/formato491/pip/diff correctos. Migración
+sobre copia:12 tablas/97 filas conservadas; base real v6 y140 JSON previos sin cambios.
+
+Extensión2026-11-04: [preparación del circuito técnico4.6](orchestration-step-4.6.md).
+Una orden manual conecta componentes4.1–4.4 mediante checkpoints SQLite v6 aditivos;
+consulta histórica4.5 conserva lectura v5 sin migración. Nueva ficha pulse independiente,
+presupuesto1 inicial+2 reparaciones técnicas permitidas, contrato nativo UTC1h/warmup20,
+seis casos sintéticos acotados con operaciones y control sin operaciones. Auditoría
+DETERMINISTIC_ONLY y outbox DRAFT/preview; sin envío.136 pruebas dirigidas distintas
+aprobadas; Ruff/formato/pip/diff correctos. Simulaciones verificadas,
+[Repetición real autorizada](orchestration-step-4.6-path-recovery.md): NOTICE_PREPARED,
+tras corrección Git longpaths y reconciliación explícita del primer bloqueo.
+Misma tarea/presupuesto3/3: turno1 sin modelo, turno2 falla Ruff, turno3 reparación
+automática verificada. Dos llamadas Codex; runner posterior6/6 válidos, BTC6 trades
+por segmento y ETH0; auditoría determinista/NO_DECISION, aviso DRAFT/0 envíos.
+Sin edición manual de estrategia durante la reanudación. No éxito al primer intento
+ni arranque original desatendido.18 regresiones distintas aprobadas en grupos;
+detectado entonces bloqueo conservador por reutilización PID en un temporal,
+tratado por la extensión de identidad arriba. Filas previas y333 archivos protegidos
+idénticos, piloto anterior3/3 intacto.
+Sin auditor IA real, validación económica/demo ni programación diaria.
+
+Decisión futura pendiente: frecuencia de **2 o 3 estrategias diarias**, a decidir
+midiendo consumo, fallos y reintentos de pruebas reales. Reservar margen de presupuesto
+para reparaciones. **No activar todavía programación diaria**.
+
+Extensión2026-11-04: [cierre técnico histórico4.5](orchestration-step-4.5.md).
+verify-pilot reúne ficha/candidata/tarea,3/3 intentos, reparación1.0.1, ejecución,
+auditoría y recibo Telegram. ReadOnlyStore mode=ro/query_only, snapshot compartido;
+sin inicializar/migrar SQLite v5, registros, red o nuevas ejecuciones. Cinco etapas
+VERIFIED,2219 referencias; dos consultas simultáneas reales sin cambiar DB/registros
+ni motor/configs.121 casos distintos aprobados en grupos, controles estáticos correctos.
+Informe nuevo separado. Reconstrucción histórica con reparaciones manuales, no nuevo
+E2E/desatendido. IA real pendiente; economía/demo no acreditadas. No se inicia paso5.
+
+Extensión2026-11-04: [auditoría/informe/outbox manual4.4](orchestration-step-4.4.md).
+SQLite v5 aditiva, contratos/pins estrictos, lectura acotada de cadena4.3/ledger,
+expediente inmutable/dedupe/reconciliación y outbox sin reenvío incierto.
+Piloto real1.0.1 audit_bbac0e00b8e449d78599c5c2150430d5:2210 referencias,
+COMPLETED_WITH_LIMITATIONS/NO_DECISION; sintético,0 trades, sin economía/demo.
+127 tests distintos aprobados en grupos; Ruff/formato/pip correctos. Registros previos
+y motor/configs conservados;0 backtests/modelos nuevos. [Telegram real autorizado](orchestration-step-4.4-telegram-acceptance.md):
+ACCEPTED, message_id136,1 intento, chat privado configurado verificado; no confirma lectura.
+Credenciales existentes en.env, cargadas selectivamente; ningún secreto archivado.
+Cierre técnico4.4 cubierto. Adaptador IA simulado; MODEL_ASSISTED bloqueado sin
+conector real/contabilidad global conocida (20EUR/mes). Cierre4.5 en la extensión anterior;
+demo no autorizada.
+
+Aplicación autorizada2026-11-04: [reparación nativa1.0.1 y cierre técnico](pilot-native-index-repair-applied.md).
+SQLite v4 añade manual_repairs y vinculación explícita de ejecuciones a la reparación,
+sin tocar3/3 intentos del modelo ni duplicar tareas. Origen/recibos/resultados previos
+conservados; identidad nueva y recibo manual verificado,0 llamadas al modelo. Piloto
+corregido:4.3 SUCCEEDED,3 backtests sintéticos COMPLETE;0 operaciones, filtros nativos
+rechazados y sin conclusión económica/demo.91 tests dirigidos aprobados en grupos,
+Ruff/formato/pip correctos. Probe nativo previo a nuevas implementaciones compartido4.3.
+
+Extensión2026-11-04: [ejecutor manual4.3](orchestration-step-4.3.md). SQLite v3 añade
+executions; misma reserva/lock OS que4.2, snapshots de base+entrega final/runtime,
+config de ejecución aislada, datos locales fijados, FULL+probe de interfaz de señales,
+lab_runner/StudyBackend nativos, límites de duración/volumen, recibos y reconciliación.
+Sin modelos ni promoción científica/demo.148 tests distintos aprobados en grupos,
+Ruff/formato/pip correctos; no suite completa. Fixture sintética:3 backtests COMPLETE,
+filtros nativos conservados (0 supervivientes). La entrega4.2 original permanece intacta
+con su incompatibilidad timestamp documentada; la corrección autorizada tiene identidad
+y recibo separados, según la extensión v4 anterior.
+Motor, estrategias originales, forward y resultados previos intactos; sin holdouts
+históricos, descargas, programación, push o merge. No se avanzó4.4.
+
+Extensión 2026-11-03: [coordinador paso4.2](orchestration-step-4.2.md). Misma SQLite,
+migración1→2 y tabla attempts, reserva global única+lock OS, preparación manual,
+Codex CLI argv-only, ramas/worktrees nuevos, recibos contrastados y checks rápidos.
+UNKNOWN exige reconciliación; máximo inicial+dos reparaciones manuales con misma
+ficha/plan/base. CLI doctor/prepare/process/run/attempt/reconcile. Probado con
+ejecutable simulado y Codex real: backend Windows del sandbox explícito tras ignorar
+configuración de usuario; scaffolds sellados preparados por el generador del repositorio.
+El piloto real entregó tres archivos coherentes. El 2026-11-04 se autorizó una reparación
+manual exclusiva de formato: AST idéntico, nueve tests/lint/formato correctos y recibo
+verificado; tarea SUCCEEDED, candidata IMPLEMENTATION_READY. Sin cuarta llamada al modelo
+ni ampliación del límite. CLI repair-format registra autorización, originales y hashes;
+solo admite el último FAILED por formato, con procesos detenidos y sin otro trabajo activo.
+[Diagnóstico y evidencia](orchestration-step-4.2-diagnosis.md). Verificación dirigida:
+166 tests distintos aprobados en grupos, incluidos cuatro nuevos. Cierre:62/63 en el
+pase de ingesta/orquestación; un timeout de arranque del fixture se corrigió y los tres
+casos de recuperación/timeout repitieron correctamente (63 distintos aprobados en grupos).
+Ruff/formato del checkout y pip check correctos.
+Sin suite completa, backtests, investigador/auditor, Telegram, OKX ni cambios al motor,
+estrategias existentes o forward. CPU/RAM/coste no son caps efectivos.
+
+Extensión 2026-11-03: [coordinador manual paso 4.1](orchestration-step-4.1.md).
+Paquete separado trading_lab_orchestration: HypothesisManifest1.0 estricto, CLI
+validate/register/list/show/transition, SQLite propia con inicialización, snapshots,
+dedupe y candidata+tarea+eventos atómicos. Solo revisión manual PREPARE_ONLY;
+HYPOTHESIS_READY no aprueba desarrollo ni investigación. Base default en disco local
+fuera de OneDrive. Sin modelos/Codex/Telegram/OKX, workers ni scheduling; core,
+estrategias, resultados y sesiones forward conservados. Verificación:133 tests
+dirigidos aprobados (30 nuevos), Ruff/check/format global y pip check correctos;
+sin suite completa ni backtests históricos. Límites en la guía; no evidencia económica nueva.
+
 Extensión 2026-10-07: [ETH SHORT historical falsification V1](eth-short-historical-falsification-v1.md).
 Dos regiones completas ATR/híbrida copiadas de los parámetros resueltos publicados
 en20261007T203824Z-364120f09438. ETHUSDT1h SHORT_ONLY, 2020 desde02-11 16UTC tras

@@ -1,0 +1,45 @@
+"""Simulation template only, not an implemented or economically validated lab strategy."""
+
+import numpy as np
+import pandas as pd
+
+from quant_lab.config import StrictModel
+from quant_lab.strategies.base import BaseStrategy
+
+
+class Parameters(StrictModel):
+    pass
+
+
+class IntegrationCandlePulseV1(BaseStrategy[Parameters]):
+    name = "integration_candle_pulse_v1"
+    version = "1.0.0"
+    parameter_model = Parameters
+    lab_modes = ("LONG_ONLY",)
+    lab_timeframes = ("1h",)
+    created_at = "2026-11-04T00:00:00Z"
+
+    @classmethod
+    def required_warmup(cls, parameters, timeframe):
+        return 20
+
+    def prepare_features(self, candles):
+        frame = candles.copy()
+        warm = np.arange(len(frame)) >= 20
+        contiguous = frame.index.to_series().diff().eq(pd.Timedelta(hours=1))
+        previous = frame.close.shift(1).le(frame.open.shift(1))
+        frame["entry"] = warm & contiguous & previous & frame.close.gt(frame.open)
+        frame["exit"] = warm & frame.close.lt(frame.open)
+        return frame
+
+    def generate_long_entries(self, features):
+        return [bool(v) for v in features["entry"]]
+
+    def generate_long_exits(self, features):
+        return [bool(v) for v in features["exit"]]
+
+    def generate_short_entries(self, features):
+        return [False] * len(features)
+
+    def generate_short_exits(self, features):
+        return [False] * len(features)

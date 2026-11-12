@@ -21,6 +21,10 @@ configs/experiments/*
 reports/
 results/
 
+# Local coordinator state (including SQLite journal/WAL companions).
+*.sqlite3
+*.sqlite3-*
+
 # Versioned compact research notebook; never publish heavy simulation storage.
 !research_results/
 research_results/**/*.parquet

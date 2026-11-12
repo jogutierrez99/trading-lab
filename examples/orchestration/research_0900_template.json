@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "hypothesis_id": "",
+  "created_at_utc": "",
+  "researcher_version": "",
+  "title": "",
+  "market_hypothesis": "",
+  "rationale": "",
+  "source_refs": [
+    {"reference": "", "accessed_on": "", "verification": "UNVERIFIED"}
+  ],
+  "data_requirements": {
+    "assets": [],
+    "timeframe": "",
+    "horizon": "",
+    "warmup_bars": null,
+    "gap_policy": "",
+    "funding_policy": null,
+    "dataset_refs": [],
+    "availability": "UNVERIFIED"
+  },
+  "signal_spec": {
+    "long_entry": "",
+    "long_exit": "",
+    "short_entry": "",
+    "short_exit": "",
+    "unsupported_modes": [],
+    "availability": "CANDLE_CLOSE",
+    "feature_definitions": ""
+  },
+  "parameter_space": {
+    "parameters": {},
+    "combination_limit": 1,
+    "limit_rationale": ""
+  },
+  "execution_assumptions": {
+    "market_mode": null,
+    "runner_protocol": "",
+    "entry_timing": "NEXT_OPEN",
+    "trading_fee_pct": null,
+    "slippage_pct": null,
+    "spread_pct": null,
+    "stop": "",
+    "target": "",
+    "sizing": "",
+    "intrabar_policy": ""
+  },
+  "evaluation_plan": {
+    "train": {"start": "", "end": ""},
+    "validation": {"start": "", "end": ""},
+    "test": {"start": "", "end": ""},
+    "holdout_status": "UNKNOWN",
+    "holdout_risk": "",
+    "walk_forward": "",
+    "primary_metric": "",
+    "falsification": "",
+    "robustness_plan": ""
+  },
+  "novelty": {"prior_work": "", "known_searches": null, "known_variants": null},
+  "limitations": [],
+  "expected_compute_class": "UNKNOWN",
+  "requires_new_strategy_code": null,
+  "status": "PROPOSED"
+}

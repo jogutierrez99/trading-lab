@@ -1,5 +1,75 @@
 # Arquitectura técnica actual
 
+[Identidad de procesos](orchestration-process-identity.md): process_identity centraliza
+el nacimiento nativo, consulta conservadora y columna nullable v7 en las tres tablas
+de trabajos. processes persiste identidad antes de reanudar Windows y termina solo
+mediante capacidades propias del kernel, no PID reabierto. Reconciliación mantiene
+los controles de evidencia. Lecturas v5/v6/v7 sin backfill ni migración implícita.
+
+Paso4.6: [conector determinista manual](orchestration-step-4.6.md), CircuitRequest1.0
+y tabla circuits/checkpoints v6, sin segundo motor ni almacén de experimentos.
+Reutiliza Coordinator/Executor/Auditor/Outbox y sus recibos/verificadores. Una entrega
+verificada por etapa, presupuesto1+2, runner sintético sin modelo activo, auditoría
+determinista y preview. Intenciones persistidas antes de procesos; UNKNOWN detiene,
+reanudación explícita tras reconciliación, sin duplicar ejecuciones inciertas.
+Prueba real recuperada documentada en la guía4.6; ReadOnlyStore admite v5/v6/v7.
+
+Paso4.5: [consulta integrada histórica](orchestration-step-4.5.md), CLI verify-pilot
+con contratos1.0/pins explícitos. ReadOnlyStore reutiliza Store.show/resolvers/4.4 review
+en un snapshot mode=ro/query_only; no constructor inicializador, tablas, migraciones,
+locks operativos o estados nuevos. Store.show admite el snapshot externo. Verifica
+ficha→tarea→implementación→ejecución→auditoría→outbox/recibo local Telegram sin red.
+Exporta opcionalmente informes nuevos separados; incertidumbre bloquea, nunca relanza.
+Pruebas de recuperación simuladas separadas de la reconstrucción real; sin nuevo E2E,
+auditor IA real, validación económica o autorización demo.
+
+Paso4.4 externo: [auditoría y outbox](orchestration-step-4.4.md) reutiliza verificación
+4.3 de lectura y ledger nativo read-only. SQLite propia v5 conserva1–4 y añade
+audits/outbox/contabilidad API global; sin alterar experimentos o estados científicos.
+Dossier inmutable, revisión conservadora y notificación manual con reserva/dedupe e
+incertidumbre explícita. Auditor sin token/envío; coordinador único emisor.
+[Telegram real verificado](orchestration-step-4.4-telegram-acceptance.md): ACCEPTED/message_id136,
+un intento; IA real pendiente. Sin activación, scheduling ni permisos demo.
+
+Verificación nativa de implementación (2026-11-04): native_interface.py comparte
+el contrato de señales entre4.2 y4.3. Antes de un recibo nuevo4.2, un bridge archivado
+prueba OHLCV sintético con índice UTC, timeframe/warmup nativos, bool/alineación e
+input sin mutación, con timeout/Job. No lee datos ni ejecuta backtests.4.3 mantiene
+FULL/probe de datos. Recibos legacy intactos. La [reparación manual autorizada](pilot-native-index-repair-applied.md)
+usa tabla manual_repairs en v4, identidad/recibo propios y un resolver explícito;
+executions conserva padre histórico y manual_repair_id, con FK/trigger de exclusividad.
+El presupuesto3/3 y sus filas no cambian; se admite solo el patch y hashes revisados.
+
+Paso4.3 (2026-11-04): execution/contracts/inputs/worker/smoke forman el adaptador
+determinista manual, con tabla executions en SQLite v3 y lock/reserva compartidos4.2.
+Snapshot de base+archivos verificados (incluido formato), runtime archivado y configuración
+de ejecución propia; datasets fijados permanecen en disco. Worker Python aislado de
+imports editables reutiliza FULL, contrato nativo de señales y lab_runner.run/StudyBackend;
+no hay segundo motor. Resultados y recibos propios, UNKNOWN exige reconciliación y no
+se promueven estados de investigación/demo. Prueba sintética compatible completa;
+piloto corregido1.0.1 también completo mediante nueva identidad manual, con evidencia
+anterior preservada. [Contrato y evidencia](orchestration-step-4.3.md).
+
+Paso4.2 (2026-11-03): mismo coordinador con implementation/implementation_contracts,
+codex_adapter, workspaces, processes y migración v2 con attempts. Reutiliza candidates,
+tasks y events, sin ExperimentStore. CLI manual prepara solicitud congelada, reserva
+único intento activo, crea branch/worktree, invoca Codex CLI y contrasta recibo/archivos/
+checks. Resultado incierto bloquea hasta reconciliación. Sin servicios ni backtests.
+[Protocolo y aislamiento real](orchestration-step-4.2.md). NEW_STRATEGY prepara y sella
+los tres scaffolds mediante el generador local antes del modelo. El adaptador fija
+el perfil workspace y el backend nativo Windows explícitamente sin cargar configuración
+de usuario. Piloto real aceptado tras reparación manual exclusiva de formato: repair-format
+preserva la entrega del modelo, registra hashes antes/después y comprueba AST idéntico;
+repite todos los checks antes de SUCCEEDED. Sin nueva llamada al modelo ni cambio del límite.
+[Diagnóstico e historial](orchestration-step-4.2-diagnosis.md).
+
+Coordinador manual externo (2026-11-03): `scripts/orchestrator.py` → paquete
+`src/trading_lab_orchestration` (contrato Pydantic, SQLite, CLI), sin imports del motor.
+Su base contiene candidates/tasks/submissions/events; no usa ExperimentStore ni los
+journals forward. Solo ingesta/revisión manual, dedupe, historial y consultas.
+[Contrato, transacciones y límites](orchestration-step-4.1.md). La ejecución manual
+de Codex corresponde al paso4.2 anterior; servicios externos siguen únicamente diseñados.
+
 Donchian forward1h (2026-10-08): protocolo/entrypoint independiente
 `forward/donchian_config.py`, `donchian.py`, `donchian_runner.py`; reutiliza Store,
 feed y funciones de sizing/costes/protecciones sin editar RMM ni legacy.

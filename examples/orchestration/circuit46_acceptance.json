@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "circuit_id": "c46_pair_final",
+  "manifest": {
+    "schema_version": "1.0",
+    "hypothesis_id": "technical_circuit_pair_final_001",
+    "created_at_utc": "2026-11-05T00:00:00Z",
+    "researcher_version": "technical_acceptance_v1",
+    "title": "Two-candle confirmation Windows acceptance",
+    "market_hypothesis": "None. Synthetic two-candle confirmation for lifecycle acceptance.",
+    "rationale": "Requires two consecutive bullish closes after a nonbullish candle and exits on a nonbullish close. Distinct from single pulse and engulfing breakout.",
+    "source_refs": [
+      {
+        "reference": "repo:docs/orchestration-step-4.6-acceptance.md",
+        "accessed_on": "2026-11-05",
+        "verification": "MANUAL"
+      }
+    ],
+    "data_requirements": {
+      "assets": [
+        "BTC/USDT",
+        "ETH/USDT"
+      ],
+      "timeframe": "1h",
+      "horizon": "Six generated days from 2000-01-20 plus 20 warmup hours.",
+      "warmup_bars": 20,
+      "gap_policy": "UTC DatetimeIndex. Both preceding intervals must be one hour for entry. Never add a timestamp column.",
+      "funding_policy": "NOT_APPLICABLE",
+      "dataset_refs": [
+        "Generated deterministically by circuit_fixture.py after verified implementation"
+      ],
+      "availability": "PENDING"
+    },
+    "signal_spec": {
+      "long_entry": "At close T, row >=20: bullish at T and T-1, nonbullish at T-2, with each of the two index differences exactly one hour. First 20 rows always false.",
+      "long_exit": "At close T, row >=20: close[T]<=open[T]. First 20 rows always false.",
+      "short_entry": null,
+      "short_exit": null,
+      "unsupported_modes": [
+        "SHORT_ONLY"
+      ],
+      "availability": "CANDLE_CLOSE",
+      "feature_definitions": "Implement integration_candle_pair_v1 version 1.0.0 with explicit UTC created_at 2026-11-05T00:00:00Z. Use BaseStrategy, empty StrictModel Parameters, LONG_ONLY, 1h, ohlcv, warmup 20. Bullish means close>open. Use causal shifts of bullish conditions and native DatetimeIndex intervals. Copy the input and preserve alignment. Return bools, both short sides false. Keep YAML disabled, empty parameters, no risk override. Test single vs paired bullish candles, warmup, gaps, exits on doji, shorts and prefix invariance."
+    },
+    "parameter_space": {
+      "parameters": {},
+      "combination_limit": 1,
+      "limit_rationale": "Reglas congeladas sin parametros ajustables; cero barridos."
+    },
+    "execution_assumptions": {
+      "market_mode": "spot",
+      "runner_protocol": "StudyBackend v1 / lab_experiment_v1; spot LONG_ONLY, six bounded synthetic cases. Signals at close, fills next open; no changes to engine.",
+      "entry_timing": "NEXT_OPEN",
+      "trading_fee_pct": 0.05,
+      "slippage_pct": 0.03,
+      "spread_pct": 0.01,
+      "stop": "Existing RiskConfig ATR14 Wilder x2; strategy does not implement fills or protective execution.",
+      "target": "Existing2R, no trailing/time stop; do not tune to improve results.",
+      "sizing": "Existing risk1pct, maximum position25pct/exposure100pct. Operational YAML disabled; enable only the identified execution copy.",
+      "intrabar_policy": "Contrato existente stop-first y gaps adversos; sin cambios de ejecucion."
+    },
+    "evaluation_plan": {
+      "train": {
+        "start": "2000-01-20T00:00:00Z",
+        "end": "2000-01-22T00:00:00Z"
+      },
+      "validation": {
+        "start": "2000-01-22T00:00:00Z",
+        "end": "2000-01-24T00:00:00Z"
+      },
+      "test": {
+        "start": "2000-01-24T00:00:00Z",
+        "end": "2000-01-26T00:00:00Z"
+      },
+      "holdout_status": "UNKNOWN",
+      "holdout_risk": "Entirely artificial data; no independent financial holdout is claimed or consumed.",
+      "walk_forward": "Not part of technical integration.",
+      "primary_metric": "Complete pipeline and nonzero closed trades for active BTC case in each period; zero ETH trades. No return/PF threshold.",
+      "falsification": "Block if native compatibility, causal rule tests, evidence identity, or active/inactive technical coverage fails.",
+      "robustness_plan": "No economic or parameter optimization; only deterministic software fixtures."
+    },
+    "novelty": {
+      "prior_work": "Separate two-candle confirmation contract and synthetic date range.",
+      "known_searches": 0,
+      "known_variants": 1
+    },
+    "limitations": [
+      "Technical integration only; no economic inference, demo or live approval.",
+      "Doji control has no entries. Exit signals alone do not open positions."
+    ],
+    "expected_compute_class": "SMALL",
+    "requires_new_strategy_code": true,
+    "status": "PROPOSED"
+  },
+  "implementation": {
+    "schema_version": "1.0",
+    "operation": "NEW_STRATEGY",
+    "target": "integration_candle_pair_v1",
+    "specification_reviewed": true,
+    "review_note": "Frozen independent Windows acceptance card. Technical synthetic coverage only.",
+    "max_wall_seconds": 300,
+    "check_timeout_seconds": 45
+  },
+  "initial_attempts": 1,
+  "technical_repairs": 2,
+  "fixture": "CANDLE_PAIR_V1",
+  "audit_mode": "DETERMINISTIC_ONLY",
+  "telegram": "PREVIEW_ONLY",
+  "max_invocation_seconds": 1500,
+  "max_backtests": 6,
+  "max_candles": 328,
+  "max_dataset_bytes": 2000000
+}
