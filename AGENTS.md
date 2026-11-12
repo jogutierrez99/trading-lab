@@ -213,6 +213,11 @@ Flujo 1 also permits explicit, on-demand research intake from an operator-suppli
 batch. Use one bounded structured API request through the canonical global ledger,
 retain source and outcome, validate with HypothesisManifest, and stop at manual
 review or the coordinator queue. Simulate the provider in development.
+Phase 5.1 permits read-only GitHub Issue intake from an explicit author
+allowlist and local preparation through the existing coordinator after
+operator review and the global budget gate. The bridge never dispatches
+Codex or changes GitHub. Use fixtures during development. Publication,
+scheduling, model dispatch and trading remain outside this activation.
 
 ## Maintaining operational memory
 

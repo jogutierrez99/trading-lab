@@ -1,5 +1,11 @@
 # Estado actual del Trading Lab
 
+[Fase 5.1](orchestration-phase-5-1.md) añade entrada GitHub de solo lectura
+al registro existente y preparación local tras revisar el hash y el
+presupuesto. La tarea original de las 09:00 y el publicador automático
+quedan fuera de activación. Falta verificar los permisos de escritura y
+aprobación desde esa tarea.
+
 [Entrada de investigación bajo demanda](orchestration-research-intake.md) con
 selección de una idea, fuente archivada, presupuesto API global y registro
 idempotente hasta revisión manual o cola. El alta exige supuestos de ejecución

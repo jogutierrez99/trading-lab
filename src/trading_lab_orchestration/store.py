@@ -187,94 +187,95 @@ class Store:
         )
 
     def register(self, manifest: HypothesisManifest) -> dict:
+        with self.transaction() as conn:
+            return self._register(conn, manifest)
+
+    def _register(self, conn: sqlite3.Connection, manifest: HypothesisManifest) -> dict:
         # Revalidate even API callers; never trust model_construct or mutated nested containers.
         manifest = HypothesisManifest.model_validate_json(manifest.snapshot())
         snapshot = manifest.snapshot()
         sha = digest(snapshot)
         fingerprint = manifest.fingerprint()
-        with self.transaction() as conn:
-            submitted = conn.execute(
-                "SELECT * FROM submissions WHERE hypothesis_id=?", (manifest.hypothesis_id,)
-            ).fetchone()
-            if submitted and submitted["manifest_sha256"] != sha:
-                raise ValueError(
-                    "hypothesis_id already exists with different content; use a new ID"
+        submitted = conn.execute(
+            "SELECT * FROM submissions WHERE hypothesis_id=?", (manifest.hypothesis_id,)
+        ).fetchone()
+        if submitted and submitted["manifest_sha256"] != sha:
+            raise ValueError("hypothesis_id already exists with different content; use a new ID")
+        existing = conn.execute(
+            "SELECT * FROM candidates WHERE fingerprint=?", (fingerprint,)
+        ).fetchone()
+        if existing:
+            candidate = existing["candidate_id"]
+            task = conn.execute(
+                "SELECT task_id FROM tasks WHERE candidate_id=?", (candidate,)
+            ).fetchone()[0]
+            if not submitted:
+                conn.execute(
+                    "INSERT INTO submissions VALUES (?,?,?,?,?)",
+                    (manifest.hypothesis_id, candidate, snapshot, sha, utc_now()),
                 )
-            existing = conn.execute(
-                "SELECT * FROM candidates WHERE fingerprint=?", (fingerprint,)
-            ).fetchone()
-            if existing:
-                candidate = existing["candidate_id"]
-                task = conn.execute(
-                    "SELECT task_id FROM tasks WHERE candidate_id=?", (candidate,)
-                ).fetchone()[0]
-                if not submitted:
-                    conn.execute(
-                        "INSERT INTO submissions VALUES (?,?,?,?,?)",
-                        (manifest.hypothesis_id, candidate, snapshot, sha, utc_now()),
-                    )
-                # Retain every accepted attempt, including alternate IDs, without another task.
-                self._event(
-                    conn,
-                    candidate,
-                    task,
-                    "submission",
-                    None,
-                    "DUPLICATE",
-                    "Exact ID/content or scientific fingerprint already registered",
-                    {"hypothesis_id": manifest.hypothesis_id, "manifest_sha256": sha},
-                )
-                return {
-                    "created": False,
-                    "candidate_id": candidate,
-                    "task_id": task,
-                    "status": existing["status"],
-                    "duplicate": True,
-                }
-            candidate, task = "cand_" + uuid4().hex, "task_" + uuid4().hex
-            now = utc_now()
-            conn.execute(
-                "INSERT INTO candidates VALUES (?,?,?,?,?,'HYPOTHESIS_READY',?,?)",
-                (candidate, manifest.hypothesis_id, fingerprint, snapshot, sha, now, now),
-            )
-            conn.execute(
-                "INSERT INTO tasks VALUES (?,?,?,'MANUAL_REVIEW','PREPARE_ONLY','QUEUED',?,?)",
-                (task, candidate, candidate + ":manual_review:v1", now, now),
-            )
-            conn.execute(
-                "INSERT INTO submissions VALUES (?,?,?,?,?)",
-                (manifest.hypothesis_id, candidate, snapshot, sha, now),
-            )
+            # Retain every accepted attempt, including alternate IDs, without another task.
             self._event(
                 conn,
                 candidate,
+                task,
+                "submission",
                 None,
-                "candidate",
-                None,
-                "IDEA_RECEIVED",
-                "Manual manifest received",
-                {"manifest_sha256": sha},
-            )
-            self._event(
-                conn,
-                candidate,
-                None,
-                "candidate",
-                "IDEA_RECEIVED",
-                "HYPOTHESIS_READY",
-                "Contract v1.0 validated; review pending",
-                {"fingerprint": fingerprint},
-            )
-            self._event(
-                conn, candidate, task, "task", None, "QUEUED", "Manual review only; no worker", {}
+                "DUPLICATE",
+                "Exact ID/content or scientific fingerprint already registered",
+                {"hypothesis_id": manifest.hypothesis_id, "manifest_sha256": sha},
             )
             return {
-                "created": True,
+                "created": False,
                 "candidate_id": candidate,
                 "task_id": task,
-                "status": "HYPOTHESIS_READY",
-                "duplicate": False,
+                "status": existing["status"],
+                "duplicate": True,
             }
+        candidate, task = "cand_" + uuid4().hex, "task_" + uuid4().hex
+        now = utc_now()
+        conn.execute(
+            "INSERT INTO candidates VALUES (?,?,?,?,?,'HYPOTHESIS_READY',?,?)",
+            (candidate, manifest.hypothesis_id, fingerprint, snapshot, sha, now, now),
+        )
+        conn.execute(
+            "INSERT INTO tasks VALUES (?,?,?,'MANUAL_REVIEW','PREPARE_ONLY','QUEUED',?,?)",
+            (task, candidate, candidate + ":manual_review:v1", now, now),
+        )
+        conn.execute(
+            "INSERT INTO submissions VALUES (?,?,?,?,?)",
+            (manifest.hypothesis_id, candidate, snapshot, sha, now),
+        )
+        self._event(
+            conn,
+            candidate,
+            None,
+            "candidate",
+            None,
+            "IDEA_RECEIVED",
+            "Manual manifest received",
+            {"manifest_sha256": sha},
+        )
+        self._event(
+            conn,
+            candidate,
+            None,
+            "candidate",
+            "IDEA_RECEIVED",
+            "HYPOTHESIS_READY",
+            "Contract v1.0 validated; review pending",
+            {"fingerprint": fingerprint},
+        )
+        self._event(
+            conn, candidate, task, "task", None, "QUEUED", "Manual review only; no worker", {}
+        )
+        return {
+            "created": True,
+            "candidate_id": candidate,
+            "task_id": task,
+            "status": "HYPOTHESIS_READY",
+            "duplicate": False,
+        }
 
     def list_candidates(self) -> list[dict]:
         with self.connection() as conn:

@@ -1,0 +1,635 @@
+{
+  "$defs": {
+    "DataRequirements": {
+      "additionalProperties": false,
+      "properties": {
+        "assets": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Assets",
+          "type": "array"
+        },
+        "timeframe": {
+          "pattern": "^[1-9][0-9]*[mhdw]$",
+          "title": "Timeframe",
+          "type": "string"
+        },
+        "horizon": {
+          "minLength": 1,
+          "title": "Horizon",
+          "type": "string"
+        },
+        "warmup_bars": {
+          "minimum": 0,
+          "title": "Warmup Bars",
+          "type": "integer"
+        },
+        "gap_policy": {
+          "minLength": 1,
+          "title": "Gap Policy",
+          "type": "string"
+        },
+        "funding_policy": {
+          "enum": [
+            "NOT_APPLICABLE",
+            "NOT_MODELLED",
+            "REQUIRED"
+          ],
+          "title": "Funding Policy",
+          "type": "string"
+        },
+        "dataset_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Dataset Refs",
+          "type": "array"
+        },
+        "availability": {
+          "enum": [
+            "UNVERIFIED",
+            "PENDING",
+            "MANUALLY_VERIFIED"
+          ],
+          "title": "Availability",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assets",
+        "timeframe",
+        "horizon",
+        "warmup_bars",
+        "gap_policy",
+        "funding_policy",
+        "dataset_refs",
+        "availability"
+      ],
+      "title": "DataRequirements",
+      "type": "object"
+    },
+    "EvaluationPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "train": {
+          "$ref": "#/$defs/Period"
+        },
+        "validation": {
+          "$ref": "#/$defs/Period"
+        },
+        "test": {
+          "$ref": "#/$defs/Period"
+        },
+        "holdout_status": {
+          "enum": [
+            "UNOBSERVED_DECLARED",
+            "CONSUMED",
+            "UNKNOWN"
+          ],
+          "title": "Holdout Status",
+          "type": "string"
+        },
+        "holdout_risk": {
+          "minLength": 1,
+          "title": "Holdout Risk",
+          "type": "string"
+        },
+        "walk_forward": {
+          "minLength": 1,
+          "title": "Walk Forward",
+          "type": "string"
+        },
+        "primary_metric": {
+          "minLength": 1,
+          "title": "Primary Metric",
+          "type": "string"
+        },
+        "falsification": {
+          "minLength": 1,
+          "title": "Falsification",
+          "type": "string"
+        },
+        "robustness_plan": {
+          "minLength": 1,
+          "title": "Robustness Plan",
+          "type": "string"
+        }
+      },
+      "required": [
+        "train",
+        "validation",
+        "test",
+        "holdout_status",
+        "holdout_risk",
+        "walk_forward",
+        "primary_metric",
+        "falsification",
+        "robustness_plan"
+      ],
+      "title": "EvaluationPlan",
+      "type": "object"
+    },
+    "ExecutionAssumptions": {
+      "additionalProperties": false,
+      "properties": {
+        "market_mode": {
+          "enum": [
+            "spot",
+            "synthetic",
+            "perpetual"
+          ],
+          "title": "Market Mode",
+          "type": "string"
+        },
+        "runner_protocol": {
+          "minLength": 1,
+          "title": "Runner Protocol",
+          "type": "string"
+        },
+        "entry_timing": {
+          "const": "NEXT_OPEN",
+          "title": "Entry Timing",
+          "type": "string"
+        },
+        "trading_fee_pct": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Trading Fee Pct",
+          "type": "number"
+        },
+        "slippage_pct": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Slippage Pct",
+          "type": "number"
+        },
+        "spread_pct": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Spread Pct",
+          "type": "number"
+        },
+        "stop": {
+          "minLength": 1,
+          "title": "Stop",
+          "type": "string"
+        },
+        "target": {
+          "minLength": 1,
+          "title": "Target",
+          "type": "string"
+        },
+        "sizing": {
+          "minLength": 1,
+          "title": "Sizing",
+          "type": "string"
+        },
+        "intrabar_policy": {
+          "minLength": 1,
+          "title": "Intrabar Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "market_mode",
+        "runner_protocol",
+        "entry_timing",
+        "trading_fee_pct",
+        "slippage_pct",
+        "spread_pct",
+        "stop",
+        "target",
+        "sizing",
+        "intrabar_policy"
+      ],
+      "title": "ExecutionAssumptions",
+      "type": "object"
+    },
+    "HypothesisManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "hypothesis_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "created_at_utc": {
+          "format": "date-time",
+          "title": "Created At Utc",
+          "type": "string"
+        },
+        "researcher_version": {
+          "minLength": 1,
+          "title": "Researcher Version",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "market_hypothesis": {
+          "minLength": 1,
+          "title": "Market Hypothesis",
+          "type": "string"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "#/$defs/SourceRef"
+          },
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "data_requirements": {
+          "$ref": "#/$defs/DataRequirements"
+        },
+        "signal_spec": {
+          "$ref": "#/$defs/SignalSpec"
+        },
+        "parameter_space": {
+          "$ref": "#/$defs/ParameterSpace"
+        },
+        "execution_assumptions": {
+          "$ref": "#/$defs/ExecutionAssumptions"
+        },
+        "evaluation_plan": {
+          "$ref": "#/$defs/EvaluationPlan"
+        },
+        "novelty": {
+          "$ref": "#/$defs/Novelty"
+        },
+        "limitations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        },
+        "expected_compute_class": {
+          "enum": [
+            "SMALL",
+            "MEDIUM",
+            "LARGE",
+            "UNKNOWN"
+          ],
+          "title": "Expected Compute Class",
+          "type": "string"
+        },
+        "requires_new_strategy_code": {
+          "title": "Requires New Strategy Code",
+          "type": "boolean"
+        },
+        "status": {
+          "const": "PROPOSED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "hypothesis_id",
+        "created_at_utc",
+        "researcher_version",
+        "title",
+        "market_hypothesis",
+        "rationale",
+        "source_refs",
+        "data_requirements",
+        "signal_spec",
+        "parameter_space",
+        "execution_assumptions",
+        "evaluation_plan",
+        "novelty",
+        "limitations",
+        "expected_compute_class",
+        "requires_new_strategy_code",
+        "status"
+      ],
+      "title": "HypothesisManifest",
+      "type": "object"
+    },
+    "Novelty": {
+      "additionalProperties": false,
+      "properties": {
+        "prior_work": {
+          "minLength": 1,
+          "title": "Prior Work",
+          "type": "string"
+        },
+        "known_searches": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Known Searches"
+        },
+        "known_variants": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Known Variants"
+        }
+      },
+      "required": [
+        "prior_work",
+        "known_searches",
+        "known_variants"
+      ],
+      "title": "Novelty",
+      "type": "object"
+    },
+    "Parameter": {
+      "additionalProperties": false,
+      "properties": {
+        "values": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "values",
+        "rationale"
+      ],
+      "title": "Parameter",
+      "type": "object"
+    },
+    "ParameterSpace": {
+      "additionalProperties": false,
+      "properties": {
+        "parameters": {
+          "patternProperties": {
+            "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$": {
+              "$ref": "#/$defs/Parameter"
+            }
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "combination_limit": {
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Combination Limit",
+          "type": "integer"
+        },
+        "limit_rationale": {
+          "minLength": 1,
+          "title": "Limit Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "parameters",
+        "combination_limit",
+        "limit_rationale"
+      ],
+      "title": "ParameterSpace",
+      "type": "object"
+    },
+    "Period": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "format": "date-time",
+          "title": "Start",
+          "type": "string"
+        },
+        "end": {
+          "format": "date-time",
+          "title": "End",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "Period",
+      "type": "object"
+    },
+    "SignalSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "long_entry": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Long Entry"
+        },
+        "long_exit": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Long Exit"
+        },
+        "short_entry": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Short Entry"
+        },
+        "short_exit": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Short Exit"
+        },
+        "unsupported_modes": {
+          "items": {
+            "enum": [
+              "LONG_ONLY",
+              "SHORT_ONLY"
+            ],
+            "type": "string"
+          },
+          "title": "Unsupported Modes",
+          "type": "array"
+        },
+        "availability": {
+          "const": "CANDLE_CLOSE",
+          "title": "Availability",
+          "type": "string"
+        },
+        "feature_definitions": {
+          "minLength": 1,
+          "title": "Feature Definitions",
+          "type": "string"
+        }
+      },
+      "required": [
+        "long_entry",
+        "long_exit",
+        "short_entry",
+        "short_exit",
+        "unsupported_modes",
+        "availability",
+        "feature_definitions"
+      ],
+      "title": "SignalSpec",
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "minLength": 1,
+          "title": "Reference",
+          "type": "string"
+        },
+        "accessed_on": {
+          "format": "date",
+          "title": "Accessed On",
+          "type": "string"
+        },
+        "verification": {
+          "enum": [
+            "MANUAL",
+            "UNVERIFIED"
+          ],
+          "title": "Verification",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference",
+        "accessed_on",
+        "verification"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "origin": {
+      "const": "chatgpt-daily-0900",
+      "title": "Origin",
+      "type": "string"
+    },
+    "research_date": {
+      "format": "date",
+      "title": "Research Date",
+      "type": "string"
+    },
+    "source_url": {
+      "maxLength": 2000,
+      "title": "Source Url",
+      "type": "string"
+    },
+    "evidence": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Evidence",
+      "type": "string"
+    },
+    "benchmark": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Benchmark",
+      "type": "string"
+    },
+    "priority": {
+      "enum": [
+        "LOW",
+        "NORMAL",
+        "HIGH"
+      ],
+      "title": "Priority",
+      "type": "string"
+    },
+    "manifest": {
+      "$ref": "#/$defs/HypothesisManifest"
+    }
+  },
+  "required": [
+    "schema_version",
+    "origin",
+    "research_date",
+    "source_url",
+    "evidence",
+    "benchmark",
+    "priority",
+    "manifest"
+  ],
+  "title": "Proposal",
+  "type": "object"
+}
