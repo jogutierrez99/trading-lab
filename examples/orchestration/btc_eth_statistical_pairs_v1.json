@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0",
+  "origin": "chatgpt-daily-0900",
+  "research_date": "2026-11-12",
+  "source_url": "https://arxiv.org/abs/2606.04574v3",
+  "evidence": "Lebiedź y Ślepaczuk, arXiv:2606.04574v3, revisado el 31 de octubre de 2026. El preprint estudia selección de pares, cointegración y una capa de ejecución PPO-LSTM sobre perpetuos Binance USD-M de 1h. Inspira esta hipótesis. Los umbrales, ventanas, BTC–ETH como par fijo y reglas de riesgo de esta ficha son supuestos locales. La ficha carece de resultados propios.",
+  "benchmark": "Efectivo en USDT sin operaciones. Comparar también con un par de reversión de pesos nocionales 1:1 sin filtro de cointegración, con las mismas reglas de entrada, salida, riesgo bruto y costes. Usar largos BTC y ETH por separado como referencias direccionales descriptivas, sobre ventanas comunes y con costes y funding aplicables.",
+  "priority": "NORMAL",
+  "manifest": {
+    "schema_version": "1.0",
+    "hypothesis_id": "btc_eth_statistical_pairs_v1",
+    "created_at_utc": "2026-11-12T05:25:32Z",
+    "researcher_version": "chatgpt-daily-0900/phase-5.2-operator-draft-v1",
+    "title": "BTC–ETH Statistical Pairs V1",
+    "market_hypothesis": "Evaluar si existe una relación de cointegración suficientemente estable entre BTC y ETH para explotar desviaciones transitorias mediante reversión a la media, después de costes y funding.",
+    "rationale": "Adaptación determinista para un solo par. El resultado depende de la estabilidad de la relación, la ejecución conjunta y el coste de ambas patas. La hipótesis admite que el par no supere el filtro o pierda dinero fuera de muestra.",
+    "source_refs": [
+      {
+        "reference": "https://arxiv.org/abs/2606.04574v3",
+        "accessed_on": "2026-11-12",
+        "verification": "MANUAL"
+      }
+    ],
+    "data_requirements": {
+      "assets": ["BTCUSDT", "ETHUSDT"],
+      "timeframe": "1h",
+      "horizon": "Perpetuos Binance USD-M, historial 2022-01-01 a 2026-09-01 UTC con fin exclusivo y 720 horas continuas previas de calentamiento.",
+      "warmup_bars": 720,
+      "gap_policy": "Alinear cierres, aperturas y mark prices de ambos contratos en horas UTC comunes. Exigir eventos de funding verificables por contrato. Tras una discontinuidad no abrir hasta reconstruir 720 horas contiguas. Marcar como no evaluable el segmento si el gap impide verificar la valoración, el funding o la salida de un par abierto.",
+      "funding_policy": "REQUIRED",
+      "dataset_refs": [
+        "data/batch_006_perpetual/ para localizar klines, mark prices y eventos funding de BTCUSDT y ETHUSDT. Verificar cobertura, huellas y sincronía antes de usar."
+      ],
+      "availability": "UNVERIFIED"
+    },
+    "signal_spec": {
+      "long_entry": "En el cierre T, si -4 < z(T) < -2, el filtro está vigente y la cartera está plana, programar compra BTC y venta ETH a la siguiente apertura común.",
+      "long_exit": "En el cierre T, programar cierre de ambas patas a la siguiente apertura común si |z fijado(T)| < 0.5, z fijado(T) <= -4, transcurrieron 48 horas desde la entrada o el filtro dejó de ser válido.",
+      "short_entry": "En el cierre T, si 2 < z(T) < 4, el filtro está vigente y la cartera está plana, programar venta BTC y compra ETH a la siguiente apertura común.",
+      "short_exit": "En el cierre T, programar cierre de ambas patas a la siguiente apertura común si |z fijado(T)| < 0.5, z fijado(T) >= 4, transcurrieron 48 horas desde la entrada o el filtro dejó de ser válido.",
+      "unsupported_modes": [],
+      "availability": "CANDLE_CLOSE",
+      "feature_definitions": "Long y short se refieren al spread, con dos patas en ambos sentidos. Ajustar OLS de log BTC sobre constante y log ETH con los 720 cierres comunes anteriores a T. Aplicar Engle–Granger con constante, un retardo y valor p de cointegración al mismo tramo. El filtro exige p < 0.05, beta positiva y desviación residual válida. Con los mismos coeficientes, formar residuos para los últimos 168 cierres anteriores a T, calcular su media y desviación muestral y normalizar el residuo de T. Para salidas congelar alfa, beta, media y desviación en la señal de entrada. Recalcular el filtro causal en cada cierre."
+    },
+    "parameter_space": {
+      "parameters": {
+        "formation_bars": {"values": [720], "rationale": "Ventana inicial propuesta de 30 días horarios."},
+        "normalization_bars": {"values": [168], "rationale": "Referencia residual inicial de siete días horarios."},
+        "cointegration_p_max": {"values": [0.05], "rationale": "Umbral de entrada predeclarado para el ensayo, sujeto a falsación."},
+        "entry_abs_z": {"values": [2.0], "rationale": "Umbral inicial propuesto para desvíos transitorios."},
+        "exit_abs_z": {"values": [0.5], "rationale": "Banda inicial propuesta de reversión."},
+        "adverse_abs_z": {"values": [4.0], "rationale": "Barrera adversa inicial medida con el spread congelado."},
+        "max_holding_bars": {"values": [48], "rationale": "Limitar el tiempo de exposición a una posible divergencia."},
+        "gross_equity_fraction": {"values": [0.2], "rationale": "Tope nocional bruto inicial conservador para ambas patas."}
+      },
+      "combination_limit": 1,
+      "limit_rationale": "Configuración base predeclarada. Cualquier sensibilidad será un ensayo separado en TRAIN y VALIDATION."
+    },
+    "execution_assumptions": {
+      "market_mode": "perpetual",
+      "runner_protocol": "Protocolo dedicado de ejecución sincronizada BTC–ETH USD-M requerido. Preparación ordinaria bloqueada hasta revisión y verificación de un runner de dos patas.",
+      "entry_timing": "NEXT_OPEN",
+      "trading_fee_pct": 0.05,
+      "slippage_pct": 0.03,
+      "spread_pct": 0.02,
+      "stop": "Stop temporal a 48 horas, barrera adversa del spread congelado en magnitud 4 y salida si falla el filtro. Decisiones al cierre, ejecución a la siguiente apertura común.",
+      "target": "Cerrar el par a la siguiente apertura común si el valor absoluto del z congelado baja de 0.5. Si coinciden reglas, las salidas de riesgo prevalecen.",
+      "sizing": "Una sola pareja sin piramidación. Nocional bruto máximo de 20% del equity previo a la orden. Repartir el bruto en BTC:ETH como 1:beta de entrada, usar signos opuestos y congelar cantidades hasta la salida. Redondear según restricciones del contrato, sin aumentar el bruto, y rechazar el par si una pata no alcanza el mínimo.",
+      "intrabar_policy": "Evaluar solo cierres comunes. Simular ambas patas a la misma apertura o rechazar la entrada completa. Una salida sin apertura verificable de ambas patas invalida el segmento. Valorar margen, liquidación y funding por contrato y reconciliar efectivo y equity conjunto. Usar comisión y slippage por fill y medio spread cotizado por fill. Los porcentajes de esta ficha son escenarios propuestos, sujetos a contraste con datos y tarifas."
+    },
+    "evaluation_plan": {
+      "train": {"start": "2022-01-01T00:00:00Z", "end": "2024-01-01T00:00:00Z"},
+      "validation": {"start": "2024-01-01T00:00:00Z", "end": "2025-01-01T00:00:00Z"},
+      "test": {"start": "2025-01-01T00:00:00Z", "end": "2026-09-01T00:00:00Z"},
+      "holdout_status": "UNKNOWN",
+      "holdout_risk": "Fechas propuestas. Auditar solapamiento con investigaciones previas y congelar reglas antes de tocar TEST. Si hay contaminación, declarar el tramo retrospectivo o reservar otro periodo genuinamente no observado.",
+      "walk_forward": "En TRAIN, simular ventanas móviles de 180 días de formación seguidas de 30 días OOS sin solapamiento entre tramos evaluados. Estimar beta y filtro con historia anterior a cada decisión. Usar VALIDATION como tramo separado y TEST una sola vez tras congelar el protocolo y resolver el estado del holdout.",
+      "primary_metric": "Sortino neto de retornos diarios de la cartera conjunta fuera de muestra, junto a retorno neto, drawdown máximo, rotación, tiempo expuesto y frecuencia del filtro.",
+      "falsification": "Declarar evidencia insuficiente si hay menos de 30 pares cerrados fuera de muestra o no se puede calcular un Sortino comparable. Rechazar la hipótesis si el retorno neto OOS es <= 0 frente a efectivo o el Sortino neto no supera el benchmark de pares predefinido.",
+      "robustness_plan": "Estresar costes de ambos contratos, funding, un retraso de una hora y ventanas o umbrales vecinos en TRAIN y VALIDATION. Medir dependencia de los mayores trades, estabilidad por régimen, drawdown y divergencias prolongadas."
+    },
+    "novelty": {
+      "prior_work": "Inspirado por arXiv:2606.04574v3. Comparación local de un par fijo con reglas deterministas y controles sin aprendizaje por refuerzo.",
+      "known_searches": null,
+      "known_variants": null
+    },
+    "limitations": [
+      "La evidencia del preprint corresponde a su universo y configuración. La cointegración BTC–ETH y los resultados de esta adaptación son hipótesis sin evaluar.",
+      "El motor local verificado separa los mercados y ejecuta una posición por simulación perpetual. Se requiere un protocolo revisado para una cartera con dos patas simultáneas.",
+      "Costes, funding, sincronización, margen, tamaños mínimos y tratamiento del holdout requieren verificación previa.",
+      "La fecha y el timestamp documentan la preparación local de esta ficha. El encargo no incluye metadatos verificables de la ejecución original de la tarea de las 09:00."
+    ],
+    "expected_compute_class": "UNKNOWN",
+    "requires_new_strategy_code": true,
+    "status": "PROPOSED"
+  }
+}

@@ -1,5 +1,11 @@
 # Estado actual del Trading Lab
 
+[Fase 5.2](orchestration-phase-5-2.md) prepara la publicación supervisada
+de BTC–ETH Statistical Pairs V1 y la lectura de un solo Issue. La ficha
+perpetua de dos patas fue admitida con transporte simulado. El runner
+dedicado y las autorizaciones de publicación y procesamiento están
+pendientes.
+
 [Fase 5.1](orchestration-phase-5-1.md) añade entrada GitHub de solo lectura
 al registro existente y preparación local tras revisar el hash y el
 presupuesto. La tarea original de las 09:00 y el publicador automático

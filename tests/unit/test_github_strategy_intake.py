@@ -205,6 +205,48 @@ def test_mocked_github_retries_and_no_proposals(tmp_path, monkeypatch):
     assert result["status"] == "NO_PROPOSALS" and not db.exists()
 
 
+@pytest.mark.parametrize("returned_number", [1, 2])
+def test_supervised_live_read_is_scoped_to_one_issue(
+    tmp_path, proposal_issue, monkeypatch, capsys, returned_number
+):
+    from scripts.github_strategy_intake import main
+
+    calls = []
+
+    def get(token, path):
+        assert token == "mock"
+        calls.append(path)
+        return proposal_issue | {"number": returned_number}, False
+
+    database = tmp_path / "supervised.sqlite3"
+    monkeypatch.setattr(github_intake, "_get", get)
+    monkeypatch.setenv("TRADING_LAB_GITHUB_TOKEN", "mock")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "github_strategy_intake.py",
+            "--db",
+            str(database),
+            "poll",
+            "--author-id",
+            "101",
+            "--live-read",
+            "--issue",
+            "1",
+        ],
+    )
+    code = main()
+    result = json.loads(capsys.readouterr().out)
+    assert calls == [f"/repos/{github_intake.REPO}/issues/1"]
+    if returned_number == 1:
+        assert code == 0 and result["issues"][0]["status"] == "ACCEPTED"
+        assert counts(database)["tasks"] == 1
+    else:
+        assert code == 2 and result["status"] == "WAITING_GITHUB"
+        assert not database.exists()
+
+
 def plan():
     return ImplementationPlan(
         schema_version="1.0",

@@ -107,11 +107,15 @@ def _page(token: str, page: int):
             "page": page,
         }
     )
+    return _get(token, f"/repos/{REPO}/issues?{query}")
+
+
+def _get(token: str, path: str):
     conn = http.client.HTTPSConnection("api.github.com", timeout=8)
     try:
         conn.request(
             "GET",
-            f"/repos/{REPO}/issues?{query}",
+            path,
             headers={
                 "Authorization": "Bearer " + token,
                 "Accept": "application/vnd.github+json",
@@ -132,18 +136,30 @@ def _page(token: str, page: int):
         conn.close()
 
 
+def _retry_read(read, *args):
+    for attempt in range(2):
+        try:
+            return read(*args)
+        except (OSError, http.client.HTTPException):
+            if attempt:
+                raise GitHubUnavailable("GitHub unavailable after two read attempts") from None
+        except (ValueError, RecursionError):
+            raise GitHubUnavailable("Invalid GitHub response") from None
+
+
+def fetch_issue(token: str, number: int) -> list:
+    if not 0 < number < 2**63:
+        raise ValueError("GitHub issue number must be positive and fit in SQLite")
+    issue, more = _retry_read(_get, token, f"/repos/{REPO}/issues/{number}")
+    if not isinstance(issue, dict) or issue.get("number") != number or more:
+        raise GitHubUnavailable("GitHub did not return the requested Issue")
+    return [issue]
+
+
 def fetch_issues(token: str) -> list:
     issues = []
     for page in range(1, MAX_PAGES + 1):
-        for attempt in range(2):
-            try:
-                batch, more = _page(token, page)
-                break
-            except (OSError, http.client.HTTPException):
-                if attempt:
-                    raise GitHubUnavailable("GitHub unavailable after two read attempts") from None
-            except (ValueError, RecursionError):
-                raise GitHubUnavailable("Invalid GitHub response") from None
+        batch, more = _retry_read(_page, token, page)
         if not isinstance(batch, list) or len(batch) > PAGE_SIZE:
             raise GitHubUnavailable("Unexpected GitHub page")
         issues.extend(batch)

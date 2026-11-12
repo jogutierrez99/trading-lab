@@ -7,7 +7,7 @@ import sqlite3
 from pathlib import Path
 
 from trading_lab_orchestration.contracts import _unique
-from trading_lab_orchestration.github_intake import consume, fetch_issues, prepare
+from trading_lab_orchestration.github_intake import consume, fetch_issue, fetch_issues, prepare
 from trading_lab_orchestration.implementation import load_plan
 from trading_lab_orchestration.readonly import ReadOnlyStore
 
@@ -34,15 +34,21 @@ def run(args):
         )
     if args.command == "poll":
         if args.fixture:
+            if args.issue is not None:
+                raise ValueError("The Issue selector requires --live-read")
             return consume(
                 database, set(args.author_id), lambda: _fixture(args.fixture), source_mode="FIXTURE"
             )
         token = os.environ.get("TRADING_LAB_GITHUB_TOKEN", "").strip()
         if not token:
             raise ValueError("TRADING_LAB_GITHUB_TOKEN is required for --live-read")
-        return consume(
-            database, set(args.author_id), lambda: fetch_issues(token), source_mode="GITHUB"
-        )
+
+        def read_issues():
+            if args.issue is not None:
+                return fetch_issue(token, args.issue)
+            return fetch_issues(token)
+
+        return consume(database, set(args.author_id), read_issues, source_mode="GITHUB")
     if args.command == "show":
         with ReadOnlyStore(database).connection() as conn:
             row = conn.execute(
@@ -72,6 +78,7 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     poll = commands.add_parser("poll")
     poll.add_argument("--author-id", type=int, action="append", required=True)
+    poll.add_argument("--issue", type=int, help="With --live-read, fetch only this Issue number")
     mode = poll.add_mutually_exclusive_group(required=True)
     mode.add_argument("--fixture", type=Path)
     mode.add_argument("--live-read", action="store_true")
