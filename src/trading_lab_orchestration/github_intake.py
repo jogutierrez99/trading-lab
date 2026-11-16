@@ -2,7 +2,9 @@
 
 import http.client
 import json
+import os
 import re
+import shlex
 import sqlite3
 import time
 import unicodedata
@@ -28,6 +30,7 @@ from .store import Store, utc_now
 
 REPO = "jogutierrez99/trading-lab"
 LABEL = "strategy-intake"
+TOKEN_NAME = "TRADING_LAB_GITHUB_TOKEN"
 MAX_BODY = 24_000
 PAGE_SIZE = 30
 MAX_PAGES = 5
@@ -182,6 +185,25 @@ def _retry_read(read, *args):
                 raise GitHubUnavailable("GitHub unavailable after two read attempts") from None
         except (ValueError, RecursionError):
             raise GitHubUnavailable("Invalid GitHub response") from None
+
+
+def read_token(env_file: Path | None) -> str:
+    if env_file is None:
+        token = os.environ.get(TOKEN_NAME, "").strip()
+    else:
+        assignments = [
+            match[1]
+            for line in env_file.read_text(encoding="utf-8-sig").splitlines()
+            if (match := re.fullmatch(r"\s*(?:export\s+)?" + TOKEN_NAME + r"\s*=(.*)", line))
+        ]
+        try:
+            parts = shlex.split(assignments[0], comments=True) if len(assignments) == 1 else []
+        except ValueError:
+            parts = []
+        token = parts[0] if len(parts) == 1 else ""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", token):
+        raise ValueError(f"Expected one valid {TOKEN_NAME} assignment")
+    return token
 
 
 def fetch_issue(token: str, number: int) -> list:

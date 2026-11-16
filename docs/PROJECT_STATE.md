@@ -1,5 +1,10 @@
 # Estado actual del Trading Lab
 
+[Autorización local 5.4B](orchestration-pilot-one-shot.md) añade un recibo
+de preparación de un solo uso para pilotos técnicos. Se desarrolla con
+SQLite aislada y procesos simulados. La preparación real del Issue #3 y
+el lanzamiento independiente quedan pendientes.
+
 [Fase 5.4B](orchestration-phase-5-4b-pilot.md) prepara un Issue técnico
 de BTC spot 1h y su plan. El origen supervisado admite revisión manual
 y bloquea la preparación. Quedan pendientes la revisión del commit,

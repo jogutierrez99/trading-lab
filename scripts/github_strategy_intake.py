@@ -3,8 +3,6 @@
 import argparse
 import json
 import os
-import re
-import shlex
 import sqlite3
 from pathlib import Path
 from uuid import uuid4
@@ -17,6 +15,7 @@ from trading_lab_orchestration.github_intake import (
     fetch_issue,
     fetch_issues,
     prepare,
+    read_token,
 )
 from trading_lab_orchestration.implementation import load_plan
 from trading_lab_orchestration.readonly import ReadOnlyStore
@@ -24,26 +23,6 @@ from trading_lab_orchestration.store import utc_now
 from trading_lab_orchestration.workspaces import write_json
 
 REPO = Path(__file__).resolve().parents[1]
-TOKEN_NAME = "TRADING_LAB_GITHUB_TOKEN"
-
-
-def _token(env_file):
-    if env_file is None:
-        token = os.environ.get(TOKEN_NAME, "").strip()
-    else:
-        assignments = [
-            match[1]
-            for line in env_file.read_text(encoding="utf-8-sig").splitlines()
-            if (match := re.fullmatch(r"\s*(?:export\s+)?" + TOKEN_NAME + r"\s*=(.*)", line))
-        ]
-        try:
-            parts = shlex.split(assignments[0], comments=True) if len(assignments) == 1 else []
-        except ValueError:
-            parts = []
-        token = parts[0] if len(parts) == 1 else ""
-    if not re.fullmatch(r"[A-Za-z0-9_-]+", token):
-        raise ValueError(f"Expected one valid {TOKEN_NAME} assignment")
-    return token
 
 
 def _fixture(path):
@@ -59,9 +38,9 @@ def _fixture(path):
 
 def run(args):
     if args.command == "doctor":
-        return diagnose(_token(args.env_file))
+        return diagnose(read_token(args.env_file))
     if args.command == "scan":
-        token = _token(args.env_file)
+        token = read_token(args.env_file)
         issues = fetch_issues(token) if args.issue is None else fetch_issue(token, args.issue)
         return {
             "status": "CHECKED" if issues else "NO_PROPOSALS",
@@ -82,7 +61,7 @@ def run(args):
             return consume(
                 database, set(args.author_id), lambda: _fixture(args.fixture), source_mode="FIXTURE"
             )
-        token = _token(args.env_file)
+        token = read_token(args.env_file)
 
         def read_issues():
             if args.issue is not None:
