@@ -9,6 +9,9 @@ from .contracts import HypothesisManifest, Identifier, Model, Text
 
 Hash = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 Target = Annotated[str, Field(pattern=r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")]
+TECHNICAL_PILOT_ORIGIN = "supervised-technical-pilot"
+SMA_PILOT_ID = "btc_spot_sma50_sma200_1h_pilot_v1"
+PILOT_PREPARATION_BLOCKED = "TECHNICAL_PILOT_PREPARATION_NOT_ENABLED"
 
 
 class ImplementationPlan(Model):

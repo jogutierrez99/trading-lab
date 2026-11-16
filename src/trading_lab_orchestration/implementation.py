@@ -11,7 +11,14 @@ from uuid import uuid4
 
 from .codex_adapter import CodexCLI, PreflightError, usage
 from .contracts import HypothesisManifest, canonical, digest
-from .implementation_contracts import ImplementationPlan, ImplementationRequest, ModelDelivery
+from .implementation_contracts import (
+    PILOT_PREPARATION_BLOCKED,
+    SMA_PILOT_ID,
+    TECHNICAL_PILOT_ORIGIN,
+    ImplementationPlan,
+    ImplementationRequest,
+    ModelDelivery,
+)
 from .process_identity import inspected, pending, record_process
 from .processes import coordinator_lock, run_process
 from .store import Store, utc_now
@@ -40,6 +47,11 @@ def load_plan(path: Path) -> ImplementationPlan:
 def review_spec(manifest: HypothesisManifest, plan: ImplementationPlan) -> str:
     if manifest.requires_new_strategy_code != (plan.operation == "NEW_STRATEGY"):
         raise ValueError("Plan operation contradicts requires_new_strategy_code")
+    check_spec_fields(manifest)
+    return review_runner(manifest)
+
+
+def check_spec_fields(manifest: HypothesisManifest) -> None:
     core = [
         manifest.signal_spec.feature_definitions,
         manifest.execution_assumptions.runner_protocol,
@@ -57,6 +69,9 @@ def review_spec(manifest: HypothesisManifest, plan: ImplementationPlan) -> str:
         if text
     ):
         raise ValueError("Essential specification contains unresolved placeholders")
+
+
+def review_runner(manifest: HypothesisManifest) -> str:
     if manifest.execution_assumptions.market_mode == "perpetual":
         raise ValueError("Dedicated perpetual implementation requires a separate reviewed protocol")
     if manifest.data_requirements.timeframe not in {"1h", "4h", "1d"}:
@@ -81,6 +96,22 @@ def _alive(pid: int | None, identity=None) -> bool:
     from .process_identity import identity_state
 
     return identity_state(pid, identity) in {"RUNNING", "UNKNOWN"}
+
+
+def _check_technical_pilot(conn, task_id, manifest, plan):
+    if SMA_PILOT_ID in (manifest.hypothesis_id, plan.target):
+        raise ValueError(PILOT_PREPARATION_BLOCKED)
+    if (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='github_intake'"
+        ).fetchone()
+        and conn.execute(
+            """SELECT 1 FROM github_intake WHERE task_id=? AND status='ACCEPTED'
+           AND json_extract(proposal_json, '$.origin')=?""",
+            (task_id, TECHNICAL_PILOT_ORIGIN),
+        ).fetchone()
+    ):
+        raise ValueError(PILOT_PREPARATION_BLOCKED)
 
 
 class Coordinator:
@@ -210,6 +241,7 @@ class Coordinator:
                 manifest = HypothesisManifest.model_validate_json(row["manifest_json"])
                 if digest(manifest.snapshot()) != row["manifest_sha256"]:
                     raise ValueError("Stored hypothesis hash mismatch")
+                _check_technical_pilot(conn, task_id, manifest, plan)
                 protocol = review_spec(manifest, plan)
                 prior = conn.execute(
                     "SELECT * FROM attempts WHERE task_id=? ORDER BY number DESC", (task_id,)

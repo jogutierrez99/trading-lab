@@ -581,7 +581,10 @@
       "type": "string"
     },
     "origin": {
-      "const": "chatgpt-daily-0900",
+      "enum": [
+        "chatgpt-daily-0900",
+        "supervised-technical-pilot"
+      ],
       "title": "Origin",
       "type": "string"
     },

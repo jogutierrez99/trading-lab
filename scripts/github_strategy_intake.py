@@ -3,15 +3,47 @@
 import argparse
 import json
 import os
+import re
+import shlex
 import sqlite3
 from pathlib import Path
+from uuid import uuid4
 
 from trading_lab_orchestration.contracts import _unique
-from trading_lab_orchestration.github_intake import consume, fetch_issue, fetch_issues, prepare
+from trading_lab_orchestration.github_intake import (
+    GitHubUnavailable,
+    consume,
+    diagnose,
+    fetch_issue,
+    fetch_issues,
+    prepare,
+)
 from trading_lab_orchestration.implementation import load_plan
 from trading_lab_orchestration.readonly import ReadOnlyStore
+from trading_lab_orchestration.store import utc_now
+from trading_lab_orchestration.workspaces import write_json
 
 REPO = Path(__file__).resolve().parents[1]
+TOKEN_NAME = "TRADING_LAB_GITHUB_TOKEN"
+
+
+def _token(env_file):
+    if env_file is None:
+        token = os.environ.get(TOKEN_NAME, "").strip()
+    else:
+        assignments = [
+            match[1]
+            for line in env_file.read_text(encoding="utf-8-sig").splitlines()
+            if (match := re.fullmatch(r"\s*(?:export\s+)?" + TOKEN_NAME + r"\s*=(.*)", line))
+        ]
+        try:
+            parts = shlex.split(assignments[0], comments=True) if len(assignments) == 1 else []
+        except ValueError:
+            parts = []
+        token = parts[0] if len(parts) == 1 else ""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", token):
+        raise ValueError(f"Expected one valid {TOKEN_NAME} assignment")
+    return token
 
 
 def _fixture(path):
@@ -26,6 +58,17 @@ def _fixture(path):
 
 
 def run(args):
+    if args.command == "doctor":
+        return diagnose(_token(args.env_file))
+    if args.command == "scan":
+        token = _token(args.env_file)
+        issues = fetch_issues(token) if args.issue is None else fetch_issue(token, args.issue)
+        return {
+            "status": "CHECKED" if issues else "NO_PROPOSALS",
+            "issues": [{"issue_number": issue["number"]} for issue in issues],
+        }
+    if args.db is None:
+        raise ValueError("--db is required for this command")
     database = args.db.resolve()
     ledger = os.environ.get("TRADING_LAB_GLOBAL_API_DB")
     if database.is_relative_to(REPO) or (ledger and database == Path(ledger).resolve()):
@@ -39,9 +82,7 @@ def run(args):
             return consume(
                 database, set(args.author_id), lambda: _fixture(args.fixture), source_mode="FIXTURE"
             )
-        token = os.environ.get("TRADING_LAB_GITHUB_TOKEN", "").strip()
-        if not token:
-            raise ValueError("TRADING_LAB_GITHUB_TOKEN is required for --live-read")
+        token = _token(args.env_file)
 
         def read_issues():
             if args.issue is not None:
@@ -49,6 +90,21 @@ def run(args):
             return fetch_issues(token)
 
         return consume(database, set(args.author_id), read_issues, source_mode="GITHUB")
+    if args.command == "list":
+        if not database.exists():
+            return {"status": "NO_CHECKPOINTS", "issues": []}
+        with ReadOnlyStore(database).connection() as conn:
+            if (
+                conn.execute("SELECT 1 FROM sqlite_master WHERE name='github_intake'").fetchone()
+                is None
+            ):
+                return {"status": "NO_CHECKPOINTS", "issues": []}
+            rows = conn.execute(
+                """SELECT issue_number, status, reason, task_id, proposal_sha256
+                FROM github_intake ORDER BY issue_number DESC LIMIT ?""",
+                (args.limit,),
+            ).fetchall()
+        return {"status": "CHECKED", "issues": list(map(dict, rows))}
     if args.command == "show":
         with ReadOnlyStore(database).connection() as conn:
             row = conn.execute(
@@ -74,8 +130,14 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", type=Path, required=True)
+    parser.add_argument("--db", type=Path)
+    parser.add_argument("--env-file", type=Path, help="Read only the GitHub token assignment")
+    parser.add_argument("--log-dir", type=Path, help="Write one JSON receipt per poll")
     commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("doctor")
+    commands.add_parser("scan").add_argument("--issue", type=int)
+    listing = commands.add_parser("list")
+    listing.add_argument("--limit", type=int, choices=range(1, 501), default=50, metavar="1..500")
     poll = commands.add_parser("poll")
     poll.add_argument("--author-id", type=int, action="append", required=True)
     poll.add_argument("--issue", type=int, help="With --live-read, fetch only this Issue number")
@@ -89,11 +151,33 @@ def main():
     prep.add_argument("--reviewed-sha256", required=True)
     prep.add_argument("--plan", type=Path, required=True)
     prep.add_argument("--artifacts", type=Path, required=True)
+    args = parser.parse_args()
+    if args.log_dir is not None and args.command != "poll":
+        parser.error("--log-dir is supported only for poll")
+    log_dir = None
+    result = {"status": "BLOCKED", "reason": "Poll interrupted"}
     try:
-        result = run(parser.parse_args())
+        if args.log_dir is not None:
+            path = args.log_dir.resolve()
+            if path.is_relative_to(REPO):
+                raise ValueError("Use a log directory outside the checkout")
+            path.mkdir(parents=True, exist_ok=True)
+            log_dir = path
+        result = run(args)
+    except GitHubUnavailable as exc:
+        result = {"status": "WAITING_GITHUB", "reason": str(exc), "retry_at_epoch": exc.retry_at}
+    except KeyboardInterrupt:
+        pass
     except (OSError, ValueError, sqlite3.Error, RecursionError) as exc:
         status = "WAITING_LOCK" if "owns the OS lock" in str(exc) else "BLOCKED"
         result = {"status": status, "reason": str(exc)}
+    if log_dir is not None:
+        now = utc_now()
+        log_name = now.replace(":", "") + "-" + uuid4().hex + ".json"
+        try:
+            write_json(log_dir / log_name, {"utc": now, "command": "poll", **result})
+        except OSError:
+            result = {"status": "BLOCKED", "reason": "Unable to write poll log", "poll": result}
     print(json.dumps(result, ensure_ascii=True, indent=2))
     return (
         2

@@ -1,0 +1,30 @@
+{
+  "status": "PENDING_OPERATOR_APPROVAL",
+  "repository": "jogutierrez99/trading-lab",
+  "issue_number": null,
+  "issue_id": null,
+  "task_id": null,
+  "hypothesis_id": "btc_spot_sma50_sma200_1h_pilot_v1",
+  "proposal_sha256": "c95b03b4f2435dfb12a7b583e4d0a0eea6f3ee2f9ab676a8dc773747b8d83170",
+  "plan_sha256": "4ad04384dff80578e51d01a36154fcd7c9f02d368dbc17f47d426a9eac17e2b3",
+  "base_commit": null,
+  "requested_permission": "PREPARE_ONLY",
+  "operation": "NEW_STRATEGY",
+  "separate_launch_approval_required": true,
+  "max_implementation_attempts": 1,
+  "max_api_eur": 0,
+  "cli_quota": "ChatGPT quota; reconfirm before launch",
+  "wall_seconds": 600,
+  "check_timeout_seconds": 60,
+  "backtests_allowed": false,
+  "approved_by": null,
+  "approved_at_utc": null,
+  "success": "Independent IMPLEMENTED_VERIFIED receipt for the exact three allowed paths",
+  "stop_if": [
+    "Unverified operator or checkpoint",
+    "Mismatched proposal, plan or base commit",
+    "Unknown spend, insufficient budget or active/uncertain work",
+    "Any previous attempt",
+    "Timeout, failed check or scope violation"
+  ]
+}

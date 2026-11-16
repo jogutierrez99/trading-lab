@@ -1,0 +1,47 @@
+{
+  "dataset_id": "2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b",
+  "parquet_sha256": "ffcbcb8f8daccaf1f7d9d8c2a1d43075ed1a64e0b6629f30d5a31a79937db0c7",
+  "spot_source": {
+    "end": "2023-03-01T00:00:00Z",
+    "market_type": "spot",
+    "provider": "binance",
+    "start": "2022-01-02T00:00:00Z",
+    "symbol": "BTC/USDT",
+    "timeframe": "1h",
+    "warmup_bars": 768
+  },
+  "rows": 10920,
+  "dataset_coverage": [
+    "2021-12-01 00:00:00+00:00",
+    "2023-03-01 00:00:00+00:00"
+  ],
+  "windows": {
+    "train": {
+      "first_bar_with_warmup": "2022-01-22 00:00:00+00:00",
+      "last_bar": "2022-03-31 23:00:00+00:00",
+      "bars": 1416,
+      "warmup_bars": 240
+    },
+    "validation": {
+      "first_bar_with_warmup": "2022-03-22 00:00:00+00:00",
+      "last_bar": "2022-04-30 23:00:00+00:00",
+      "bars": 720,
+      "warmup_bars": 240
+    },
+    "test": {
+      "first_bar_with_warmup": "2022-04-21 00:00:00+00:00",
+      "last_bar": "2022-05-31 23:00:00+00:00",
+      "bars": 744,
+      "warmup_bars": 240
+    }
+  },
+  "protocol": "StudyBackend v1 / lab_experiment_v1",
+  "base_checkout": "8ee2941efd81bde4d7cfd8e57ce3876836cde31c",
+  "manifest_sha256": "5767883a6c59afe7014642fb1dd90f5953a0065993224e90eb7f0c4a2a1d3961",
+  "draft_plan_sha256": "4ad04384dff80578e51d01a36154fcd7c9f02d368dbc17f47d426a9eac17e2b3",
+  "backtests": 0,
+  "issue_created": false,
+  "authorization_created": false,
+  "proposal_sha256": "c95b03b4f2435dfb12a7b583e4d0a0eea6f3ee2f9ab676a8dc773747b8d83170",
+  "issue_body_sha256": "c1dbbfad1b7dcd727961e628f5558130147b49be39babc7f49b2cdb0d4bf0704"
+}

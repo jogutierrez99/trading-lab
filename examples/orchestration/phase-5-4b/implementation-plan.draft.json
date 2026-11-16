@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0",
+  "operation": "NEW_STRATEGY",
+  "target": "btc_spot_sma50_sma200_1h_pilot_v1",
+  "specification_reviewed": true,
+  "review_note": "Borrador para validar contrato. Requiere aprobacion independiente. Solo SMA50/200 causal LONG_ONLY y perfil deshabilitado; reutilizar ATR, sizing y protecciones nativas. Tests sinteticos de senal, alineacion, warmup y causalidad. Sin datos reales en el worktree ni backtests.",
+  "max_wall_seconds": 600,
+  "check_timeout_seconds": 60
+}

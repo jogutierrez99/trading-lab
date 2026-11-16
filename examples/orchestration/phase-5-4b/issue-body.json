@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "origin": "supervised-technical-pilot",
+  "research_date": "2026-11-16",
+  "source_url": "https://github.com/jogutierrez99/trading-lab/blob/8ee2941efd81bde4d7cfd8e57ce3876836cde31c/docs/btc-spot-1h.md",
+  "evidence": "Preflight local del 2026-11-16: bundle BTCUSDT Binance spot 1h 2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b, SHA-256 Parquet ffcbcb8f8daccaf1f7d9d8c2a1d43075ed1a64e0b6629f30d5a31a79937db0c7. Validación de datos: 10.920 velas UTC; 240 velas previas por tramo. Febrero-marzo: 1416 velas, abril: 720, mayo: 744. Reloj y límites UTC. Compatibilidad estructural con StudyBackend v1. Piloto de infraestructura; sin resultados económicos.",
+  "benchmark": "Aceptación exclusivamente técnica mediante recibo IMPLEMENTED_VERIFIED, pruebas rápidas y probe nativo sintético; sin comparación económica.",
+  "priority": "NORMAL",
+  "manifest": {
+    "schema_version": "1.0",
+    "hypothesis_id": "btc_spot_sma50_sma200_1h_pilot_v1",
+    "created_at_utc": "2026-11-16T19:08:56.749469Z",
+    "researcher_version": "manual-preflight/1.0",
+    "title": "BTC spot 1h: cruce SMA50/SMA200",
+    "market_hypothesis": "Un cruce alcista de SMA50 sobre SMA200 puede identificar continuacion de tendencia en BTC spot.",
+    "rationale": "Adaptacion de la propuesta inicial documentada a un intervalo continuo y retrospectivo para verificar la integracion.",
+    "source_refs": [
+      {
+        "reference": "https://github.com/jogutierrez99/trading-lab/blob/8ee2941efd81bde4d7cfd8e57ce3876836cde31c/docs/btc-spot-1h.md",
+        "accessed_on": "2026-11-16",
+        "verification": "MANUAL"
+      }
+    ],
+    "data_requirements": {
+      "assets": [
+        "BTCUSDT"
+      ],
+      "timeframe": "1h",
+      "horizon": "2022-02-01 a 2022-06-01 UTC; fin exclusivo.",
+      "warmup_bars": 240,
+      "gap_policy": "Rechazar gaps, duplicados y desalineacion tambien en la precarga; sin imputacion.",
+      "funding_policy": "NOT_APPLICABLE",
+      "dataset_refs": [
+        "data/history/2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b"
+      ],
+      "availability": "MANUALLY_VERIFIED"
+    },
+    "signal_spec": {
+      "long_entry": "SMA50[T] > SMA200[T] y SMA50[T-1] <= SMA200[T-1].",
+      "long_exit": "SMA50[T] < SMA200[T] y SMA50[T-1] >= SMA200[T-1].",
+      "short_entry": null,
+      "short_exit": null,
+      "unsupported_modes": [
+        "SHORT_ONLY"
+      ],
+      "availability": "CANDLE_CLOSE",
+      "feature_definitions": "Medias aritmeticas de cierres incluida T con min_periods=ventana y comparacion con T-1. False si falta una media. OHLCV DatetimeIndex UTC. ATR14 aritmetico nativo, a cargo del runner. Sin operar durante la precarga."
+    },
+    "parameter_space": {
+      "parameters": {
+        "fast_sma_period": {
+          "values": [
+            50
+          ],
+          "rationale": "Valor fijo de la propuesta original de cruce SMA."
+        },
+        "slow_sma_period": {
+          "values": [
+            200
+          ],
+          "rationale": "Valor fijo de la propuesta original de cruce SMA."
+        }
+      },
+      "combination_limit": 1,
+      "limit_rationale": "Una configuracion fija, sin busqueda ni ajuste de resultados."
+    },
+    "execution_assumptions": {
+      "market_mode": "spot",
+      "runner_protocol": "StudyBackend v1",
+      "entry_timing": "NEXT_OPEN",
+      "trading_fee_pct": 0.1,
+      "slippage_pct": 0.03,
+      "spread_pct": 0.02,
+      "stop": "2 x ATR14 aritmetico de T debajo del precio efectivo de entrada, fijo y sin trailing.",
+      "target": "2R de distancia de precio desde la entrada, objetivo fijo; sin time stop.",
+      "sizing": "Capital inicial 10000 USDT; stop_risk 0.5% del patrimonio incluyendo costes, max_position_pct y max_exposure_pct 100. Una posicion sin apalancamiento ni piramidacion. Paso y minimo de cantidad 0.000001 BTC y minimo nocional 10 USDT como supuestos de investigacion.",
+      "intrabar_policy": "Protecciones a la apertura antes de salida por senal; gap stop a open, gap objetivo al objetivo. Stop primero si stop y objetivo se tocan intrabar. Sin reentrada en la misma apertura; liquidacion al cierre final del tramo. Costes adversos y comision en entrada y salida."
+    },
+    "evaluation_plan": {
+      "train": {
+        "start": "2022-02-01T00:00:00Z",
+        "end": "2022-04-01T00:00:00Z"
+      },
+      "validation": {
+        "start": "2022-04-01T00:00:00Z",
+        "end": "2022-05-01T00:00:00Z"
+      },
+      "test": {
+        "start": "2022-05-01T00:00:00Z",
+        "end": "2022-06-01T00:00:00Z"
+      },
+      "holdout_status": "CONSUMED",
+      "holdout_risk": "Ventanas historicas reutilizadas por el laboratorio; estrato TEST solo retrospectivo; no se ejecuta en este piloto.",
+      "walk_forward": "Sin walk forward en el piloto de implementacion y sin seleccion de parametros.",
+      "primary_metric": "Aceptacion tecnica por entrega verificada; en un futuro estudio exploratorio, reportar expectancy neta, operaciones, retorno y drawdown por tramo.",
+      "falsification": "En un estudio futuro separado, expectancy neta de validacion no positiva refutaria el criterio economico propuesto; informar muestra insuficiente.",
+      "robustness_plan": "Solo tras una autorizacion separada, evaluar costes dobles con parametros fijos y reportar sensibilidad. Independencia requiere evidencia temporal nueva."
+    },
+    "novelty": {
+      "prior_work": "La propuesta SMA original esta documentada. trend_following implementa Donchian con EMA, no este cruce.",
+      "known_searches": null,
+      "known_variants": null
+    },
+    "limitations": [
+      "Sin resultados economicos para esta candidata.",
+      "Horizonte reducido frente al documento original.",
+      "Los costes y filtros son supuestos de simulacion."
+    ],
+    "expected_compute_class": "SMALL",
+    "requires_new_strategy_code": true,
+    "status": "PROPOSED"
+  }
+}

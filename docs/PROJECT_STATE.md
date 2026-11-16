@@ -1,5 +1,22 @@
 # Estado actual del Trading Lab
 
+[Fase 5.4B](orchestration-phase-5-4b-pilot.md) prepara un Issue técnico
+de BTC spot 1h y su plan. El origen supervisado admite revisión manual
+y bloquea la preparación. Quedan pendientes la revisión del commit,
+la publicación supervisada y las autorizaciones independientes.
+
+[Fase 5.4A](orchestration-phase-5-4a.md) añade un diagnóstico de solo
+lectura para propuestas GitHub. En una copia de la cola periódica,
+los Issues #1 y #2 conservaron sus tareas en revisión manual y requieren
+protocolos dedicados de cartera. El contrato de vinculación local se
+probó en fixtures; el diagnóstico no activa la preparación real.
+
+[Fase 5.3](orchestration-phase-5-3.md) reutiliza la cola para recibir Issues
+de GitHub en pasadas periódicas con logs y recuperación por checkpoint.
+El Issue #2 fue aceptado en una SQLite aislada y la segunda lectura
+recuperó la misma tarea. La activación supervisada dejó el receptor
+habilitado cada 15 minutos; la fase 5.4A lo consultó sin modificarlo.
+
 [Fase 5.2](orchestration-phase-5-2.md) prepara la publicación supervisada
 de BTC–ETH Statistical Pairs V1 y la lectura de un solo Issue. La ficha
 perpetua de dos patas fue admitida con transporte simulado. El runner

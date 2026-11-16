@@ -4,6 +4,7 @@ import http.client
 import json
 import re
 import sqlite3
+import time
 import unicodedata
 from datetime import date
 from pathlib import Path
@@ -15,7 +16,12 @@ from pydantic import Field, field_validator, model_validator
 from .audit_model import Budget
 from .contracts import HypothesisManifest, Model, _unique, canonical, digest
 from .implementation import Coordinator
-from .implementation_contracts import ImplementationPlan
+from .implementation_contracts import (
+    PILOT_PREPARATION_BLOCKED,
+    SMA_PILOT_ID,
+    TECHNICAL_PILOT_ORIGIN,
+    ImplementationPlan,
+)
 from .processes import coordinator_lock
 from .readonly import ReadOnlyStore
 from .store import Store, utc_now
@@ -61,7 +67,7 @@ def normalized_source(value: str) -> str:
 
 class Proposal(Model):
     schema_version: Literal["1.0"]
-    origin: Literal["chatgpt-daily-0900"]
+    origin: Literal["chatgpt-daily-0900", "supervised-technical-pilot"]
     research_date: date
     source_url: Annotated[str, Field(max_length=2000)]
     evidence: BoundedText
@@ -75,6 +81,14 @@ class Proposal(Model):
     def source_is_cited(self):
         if self.source_url not in {ref.reference for ref in self.manifest.source_refs}:
             raise ValueError("source_url must appear in manifest.source_refs")
+        if self.origin == TECHNICAL_PILOT_ORIGIN:
+            if not re.fullmatch(
+                rf"https://github\.com/{re.escape(REPO)}/blob/[0-9a-f]{{40}}/docs/.+\.md",
+                self.source_url,
+            ):
+                raise ValueError("Technical pilot requires a commit-pinned repository document")
+        elif self.manifest.hypothesis_id == SMA_PILOT_ID:
+            raise ValueError("The SMA pilot requires supervised technical provenance")
         return self
 
     def identity(self) -> str:
@@ -93,7 +107,9 @@ def parse_proposal(body: str) -> Proposal:
 
 
 class GitHubUnavailable(Exception):
-    pass
+    def __init__(self, message: str, *, retry_at: int | None = None):
+        super().__init__(message)
+        self.retry_at = retry_at
 
 
 def _page(token: str, page: int):
@@ -124,7 +140,28 @@ def _get(token: str, path: str):
             },
         )
         response = conn.getresponse()
-        if response.status in (502, 503, 504) and not response.getheader("Retry-After"):
+        retry_after = response.getheader("Retry-After")
+        if (
+            response.status == 429
+            or (
+                response.status == 403
+                and (retry_after or response.getheader("X-RateLimit-Remaining") == "0")
+            )
+            or (response.status in (502, 503, 504) and retry_after)
+        ):
+            now = int(time.time())
+            reset = response.getheader("X-RateLimit-Reset") or ""
+            seconds = retry_after or ""
+            raise GitHubUnavailable(
+                f"GitHub requested backoff (HTTP {response.status})",
+                retry_at=max(
+                    now + max(60, int(seconds)) if seconds.isdecimal() else now + 60,
+                    int(reset)
+                    if response.getheader("X-RateLimit-Remaining") == "0" and reset.isdecimal()
+                    else 0,
+                ),
+            )
+        if response.status in (502, 503, 504):
             raise TimeoutError("Transient GitHub response")
         if response.status != 200:
             raise GitHubUnavailable(f"GitHub HTTP {response.status}")
@@ -158,14 +195,34 @@ def fetch_issue(token: str, number: int) -> list:
 
 def fetch_issues(token: str) -> list:
     issues = []
+    ids = set()
     for page in range(1, MAX_PAGES + 1):
         batch, more = _retry_read(_page, token, page)
-        if not isinstance(batch, list) or len(batch) > PAGE_SIZE:
+        if not isinstance(batch, list) or len(batch) > PAGE_SIZE or (more and not batch):
             raise GitHubUnavailable("Unexpected GitHub page")
-        issues.extend(batch)
+        for issue in batch:
+            if not isinstance(issue, dict) or type(issue.get("id")) is not int:
+                raise GitHubUnavailable("Incomplete GitHub Issue response")
+            if issue["id"] in ids:
+                raise GitHubUnavailable("GitHub pages overlapped; retry the complete scan")
+            ids.add(issue["id"])
+            if "pull_request" not in issue:
+                issues.append(issue)
         if not more:
             return issues
     raise GitHubUnavailable("Too many open intake issues; review and close handled issues first")
+
+
+def diagnose(token: str) -> dict:
+    label, _ = _retry_read(_get, token, f"/repos/{REPO}/labels/{LABEL}")
+    if not isinstance(label, dict) or label.get("name") != LABEL:
+        raise GitHubUnavailable("GitHub did not return the intake label")
+    return {
+        "status": "CONNECTED",
+        "repository": REPO,
+        "label": LABEL,
+        "open_labelled_issues": len(fetch_issues(token)),
+    }
 
 
 def _process(conn, store, issue, author_ids, source_mode):
@@ -304,9 +361,30 @@ def consume(database: Path, author_ids: set[int], read_issues, *, source_mode: s
         raise ValueError("Configure authorized numeric GitHub author IDs")
     database = database.resolve()
     with coordinator_lock(database.with_suffix(".github-intake.lock")):
+        backoff = database.with_suffix(".github-backoff")
+        if source_mode == "GITHUB" and backoff.exists():
+            retry_at = int(backoff.read_text(encoding="ascii"))
+            if retry_at > time.time():
+                return {
+                    "status": "WAITING_GITHUB",
+                    "reason": "GitHub backoff active",
+                    "retry_at_epoch": retry_at,
+                    "issues": [],
+                }
+            backoff.unlink()
         try:
             issues = read_issues()
         except GitHubUnavailable as exc:
+            if source_mode == "GITHUB" and exc.retry_at is not None:
+                staged = backoff.with_suffix(".github-backoff.tmp")
+                staged.write_text(str(exc.retry_at), encoding="ascii")
+                staged.replace(backoff)
+                return {
+                    "status": "WAITING_GITHUB",
+                    "reason": str(exc),
+                    "retry_at_epoch": exc.retry_at,
+                    "issues": [],
+                }
             return {"status": "WAITING_GITHUB", "reason": str(exc), "issues": []}
         if not issues:
             return {"status": "NO_PROPOSALS", "issues": []}
@@ -346,6 +424,8 @@ def prepare(
                     "Preparation requires the accepted Issue and reviewed proposal hash"
                 )
             proposal = Proposal.model_validate_json(row["proposal_json"])
+            if proposal.origin == TECHNICAL_PILOT_ORIGIN:
+                raise ValueError(PILOT_PREPARATION_BLOCKED)
             task = conn.execute(
                 """SELECT manifest_sha256 FROM candidates JOIN tasks USING(candidate_id)
                 WHERE task_id=?""",
