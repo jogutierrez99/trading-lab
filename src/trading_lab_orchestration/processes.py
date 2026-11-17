@@ -161,6 +161,7 @@ def run_process(
     on_start: Callable[[dict], None] | None = None,
     *,
     omit_env: tuple[str, ...] = (),
+    output_limit: int | None = None,
 ) -> dict:
     """Exclusive logs, external wall limit and full process-tree termination."""
     started = time.monotonic()
@@ -171,6 +172,26 @@ def run_process(
     timed_out = False
     identity = None
     pidfd = None
+    readers = []
+    truncated = threading.Event()
+
+    def drain(pipe, destination):
+        remaining = output_limit
+        with pipe:
+            while chunk := pipe.read1(65536):
+                destination.write(chunk[:remaining])
+                if len(chunk) > remaining:
+                    truncated.set()
+                remaining = max(0, remaining - len(chunk))
+
+    def feed():
+        try:
+            if input_text is not None:
+                process.stdin.write(input_text.encode("utf-8"))
+            process.stdin.close()
+        except (BrokenPipeError, OSError):
+            pass
+
     try:
         with stdout.open("xb") as out, stderr.open("xb") as err:
             process = subprocess.Popen(
@@ -178,8 +199,8 @@ def run_process(
                 cwd=cwd,
                 env=safe_environment(cwd, omit=omit_env),
                 stdin=subprocess.PIPE,
-                stdout=out,
-                stderr=err,
+                stdout=out if output_limit is None else subprocess.PIPE,
+                stderr=err if output_limit is None else subprocess.PIPE,
                 shell=False,
                 creationflags=(0x00000004 | 0x08000000) if os.name == "nt" else 0,
                 start_new_session=os.name != "nt",
@@ -191,27 +212,35 @@ def run_process(
             identity = capture(process.pid, int(process._handle) if os.name == "nt" else None)
             if on_start:
                 on_start(identity)
-            if job:
-                job.resume(process)
             try:
+                if output_limit is not None:
+                    for pipe, destination in ((process.stdout, stdout), (process.stderr, stderr)):
+                        # Open an independent handle that survives process-tree cleanup.
+                        with destination.open("ab") as log:
+                            writer = os.fdopen(os.dup(log.fileno()), "ab")
+
+                        def copy_output(pipe=pipe, writer=writer):
+                            with writer:
+                                drain(pipe, writer)
+
+                        reader = threading.Thread(target=copy_output, daemon=True)
+                        readers.append(reader)
+                        reader.start()
                 if job:
+                    job.resume(process)
+                if job and output_limit is None:
                     process.communicate(
                         input=input_text.encode("utf-8") if input_text is not None else None,
                         timeout=max(0.001, timeout),
                     )
+                elif job:
+                    threading.Thread(target=feed, daemon=True).start()
+                    process.wait(timeout=max(0.001, timeout))
                 else:
                     import select
 
                     # Do not reap the group leader until group cleanup: its retained
                     # PID prevents a foreign process group from acquiring the same ID.
-                    def feed():
-                        try:
-                            if input_text is not None:
-                                process.stdin.write(input_text.encode("utf-8"))
-                            process.stdin.close()
-                        except (BrokenPipeError, OSError):
-                            pass
-
                     threading.Thread(target=feed, daemon=True).start()
                     if not select.select([pidfd], [], [], max(0.001, timeout))[0]:
                         raise subprocess.TimeoutExpired(argv, timeout)
@@ -248,6 +277,10 @@ def run_process(
                     raise ValueError("Original process termination is not confirmed")
         if pidfd is not None:
             os.close(pidfd)
+        for reader in readers:
+            reader.join(timeout=2)
+            if reader.is_alive():
+                raise ValueError("Bounded output pipe did not close")
     return {
         "argv": argv,
         "pid": process.pid,
@@ -257,4 +290,5 @@ def run_process(
         "duration_seconds": time.monotonic() - started,
         "stdout": str(stdout),
         "stderr": str(stderr),
+        **({"output_truncated": truncated.is_set()} if output_limit is not None else {}),
     }

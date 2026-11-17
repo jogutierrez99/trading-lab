@@ -41,7 +41,7 @@ class CodexCLI:
         if Path(found).suffix.lower() in {".cmd", ".bat", ".ps1"}:
             raise PreflightError("Use a native executable, not a shell wrapper (.cmd/.bat/.ps1)")
 
-    def probe(self, cwd: Path) -> dict:
+    def probe(self, cwd: Path, *, require_chatgpt=False) -> dict:
         def call(args: list[str]) -> subprocess.CompletedProcess:
             try:
                 return subprocess.run(
@@ -70,6 +70,11 @@ class CodexCLI:
         # Never store/print authentication command stdout/stderr; it may include account details.
         if login.returncode:
             raise PreflightError("Codex local authentication unavailable; run codex login manually")
+        if (
+            require_chatgpt
+            and "logged in using chatgpt" not in (login.stdout + login.stderr).casefold()
+        ):
+            raise PreflightError("Technical pilot requires Codex signed in using ChatGPT")
         return {
             "executable": self.executable,
             "version": version.stdout.strip(),

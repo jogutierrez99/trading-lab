@@ -98,6 +98,11 @@ class Executor:
         )
 
     def prepare(self, implementation_id, plan, artifacts, retry_of=None):
+        from .pilot_authorization import authorization_for_attempt
+
+        with self.store.connection() as conn:
+            if authorization_for_attempt(conn, implementation_id):
+                raise ValueError("Technical pilot requires separate backtest authorization")
         plan = ExecutionPlan.model_validate_json(canonical(plan.model_dump(mode="json")))
         with coordinator_lock(self.lock):
             attempt, implementation, receipt_path, receipt = resolve_implementation(

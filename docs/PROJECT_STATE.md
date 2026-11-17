@@ -1,5 +1,12 @@
 # Estado actual del Trading Lab
 
+[Lanzamiento independiente 5.4B](orchestration-pilot-launch.md) incorpora
+el permiso de un solo uso para un intento técnico preparado y un
+verificador Linux para el Python entregado. Las regresiones del
+coordinador usan simulaciones. La prueba real en Windows pasó con
+Docker Desktop, WSL2 y una estrategia SMA ficticia. El Issue #3 conserva
+el intento original en PREPARED y cero autorizaciones LAUNCH_CODEX.
+
 [Autorización local 5.4B](orchestration-pilot-one-shot.md) añade un recibo
 de preparación de un solo uso para pilotos técnicos. Se desarrolla con
 SQLite aislada y procesos simulados. La preparación real del Issue #3 y

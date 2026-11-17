@@ -1,4 +1,4 @@
-"""Interactive PREPARE_ONLY approval, inspection and one-shot preparation."""
+"""Independent interactive preparation and launch approvals for GitHub pilots."""
 
 import argparse
 import json
@@ -16,6 +16,12 @@ from trading_lab_orchestration.pilot_authorization import (
     authorization,
     current_operator,
 )
+from trading_lab_orchestration.pilot_launch import (
+    PilotLaunch,
+    approve_launch,
+    close_launch,
+    read_launch,
+)
 from trading_lab_orchestration.readonly import ReadOnlyStore
 from trading_lab_orchestration.store import Store
 from trading_lab_orchestration.workspaces import git
@@ -23,6 +29,30 @@ from trading_lab_orchestration.workspaces import git
 
 def _run(args):
     reader = ReadOnlyStore(args.db)
+    if args.command == "show-launch":
+        with reader.connection() as conn:
+            row, receipt = read_launch(conn, args.authorization_id)
+            return dict(row) | {"receipt_json": receipt.model_dump(mode="json")}
+    if args.command == "approve-launch":
+        return approve_launch(
+            reader.path,
+            Coordinator(reader),
+            args.attempt_id,
+            args.env_file,
+        )
+    if args.command == "launch":
+        with reader.connection() as conn:
+            _, receipt = read_launch(conn, args.authorization_id)
+        return Coordinator(Store(reader.path)).run(
+            receipt.attempt_id, pilot_launch=PilotLaunch(args.authorization_id, args.env_file)
+        )
+    if args.command == "close-launch":
+        return close_launch(
+            Coordinator(Store(reader.path)),
+            args.authorization_id,
+            args.reason,
+            confirm_stopped=args.confirm_stopped,
+        )
     if args.command == "show":
         with reader.connection() as conn:
             row, receipt = authorization(conn, args.authorization_id)
@@ -108,6 +138,17 @@ def main():
     close.add_argument("--authorization-id", required=True)
     close.add_argument("--reason", required=True)
     close.add_argument("--confirm-stopped", action="store_true")
+    approve_launch_parser = commands.add_parser("approve-launch")
+    approve_launch_parser.add_argument("--attempt-id", required=True)
+    approve_launch_parser.add_argument("--env-file", type=Path)
+    launch = commands.add_parser("launch")
+    launch.add_argument("--authorization-id", required=True)
+    launch.add_argument("--env-file", type=Path)
+    commands.add_parser("show-launch").add_argument("--authorization-id", required=True)
+    launch_close = commands.add_parser("close-launch")
+    launch_close.add_argument("--authorization-id", required=True)
+    launch_close.add_argument("--reason", required=True)
+    launch_close.add_argument("--confirm-stopped", action="store_true")
     try:
         result = _run(parser.parse_args())
     except (OSError, ValueError, sqlite3.Error, GitHubUnavailable, EOFError) as exc:

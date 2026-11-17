@@ -23,6 +23,12 @@ from .implementation_contracts import (
 from .process_identity import inspected, pending, record_process
 from .processes import coordinator_lock, run_process
 from .store import Store, utc_now
+from .verification_container import (
+    IsolationUnavailable,
+    IsolationUncertain,
+    VerificationContainer,
+    _regular_bytes,
+)
 from .workspaces import changes, create_workspace, file_hash, git, write_json
 
 PROTECTED = [
@@ -188,6 +194,8 @@ class Coordinator:
         *,
         pilot_transition: tuple[str, str] | None = None,
     ) -> dict:
+        from .pilot_launch import finish_launch, launch_for_attempt
+
         candidate, task = {
             "SUCCEEDED": ("IMPLEMENTATION_READY", "SUCCEEDED"),
             "FAILED": ("FAILED", "FAILED"),
@@ -200,6 +208,8 @@ class Coordinator:
             row = conn.execute(
                 "SELECT * FROM attempts WHERE attempt_id=?", (attempt_id,)
             ).fetchone()
+            if launch_for_attempt(conn, attempt_id):
+                retry = False
             conn.execute(
                 """UPDATE attempts SET status=?,error=?,retry_allowed=?,ended_at_utc=?
                 WHERE attempt_id=?""",
@@ -224,6 +234,7 @@ class Coordinator:
 
                 authorization_id, state = pilot_transition
                 transition(conn, authorization_id, state, reason, attempt_id=attempt_id)
+            finish_launch(conn, attempt_id, status, reason)
         return self.attempt(attempt_id)
 
     def prepare(
@@ -510,6 +521,7 @@ class Coordinator:
 
     def close_pilot_preparation(self, authorization_id, reason, *, confirm_stopped=False):
         from .pilot_authorization import authorization, current_operator, transition
+        from .pilot_launch import launch_for_attempt
         from .process_identity import identity_state
 
         if not reason.strip():
@@ -517,6 +529,8 @@ class Coordinator:
         with coordinator_lock(self.lock):
             with self.store.connection() as conn:
                 row, receipt = authorization(conn, authorization_id)
+                if row["attempt_id"] and launch_for_attempt(conn, row["attempt_id"]):
+                    raise ValueError("Use close-launch to reconcile an independent launch approval")
             if (receipt.approved_by, receipt.operator_sid) != current_operator():
                 raise ValueError("PILOT_OPERATOR_MISMATCH")
             if row["state"] == "APPROVED":
@@ -655,14 +669,31 @@ class Coordinator:
         return {"report": report, "process": measured, "runtime_sha256": hashes}
 
     def run(
-        self, attempt_id: str, executable: str | list[str] = "codex", *, windows_sandbox=None
+        self,
+        attempt_id: str,
+        executable: str | list[str] = "codex",
+        *,
+        windows_sandbox=None,
+        pilot_launch=None,
     ) -> dict:
+        from .pilot_authorization import budget_guard
+        from .pilot_launch import check_idle, transition, validate_launch
+
         with coordinator_lock(self.lock):
-            self._require_independent_launch(attempt_id)
+            isolation_probe = None
+            if pilot_launch is None:
+                self._require_independent_launch(attempt_id)
+            elif executable != "codex" or windows_sandbox is not None:
+                raise ValueError("Technical pilot uses the fixed Codex adapter and sandbox")
             attempt = self.attempt(attempt_id)
-            if attempt["status"] not in {"PREPARED", "BLOCKED"} or attempt["child_pid"] is not None:
+            if pilot_launch is None and (
+                attempt["status"] not in {"PREPARED", "BLOCKED"} or attempt["child_pid"] is not None
+            ):
                 raise ValueError("Attempt cannot be relaunched; inspect and reconcile first")
             with self.store.connection() as conn:
+                if pilot_launch:
+                    _, approval, _ = validate_launch(conn, self, attempt, pilot_launch)
+                    check_idle(conn, attempt_id)
                 if conn.execute(
                     "SELECT 1 FROM executions WHERE status IN ('PREPARED','RUNNING','UNKNOWN')"
                 ).fetchone():
@@ -677,16 +708,41 @@ class Coordinator:
                 expected = json.loads(prepared_path.read_text()) if prepared_path.exists() else {}
                 if changes(attempt) != expected:
                     raise PreflightError("Prepared workspace changed before launch")
-                cli = (
-                    CodexCLI(executable)
-                    if windows_sandbox is None
-                    else CodexCLI(executable, windows_sandbox=windows_sandbox)
-                )
-                probe = cli.probe(Path(attempt["workspace"]))
+                if pilot_launch:
+                    isolation_probe = VerificationContainer().preflight()
+                    if isolation_probe["verification_sha256"] != approval.verification_sha256:
+                        raise ValueError("Verifier configuration changed before launch")
+                    cli = CodexCLI("codex", windows_sandbox="mxc")
+                    probe = cli.probe(Path(attempt["workspace"]), require_chatgpt=True)
+                else:
+                    cli = (
+                        CodexCLI(executable)
+                        if windows_sandbox is None
+                        else CodexCLI(executable, windows_sandbox=windows_sandbox)
+                    )
+                    probe = cli.probe(Path(attempt["workspace"]))
             except (OSError, ValueError) as exc:
+                if pilot_launch:
+                    raise
                 return self._finish(attempt_id, "BLOCKED", f"Preflight blocked: {exc}")
             root, workspace = Path(attempt["root"]), Path(attempt["workspace"])
-            with self.store.transaction() as conn:
+            with ExitStack() as guards, self.store.transaction() as conn:
+                if pilot_launch:
+                    refreshed = inspected(
+                        conn.execute(
+                            "SELECT * FROM attempts WHERE attempt_id=?", (attempt_id,)
+                        ).fetchone()
+                    )
+                    row, receipt, ledger = validate_launch(conn, self, refreshed, pilot_launch)
+                    check_idle(conn, attempt_id)
+                    guards.enter_context(budget_guard(self.store.path, ledger))
+                    transition(conn, row, receipt, "RESERVED", "One Codex invocation reserved")
+                    # The completed preparation process is preserved in scaffold-result.json.
+                    conn.execute(
+                        "UPDATE attempts SET child_pid=NULL,process_identity_json=NULL "
+                        "WHERE attempt_id=?",
+                        (attempt_id,),
+                    )
                 conn.execute(
                     "UPDATE attempts SET status='RUNNING',started_at_utc=?,"
                     "ended_at_utc=NULL,error=NULL "
@@ -702,14 +758,26 @@ class Coordinator:
                     {"attempt_id": attempt_id},
                 )
             try:
-                write_json(root / "cli-probe.json", probe)
+                write_json(
+                    root / "cli-probe.json",
+                    probe | {"independent_verification": isolation_probe}
+                    if pilot_launch
+                    else probe,
+                )
+                prompt = (root / "prompt.txt").read_text(encoding="utf-8")
+                if pilot_launch:
+                    prompt = (
+                        f"The operator independently authorized one launch for {attempt_id}. "
+                        "The following sealed preparation restricts all work. "
+                        "Keep the YAML explicitly enabled: false.\n\n" + prompt
+                    )
                 process = run_process(
                     cli.argv(workspace, root / "delivery.schema.json", root / "delivery.json"),
                     workspace,
                     request.plan.max_wall_seconds,
                     root / "codex.jsonl",
                     root / "codex.stderr",
-                    (root / "prompt.txt").read_text(encoding="utf-8"),
+                    prompt,
                     lambda pid: self._pid(attempt_id, pid),
                     omit_env=cli.omit_env,
                 )
@@ -739,7 +807,9 @@ class Coordinator:
                         "Codex process failed; inspect local logs",
                         not blocked,
                     )
-                return self._verify(attempt_id, request, process)
+                return self._verify(attempt_id, request, process, isolation_probe=isolation_probe)
+            except IsolationUncertain as exc:
+                return self._finish(attempt_id, "UNKNOWN", str(exc))
             except BaseException as exc:
                 self._finish(attempt_id, "UNKNOWN", f"Interrupted/uncertain: {type(exc).__name__}")
                 if isinstance(exc, (KeyboardInterrupt, SystemExit)):
@@ -752,6 +822,8 @@ class Coordinator:
         request: ImplementationRequest,
         process: dict,
         format_repair: dict | None = None,
+        *,
+        isolation_probe: dict | None = None,
     ) -> dict:
         attempt = self.attempt(attempt_id)
         root, workspace = Path(attempt["root"]), Path(attempt["workspace"])
@@ -762,21 +834,35 @@ class Coordinator:
             technical = False
             actual = changes(attempt)
             write_json(evidence / "changes.json", actual)
-            with (evidence / "diff.patch").open("x", encoding="utf-8") as handle:
-                handle.write(git(workspace, "diff", "--binary", request.base_commit, "--"))
             if any(
                 name not in request.allowed_write_paths or sha is None
                 for name, sha in actual.items()
             ):
                 technical = False
                 raise ValueError("Empty delivery or modifications outside exact authorized paths")
+            with (evidence / "diff.patch").open("x", encoding="utf-8") as handle:
+                handle.write(
+                    git(
+                        workspace,
+                        "diff",
+                        "--no-ext-diff",
+                        "--no-textconv",
+                        "--binary",
+                        request.base_commit,
+                        "--",
+                    )
+                )
             technical = True
             files = evidence / "files"
             for name in actual:
                 destination = files / name
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 with destination.open("xb") as handle:
-                    handle.write((workspace / name).read_bytes())
+                    handle.write(
+                        _regular_bytes(workspace, name)
+                        if isolation_probe is not None
+                        else (workspace / name).read_bytes()
+                    )
             delivery = ModelDelivery.model_validate_json(
                 (root / "delivery.json").read_text(encoding="utf-8")
             )
@@ -800,11 +886,52 @@ class Coordinator:
                 raise ValueError("Empty implementation delivery")
             if set(actual) != set(request.allowed_write_paths):
                 raise ValueError("Missing required implementation or synthetic test file")
+            from .pilot_authorization import check_disabled_profile
+            from .pilot_launch import launch_for_attempt, read_launch
+
+            with self.store.connection() as conn:
+                pilot_delivery = launch_for_attempt(conn, attempt_id)
+                if pilot_delivery:
+                    _, launch_receipt = read_launch(conn, pilot_delivery["authorization_id"])
+            if pilot_delivery:
+                if (
+                    pilot_delivery["state"] != "RESERVED"
+                    or attempt["status"] != "RUNNING"
+                    or self._request(attempt) != request
+                ):
+                    raise IsolationUnavailable(
+                        "Pilot verification requires the sealed active launch"
+                    )
+                verifier = VerificationContainer()
+                if (
+                    isolation_probe is None
+                    or verifier.fingerprint != isolation_probe["verification_sha256"]
+                    or verifier.fingerprint != launch_receipt.verification_sha256
+                ):
+                    raise IsolationUnavailable("Missing or changed sealed verification environment")
+                check_disabled_profile(files / request.plan.paths()[1])
+                if (
+                    git(workspace, "rev-parse", "HEAD") != request.base_commit
+                    or git(workspace, "branch", "--show-current") != request.branch
+                    or git(workspace, "diff", "--cached", "--name-only")
+                ):
+                    raise ValueError("Pilot delivery changed the worktree revision or index")
+                prepared = json.loads((root / "prepared-files.json").read_bytes())
+                module = request.plan.paths()[0]
+                if actual[module] == prepared[module]:
+                    raise ValueError(
+                        "Pilot delivery did not implement the prepared strategy module"
+                    )
             checks = []
             deadline = time.monotonic() + max(
                 0.0, request.plan.max_wall_seconds - process["duration_seconds"]
             )
-            for index, command in enumerate(request.authorized_checks):
+            if pilot_delivery:
+                write_json(evidence / "isolation-preflight.json", isolation_probe)
+                checks, native_interface = verifier.verify(
+                    request, files, actual, evidence, deadline
+                )
+            for index, command in enumerate(() if pilot_delivery else request.authorized_checks):
                 if time.monotonic() >= deadline:
                     raise ValueError("Implementation wall limit exhausted before checks")
                 measured = run_process(
@@ -826,12 +953,15 @@ class Coordinator:
                 raise ValueError(
                     "Implementation wall limit exhausted before native interface check"
                 )
-            native_interface = self._native_interface(
-                attempt,
-                request,
-                evidence,
-                min(request.plan.check_timeout_seconds, max(0.001, deadline - time.monotonic())),
-            )
+            if not pilot_delivery:
+                native_interface = self._native_interface(
+                    attempt,
+                    request,
+                    evidence,
+                    min(
+                        request.plan.check_timeout_seconds, max(0.001, deadline - time.monotonic())
+                    ),
+                )
             if changes(attempt) != actual:
                 technical = False
                 raise ValueError("Workspace changed during verification")
@@ -874,6 +1004,12 @@ class Coordinator:
                 "forward_diff_unchanged": True,
                 "process": process,
             }
+            if pilot_delivery:
+                receipt["launch_authorization"] = {
+                    "authorization_id": pilot_delivery["authorization_id"],
+                    "receipt_sha256": pilot_delivery["receipt_sha256"],
+                    "verification_sha256": launch_receipt.verification_sha256,
+                }
             write_json(evidence / "receipt.json", receipt)
             hashes = {
                 path.relative_to(evidence).as_posix(): file_hash(path)
@@ -885,6 +1021,8 @@ class Coordinator:
                 attempt_id, "SUCCEEDED", f"Verified receipt: {evidence / 'receipt.json'}"
             )
         except (OSError, ValueError) as exc:
+            if isinstance(exc, IsolationUnavailable):
+                technical = False
             write_json(
                 evidence / "failure.json", {"error": str(exc), "technical_repair": technical}
             )
