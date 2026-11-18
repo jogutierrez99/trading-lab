@@ -963,10 +963,12 @@ def test_failure_timeout_interruption_and_uncertainty_are_persisted(
     assert simulated.starts == 1
 
 
-def test_duplicate_concurrent_execution_blocked(tmp_path, simulated):
+@pytest.mark.parametrize("storage_fixture", ["simulated", "registry_simulation"])
+def test_duplicate_concurrent_execution_blocked(tmp_path, request, storage_fixture):
+    simulated = request.getfixturevalue(storage_fixture)
     simulated.wait = Event()
     with ThreadPoolExecutor(1) as pool:
-        future = pool.submit(study.run_synthetic, "same", tmp_path)
+        future = pool.submit(run_study, "same", tmp_path)
         try:
             assert simulated.started.wait(timeout=10)
             with pytest.raises(ValueError, match="owns the OS lock"):
