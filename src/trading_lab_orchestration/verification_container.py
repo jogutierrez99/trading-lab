@@ -228,7 +228,7 @@ class VerificationContainer:
             )
         )
 
-    def _cli(self, arguments, folder, name, timeout, payload=None):
+    def _cli(self, arguments, folder, name, timeout, payload=None, *, stdout_capture_limit=None):
         config = folder / "docker-config"
         config.mkdir(exist_ok=True)
         return run_process(
@@ -240,13 +240,18 @@ class VerificationContainer:
             payload,
             omit_env=tuple(key.upper() for key in os.environ if key.upper().startswith("DOCKER_")),
             output_limit=768 * 1024,
+            **(
+                {"stdout_capture_limit": stdout_capture_limit}
+                if stdout_capture_limit is not None
+                else {}
+            ),
         )
 
     @staticmethod
     def _ok(result):
         return not (result["timed_out"] or result["exit_code"] or result["output_truncated"])
 
-    def _execute(self, command, payload, folder, name, timeout):
+    def _execute(self, command, payload, folder, name, timeout, *, stdout_capture_limit=None):
         container = "tl-pilot-verify-" + uuid4().hex
         write_json(
             folder / f"{name}-container.json",
@@ -276,6 +281,11 @@ class VerificationContainer:
                 name,
                 timeout,
                 payload,
+                **(
+                    {"stdout_capture_limit": stdout_capture_limit}
+                    if stdout_capture_limit is not None
+                    else {}
+                ),
             )
         finally:
             try:
@@ -287,47 +297,49 @@ class VerificationContainer:
                 raise IsolationUncertain(f"Container cleanup not confirmed: {container}") from exc
         return result
 
-    def preflight(self):
+    def preflight(self, *, diagnostics=None, read_bytes=Path.read_bytes):
+        """Use a caller-pinned diagnostics root when supplied by the synthetic study."""
+        if diagnostics is not None:
+            return self._preflight_at(diagnostics, read_bytes)
         with tempfile.TemporaryDirectory(prefix="tl-verification-preflight-") as temporary:
-            root = Path(temporary)
-            info = self._cli(["image", "inspect", self.image], root, "image", 8)
-            if not self._ok(info):
-                raise IsolationUnavailable("Local Linux engine or reviewed image is unavailable")
-            images = json.loads(Path(info["stdout"]).read_bytes())
-            if not isinstance(images, list) or len(images) != 1:
-                raise IsolationUnavailable("Unexpected Docker image metadata")
-            image = images[0]
-            if (
-                image["Os"] != "linux"
-                or image["Id"] != self.image
-                or image["Config"].get("Volumes")
-            ):
-                raise IsolationUnavailable("Verifier image must be Linux, pinned and volume-free")
-            canary = root / "host-canary.txt"
-            canary.write_text("trading-lab-isolation-fixture", encoding="utf-8")
-            before = file_hash(canary)
-            drive = canary.drive[:1].lower()
-            tail = canary.as_posix()[3:]
-            command = [
-                "probe.py",
-                f"/run/desktop/mnt/host/{drive}/{tail}",
-                f"/host_mnt/{drive}/{tail}",
-                f"/mnt/{drive}/{tail}",
-            ]
-            result = self._execute(
-                command, _payload({"probe.py": PROBE.encode()}), root, "probe", 30
-            )
-            output = Path(result["stdout"]).read_text(encoding="utf-8", errors="replace")
-            if not self._ok(result) or output.splitlines()[-1:] != ["ISOLATION_PROBE_OK"]:
-                raise IsolationUnavailable("Container isolation or dependency probe failed")
-            if file_hash(canary) != before:
-                raise IsolationUnavailable("Host isolation test fixture changed")
-            return {
-                "verification_sha256": self.fingerprint,
-                "image": self.image,
-                "host_canary_sha256": before,
-                "probe": output.splitlines(),
-            }
+            return self._preflight_at(Path(temporary), read_bytes)
+
+    def _preflight_at(self, root, read_bytes):
+        info = self._cli(["image", "inspect", self.image], root, "image", 8)
+        if not self._ok(info):
+            raise IsolationUnavailable("Local Linux engine or reviewed image is unavailable")
+        images = json.loads(read_bytes(root / "image.stdout"))
+        if not isinstance(images, list) or len(images) != 1:
+            raise IsolationUnavailable("Unexpected Docker image metadata")
+        image = images[0]
+        if image["Os"] != "linux" or image["Id"] != self.image or image["Config"].get("Volumes"):
+            raise IsolationUnavailable("Verifier image must be Linux, pinned and volume-free")
+        canary = root / "host-canary.txt"
+        with canary.open("xb") as handle:
+            handle.write(b"trading-lab-isolation-fixture")
+        before = hashlib.sha256(read_bytes(canary)).hexdigest()
+        drive = canary.drive[:1].lower()
+        tail = canary.as_posix()[3:]
+        command = [
+            "probe.py",
+            f"/run/desktop/mnt/host/{drive}/{tail}",
+            f"/host_mnt/{drive}/{tail}",
+            f"/mnt/{drive}/{tail}",
+        ]
+        result = self._execute(command, _payload({"probe.py": PROBE.encode()}), root, "probe", 30)
+        if not self._ok(result):
+            raise IsolationUnavailable("Container isolation or dependency probe failed")
+        output = read_bytes(root / "probe.stdout").decode("utf-8", errors="replace")
+        if output.splitlines()[-1:] != ["ISOLATION_PROBE_OK"]:
+            raise IsolationUnavailable("Container isolation or dependency probe failed")
+        if hashlib.sha256(read_bytes(canary)).hexdigest() != before:
+            raise IsolationUnavailable("Host isolation test fixture changed")
+        return {
+            "verification_sha256": self.fingerprint,
+            "image": self.image,
+            "host_canary_sha256": before,
+            "probe": output.splitlines(),
+        }
 
     def confirm_cleanup(self, container):
         if not re.fullmatch(r"tl-pilot-verify-[0-9a-f]{32}", container):

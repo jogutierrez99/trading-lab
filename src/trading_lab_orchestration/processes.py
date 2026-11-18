@@ -162,8 +162,11 @@ def run_process(
     *,
     omit_env: tuple[str, ...] = (),
     output_limit: int | None = None,
+    stdout_capture_limit: int | None = None,
 ) -> dict:
     """Exclusive logs, external wall limit and full process-tree termination."""
+    if stdout_capture_limit is not None and (stdout_capture_limit <= 0 or output_limit is None):
+        raise ValueError("Direct stdout capture requires positive limits and bounded pipes")
     started = time.monotonic()
     if os.name != "nt" and not (hasattr(os, "pidfd_open") and Path("/proc/self/stat").exists()):
         raise ValueError("Safe supervision requires Windows handles or Linux pidfd/procfs")
@@ -174,11 +177,19 @@ def run_process(
     pidfd = None
     readers = []
     truncated = threading.Event()
+    capture_overflow = threading.Event()
+    stdout_bytes = bytearray()
+    reader_errors: list[Exception] = []
 
-    def drain(pipe, destination):
+    def drain(pipe, destination, capture_stdout):
         remaining = output_limit
         with pipe:
             while chunk := pipe.read1(65536):
+                if capture_stdout:
+                    capacity = stdout_capture_limit - 1 - len(stdout_bytes)
+                    stdout_bytes.extend(chunk[:capacity])
+                    if len(chunk) > capacity:
+                        capture_overflow.set()
                 destination.write(chunk[:remaining])
                 if len(chunk) > remaining:
                     truncated.set()
@@ -214,14 +225,17 @@ def run_process(
                 on_start(identity)
             try:
                 if output_limit is not None:
-                    for pipe, destination in ((process.stdout, stdout), (process.stderr, stderr)):
-                        # Open an independent handle that survives process-tree cleanup.
-                        with destination.open("ab") as log:
-                            writer = os.fdopen(os.dup(log.fileno()), "ab")
+                    for pipe, log in ((process.stdout, out), (process.stderr, err)):
+                        # Duplicate the acquired object. Never reopen a diagnostic by name.
+                        writer = os.fdopen(os.dup(log.fileno()), "wb")
+                        capture_stdout = stdout_capture_limit is not None and pipe is process.stdout
 
-                        def copy_output(pipe=pipe, writer=writer):
-                            with writer:
-                                drain(pipe, writer)
+                        def copy_output(pipe=pipe, writer=writer, capture_stdout=capture_stdout):
+                            try:
+                                with writer:
+                                    drain(pipe, writer, capture_stdout)
+                            except Exception as exc:
+                                reader_errors.append(exc)
 
                         reader = threading.Thread(target=copy_output, daemon=True)
                         readers.append(reader)
@@ -281,6 +295,8 @@ def run_process(
             reader.join(timeout=2)
             if reader.is_alive():
                 raise ValueError("Bounded output pipe did not close")
+    if reader_errors:
+        raise OSError("Bounded output pipe could not be drained") from reader_errors[0]
     return {
         "argv": argv,
         "pid": process.pid,
@@ -290,5 +306,14 @@ def run_process(
         "duration_seconds": time.monotonic() - started,
         "stdout": str(stdout),
         "stderr": str(stderr),
-        **({"output_truncated": truncated.is_set()} if output_limit is not None else {}),
+        **(
+            {"output_truncated": truncated.is_set() or capture_overflow.is_set()}
+            if output_limit is not None
+            else {}
+        ),
+        **(
+            {"stdout_bytes": None if capture_overflow.is_set() else bytes(stdout_bytes)}
+            if stdout_capture_limit is not None
+            else {}
+        ),
     }

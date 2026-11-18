@@ -1,0 +1,161 @@
+{
+  "status": "DRAFT_NO_OPERATOR_CONFIRMATION",
+  "repository": "jogutierrez99/trading-lab",
+  "permission_proposed": "HISTORICAL_BACKTEST_ONCE",
+  "activation_requires": [
+    "review coordinator enforcement and migration",
+    "seal the complete runner input closure, execution copy and supervisor",
+    "verify full output transport bound and Windows containment",
+    "persist independent interactive approval and reserve atomically"
+  ],
+  "plan": {
+    "schema_version": "1.0",
+    "kind": "HISTORICAL_PROPOSAL",
+    "job_id": "issue_3_phase_55b",
+    "strategy": "btc_spot_sma50_sma200_1h_pilot_v1",
+    "code_commit": "5cef79b45780c9a0e9964b01b2fa46d9531ae18a",
+    "symbol": "BTCUSDT",
+    "timeframe": "1h",
+    "engine": "StudyBackend v1",
+    "engine_sha256": "a5533aa5e19edcaab5caf025121829622b839f6e95faba13a00d67a91dd65c5b",
+    "protocol_sha256": "c95b03b4f2435dfb12a7b583e4d0a0eea6f3ee2f9ab676a8dc773747b8d83170",
+    "dependencies_sha256": "0a21afdf29b909bb9e7b62f042767b7a7c8b709d7e4e4f844da50d9e6db8de37",
+    "image": "sha256:539a1a6c2f1669b6c36612417f9cf70fe28e822095433d8a1453e706396b5f2e",
+    "input_files": {
+      "src/quant_lab/study_backend.py": "a5533aa5e19edcaab5caf025121829622b839f6e95faba13a00d67a91dd65c5b",
+      "src/quant_lab/lab_runner.py": "8a66db037c6541af839951078af91baf3361c5bde70799e1f90ec6475c557cd4",
+      "scripts/lab.py": "887c4b1f8c4d4cf7eeb9ad21751e2734c096060aa1a0345a138c8fea6523bb84",
+      "configs/app.yaml": "15ce75df888657859d1af78045b72cc77dc8834be34d352f36864565d1cea9c1",
+      "configs/risk.yaml": "388c85d59f758a3116dfcb302fd2e8f3e489de2f5345ac845d06d618efd8dd5c",
+      "src/quant_lab/strategies/btc_spot_sma50_sma200_1h_pilot_v1.py": "39579df42ecc2e92df2368ce02fac4cbcae251f1d554fe4676fd3d52ed64405c",
+      "configs/strategies/btc_spot_sma50_sma200_1h_pilot_v1.yaml": "c649dc90a57c3af60208eb32eefc36f4b133300ee710a6724f3ffe7bac3f9004",
+      "data/history/2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b/candles.parquet": "ffcbcb8f8daccaf1f7d9d8c2a1d43075ed1a64e0b6629f30d5a31a79937db0c7",
+      "data/history/2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b/manifest.json": "1cafa7db033f47faa227620398b3b646113cf9cec85f637d48586103f0639b42",
+      "configs/experiments/btc_spot_sma_pilot_phase55.yaml": "d408953cc814e978248c343799467c90354df35684c21afe73d0304802a30de2"
+    },
+    "dataset_id": "2322037acf66bdb51b4af3bc76c278d0dce85d2bc5bf2d0e8cd97e86d6eac04b",
+    "dataset_sha256": "ffcbcb8f8daccaf1f7d9d8c2a1d43075ed1a64e0b6629f30d5a31a79937db0c7",
+    "parameters": {
+      "fast_sma_period": 50,
+      "slow_sma_period": 200
+    },
+    "issue_number": 3,
+    "holdout": "CONSUMED",
+    "risk": {
+      "initial_cash": 10000.0,
+      "risk_per_trade_pct": 0.5,
+      "max_position_pct": 100.0,
+      "max_exposure_pct": 100.0,
+      "atr_period": 14,
+      "atr_multiplier": 2.0,
+      "risk_reward": 2.0,
+      "quantity_step": 1e-06,
+      "min_quantity": 1e-06,
+      "min_notional": 10.0,
+      "mode": "LONG_ONLY",
+      "market_mode": "spot",
+      "timing": "NEXT_OPEN",
+      "sizing": "stop_risk",
+      "liquidate_at_end": true,
+      "trailing": false,
+      "time_stop": false,
+      "funding": "NOT_APPLICABLE",
+      "intrabar": "STUDYBACKEND_V1_PROTECTIVE_FIRST"
+    },
+    "limits": {
+      "max_cases": 6,
+      "wall_seconds": 120,
+      "cpu": 1,
+      "memory_mib": 768,
+      "scratch_mib": 32,
+      "processes": 64,
+      "output_bytes": 524288,
+      "api_eur": 0,
+      "network": "none",
+      "allow_codex": false,
+      "allow_okx": false,
+      "allow_telegram": false,
+      "auto_retry": false
+    },
+    "cases": [
+      {
+        "id": "train_base",
+        "segment": "train",
+        "scenario": "base",
+        "start": "2022-02-01T00:00:00Z",
+        "end": "2022-04-01T00:00:00Z",
+        "warmup": 240,
+        "costs": {
+          "trading_fee_pct": 0.1,
+          "slippage_pct": 0.03,
+          "spread_pct": 0.02
+        }
+      },
+      {
+        "id": "train_adverse",
+        "segment": "train",
+        "scenario": "adverse",
+        "start": "2022-02-01T00:00:00Z",
+        "end": "2022-04-01T00:00:00Z",
+        "warmup": 240,
+        "costs": {
+          "trading_fee_pct": 0.2,
+          "slippage_pct": 0.06,
+          "spread_pct": 0.04
+        }
+      },
+      {
+        "id": "validation_base",
+        "segment": "validation",
+        "scenario": "base",
+        "start": "2022-04-01T00:00:00Z",
+        "end": "2022-05-01T00:00:00Z",
+        "warmup": 240,
+        "costs": {
+          "trading_fee_pct": 0.1,
+          "slippage_pct": 0.03,
+          "spread_pct": 0.02
+        }
+      },
+      {
+        "id": "validation_adverse",
+        "segment": "validation",
+        "scenario": "adverse",
+        "start": "2022-04-01T00:00:00Z",
+        "end": "2022-05-01T00:00:00Z",
+        "warmup": 240,
+        "costs": {
+          "trading_fee_pct": 0.2,
+          "slippage_pct": 0.06,
+          "spread_pct": 0.04
+        }
+      },
+      {
+        "id": "test_retrospective_base",
+        "segment": "test_retrospective",
+        "scenario": "base",
+        "start": "2022-05-01T00:00:00Z",
+        "end": "2022-06-01T00:00:00Z",
+        "warmup": 240,
+        "costs": {
+          "trading_fee_pct": 0.1,
+          "slippage_pct": 0.03,
+          "spread_pct": 0.02
+        }
+      },
+      {
+        "id": "test_retrospective_adverse",
+        "segment": "test_retrospective",
+        "scenario": "adverse",
+        "start": "2022-05-01T00:00:00Z",
+        "end": "2022-06-01T00:00:00Z",
+        "warmup": 240,
+        "costs": {
+          "trading_fee_pct": 0.2,
+          "slippage_pct": 0.06,
+          "spread_pct": 0.04
+        }
+      }
+    ]
+  }
+}
