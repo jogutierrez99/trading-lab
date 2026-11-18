@@ -361,28 +361,24 @@ def test_permission_required_and_plan_bound(permit_db):
     key = store.grant(database, permit, store.phrase(permit))
     with pytest.raises(ValueError, match="scope"):
         store.reserve(database, key, "0" * 64, permit.purpose, "dir")
-    with pytest.raises(ValueError, match="scope"):
+    with pytest.raises(ValueError, match="Windows operator"):
         store.reserve(database, key, permit.job_sha256, "HISTORICAL_BACKTEST_ONCE", "dir")
     assert store.reserve(database, key, permit.job_sha256, permit.purpose, "dir")[0]
 
 
-def test_historical_permit_requires_verified_operator_and_attempt_binding(permit_db):
+def test_historical_direct_grant_and_reserve_reject_prefilled_consent(permit_db):
     database, original = permit_db
     permit = store.Permit.model_validate_json(
         original.model_copy(
             update={"purpose": "HISTORICAL_BACKTEST_ONCE"},
         ).model_dump_json()
     )
-    args = (
-        database,
-        store.grant(database, permit, store.phrase(permit)),
-        permit.job_sha256,
-        permit.purpose,
-        "dir",
-    )
+    with pytest.raises(ValueError, match="interactively"):
+        store.grant(database, permit, store.phrase(permit))
     with pytest.raises(ValueError, match="Windows operator"):
-        store.reserve(*args)
+        store.reserve(database, store.receipt_id(permit), permit.job_sha256, permit.purpose, "dir")
     with store.transaction(database) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM permits").fetchone()[0] == 0
         assert conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 0
 
 

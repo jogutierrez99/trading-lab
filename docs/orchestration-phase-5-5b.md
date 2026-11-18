@@ -23,7 +23,9 @@ TEST conserva `CONSUMED`. El paquete efectivo contiene un conjunto cerrado de
 módulos Git de D y los módulos del adaptador. Los hashes de estrategia y motor
 en el borrador se verifican tras normalizar archivos de texto a LF si el
 archivo Git de Windows entrega CRLF. El trabajo añade los SHA-256 de la
-clausura efectiva, la proyección, el manifiesto y el supervisor.
+clausura efectiva, la proyección, el manifiesto y el supervisor. Los archivos de
+control del supervisor se sellan con finales LF para reproducir la huella tras
+un checkout de Git para Windows.
 La imagen y las dependencias se comprueban con las identidades fijadas.
 
 ## Ejecución y auditoría
@@ -102,6 +104,11 @@ No se modificaron las huellas ni los contratos de 5.5A.
 `HISTORICAL_BACKTEST_ONCE` tiene su propio registro SQLite con identificador de
 aplicación y esquema 1. El registro se aprovisiona fuera de scratch y
 fuera de las bases operativas, en una raíz NTFS dedicada con ACL de operador.
+La ruta canónica se deriva de LocalAppData mediante Windows y se vincula al
+SID del lanzamiento original. La primera aprobación crea un sello de identidad
+NTFS de la raíz y de la SQLite en el directorio padre protegido. Una base sin
+sello, una raíz sustituida o una SQLite de identidad distinta requieren
+conciliación manual. Conservar el sello junto a las copias del registro.
 La preparación, el lanzamiento Codex y el permiso sintético carecen de poder
 para reservar un histórico. La fila de ejecución se inserta con
 `BEGIN IMMEDIATE` y una clave única que referencia el permiso. La inserción es
@@ -115,6 +122,10 @@ terminal interactiva, operador Windows, evidencia del intento original e
 identidad del recibo de implementación. La frase incluye propósito, intento
 y huella del trabajo completo. La reserva vuelve a cotejar operador e
 identidad del piloto; el acceso al expediente viejo es de solo lectura.
+Las llamadas directas a las funciones Python pasan por el mismo registro y
+las mismas confirmaciones. La segunda confirmación se solicita dentro de la
+reserva del primer cálculo, tras validar el permiso. Una consulta sellada
+omite la confirmación y recupera los resultados verificados.
 El programa de preparación solo expone lectura, propuesta y ensayo sintético.
 El lanzamiento histórico independiente usa la CLI operativa descrita abajo y
 requiere un permiso persistido y explícito.
@@ -124,6 +135,14 @@ Mantener un único registro operativo designado bajo ACL que impidan a terceros
 crear, borrar o sustituir entradas. Una cuenta que controle ambos almacenes
 puede falsificar hashes y reservas. No se ha ensayado pérdida de alimentación.
 El expediente original y su trigger permanecen intactos.
+
+En la propuesta y el preflight se fijan los directorios NTFS y la base de
+datos se abre con un handle que excluye escrituras y reemplazos por otros
+procesos. Se rechazan los ficheros `-wal`, `-shm` y `-journal` y las cabeceras
+WAL. Después de estas comprobaciones, SQLite lee con `mode=ro&immutable=1`
+mientras el handle sigue abierto. Un escritor activo o un journal incierto
+hace fallar la consulta. El coordinador histórico usa la misma comprobación
+sin cambiar las demás rutas de lectura del coordinador.
 
 ## Operación de preparación y aceptación nativa
 
@@ -171,9 +190,13 @@ Ejecutar cada paso por separado, tras aprobar la publicación de la CLI, desde
 una terminal Windows personal con Docker Desktop Linux iniciado y el checkout
 limpio de `main`. Usar el SHA exacto de la publicación revisada de la CLI.
 La CLI verifica que desciende de `b726ecf174bf3a87e0d550510cbd6c947e3c7826`
-y que el diff se limita a la interfaz, sus pruebas y documentación. La huella
-del trabajo sigue siendo
-`bed1315307979dba449b3137e84b65ae11f09d63a8ffeb7d6e8dbaf03a448670`.
+y que el diff se limita a la interfaz, el supervisor anfitrión, las lecturas
+SQLite de esta fase, sus pruebas y documentación. La huella anterior
+`bed1315307979dba449b3137e84b65ae11f09d63a8ffeb7d6e8dbaf03a448670`
+se conserva para auditoría y queda sustituida para futuras autorizaciones.
+La propuesta de solo lectura con el supervisor corregido utiliza
+`c8fefa01f00bfae7c303115c19b305ccbad76b19321f1e1a5e923627e28c1b42`.
+Cotejar esta huella con la propuesta privada revisada antes de cualquier permiso.
 
 Preparar las variables en PowerShell:
 
@@ -193,9 +216,12 @@ $common = @('--checkout-commit', $release, '--data-repo', $dataRepo,
 El registro designado reside en LocalAppData. Registro y scratch deben existir
 en NTFS local, ser independientes y quedar fuera del repositorio, de los datos
 y del directorio de la SQLite operativa. El operador debe ser propietario y
-tener permisos efectivos para agregar archivos y subdirectorios. La CLI
-rechaza ACL con entradas de concesión a otros principales, salvo SYSTEM,
-Administradores y derechos del propietario. Los handles fijan los directorios
+tener permisos efectivos para agregar archivos y subdirectorios. La operación
+rechaza ACL con entradas de concesión a otros principales en el registro
+y scratch, salvo SYSTEM, Administradores y derechos del propietario.
+La lectura de la propuesta admite entradas sin derechos de modificación.
+Una ACL de lectura compartida permite preparar la propuesta, pero requiere
+revisión antes de aprobar o ejecutar. Los handles fijan los directorios
 y sus ascendentes durante las comprobaciones y la operación. El CLI Docker
 forma parte de la huella del supervisor. Una actualización del binario puede
 cambiar el SHA del trabajo y exige revisión.

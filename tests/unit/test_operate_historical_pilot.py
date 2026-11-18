@@ -1,9 +1,12 @@
 import importlib.util
 import json
 import os
+import shutil
+import sqlite3
 import subprocess
-import sys
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -11,6 +14,7 @@ import pytest
 
 from trading_lab_orchestration import historical_pilot as pilot
 from trading_lab_orchestration import historical_pilot_store as store
+from trading_lab_orchestration.readonly import APPLICATION_ID, SCHEMA_VERSION
 
 
 @pytest.fixture
@@ -45,7 +49,9 @@ def fixture(tmp_path, monkeypatch, cli_module):
     operator = ("fixture", "S-1-5-21-123")
     attempt = f"attempt_{'1' * 32}"
     job = SimpleNamespace(
+        mode="HISTORICAL",
         plan=SimpleNamespace(
+            job_id="fixture",
             cases=[
                 SimpleNamespace(id=key)
                 for key in (
@@ -63,23 +69,36 @@ def fixture(tmp_path, monkeypatch, cli_module):
     )
     calls = []
     monkeypatch.setattr(cli, "_checkout", lambda *_: None)
-    monkeypatch.setattr(cli, "_require_designated_registry", lambda *_: None)
-    monkeypatch.setattr(cli, "_windows_acl", lambda *_: None)
     monkeypatch.setattr(cli, "_inspect_image", lambda *_: None)
-    monkeypatch.setattr(cli, "_interactive", lambda: None)
     terminal = SimpleNamespace(isatty=lambda: True)
-    monkeypatch.setattr(pilot, "sys", SimpleNamespace(stdin=terminal, stdout=terminal))
+    monkeypatch.setattr(store, "sys", SimpleNamespace(stdin=terminal, stdout=terminal))
+    monkeypatch.setattr(store, "designated_registry", lambda: registry)
+    monkeypatch.setattr(store, "current_operator", lambda: operator)
+    monkeypatch.setattr(store, "check_acl", lambda *_, **__: None)
     monkeypatch.setattr(cli.ntfs, "pinned_root", lambda root, **_: nullcontext(root))
     monkeypatch.setattr(cli.ntfs, "exclusive_lock", lambda _: nullcontext())
-    monkeypatch.setattr(cli.ntfs, "_open_no_reparse", lambda *_, **__: 123)
-    monkeypatch.setattr(cli.ntfs, "_info", lambda *_, **__: None)
-    monkeypatch.setattr(cli.ntfs, "close_handle", lambda _: None)
+    monkeypatch.setattr(store, "_file", lambda path, _: nullcontext(path.stat()))
+    monkeypatch.setattr(store, "_file_identity", lambda path: [path.stat().st_ino])
+    monkeypatch.setattr(cli.ntfs, "directory_identity", lambda path: [path.stat().st_ino])
+    monkeypatch.setattr(cli.ntfs, "read", lambda path, _: path.read_bytes())
+    monkeypatch.setattr(cli.ntfs, "publish", lambda path, raw, _: path.write_bytes(raw))
+
+    def directory(path, *, fresh=False, **_):
+        if fresh:
+            path.mkdir()
+        return nullcontext()
+
+    monkeypatch.setattr(cli.ntfs, "directory", directory)
     monkeypatch.setattr(pilot, "_paths", lambda *_: None)
     monkeypatch.setattr(pilot, "HistoricalVerifier", lambda: SimpleNamespace(image="fixture"))
     monkeypatch.setattr(
         pilot,
         "prepare",
-        lambda *_, **__: (job, {}, {"parquet_sha256": "p", "manifest_sha256": "m"}),
+        lambda *_, **__: (
+            job,
+            {pilot.CANDLES: b"fixture"},
+            {"parquet_sha256": "p", "manifest_sha256": "m"},
+        ),
     )
     monkeypatch.setattr(pilot, "plan_sha", lambda _: cli.JOB_SHA256)
     monkeypatch.setattr(
@@ -94,25 +113,26 @@ def fixture(tmp_path, monkeypatch, cli_module):
         job_sha256=cli.JOB_SHA256,
         operator=operator[0],
         operator_sid=operator[1],
-        approved_at=cli.datetime.now(cli.UTC),
+        approved_at=datetime.now(UTC),
     )
-    monkeypatch.setattr(pilot, "authorization_proposal", lambda *_: (permit, job, {}))
 
-    def run(_data, _queue, reg, work, key):
-        binding = (attempt, cli.RECEIPT_SHA256, *operator)
-        fresh, (_, state, _) = store.reserve(
-            reg / pilot.DB, key, cli.JOB_SHA256, permit.purpose, str(work), binding
-        )
-        if fresh:
-            calls.append(key)
-            store.bind_job(database, key, "fixture-result")
-            store.finish(database, key, bundle_sha="a" * 64)
-        else:
-            assert state == "SEALED"
+    def execute(*_):
+        calls.append("fixture")
         return {"status": "COMPLETE", "job_sha256": cli.JOB_SHA256, "stdout_sha256": "b" * 64}
 
-    monkeypatch.setattr(pilot, "run_historical", run)
-    return SimpleNamespace(cli=cli, args=args, db=database, permit=permit, calls=calls)
+    monkeypatch.setattr(pilot, "_execute", execute)
+    monkeypatch.setattr(
+        pilot, "_read_complete", lambda path, *_: json.loads((path / pilot.RESULT).read_bytes())
+    )
+    return SimpleNamespace(
+        cli=cli,
+        args=args,
+        db=database,
+        permit=permit,
+        calls=calls,
+        registry=registry,
+        scratch=scratch,
+    )
 
 
 def _command(fixture, capsys, command, *args):
@@ -122,7 +142,6 @@ def _command(fixture, capsys, command, *args):
 
 def _answer(monkeypatch, reply):
     def respond(prompt):
-        sys.audit("builtins.input", prompt)
         return reply(prompt)
 
     monkeypatch.setattr("builtins.input", respond)
@@ -135,19 +154,67 @@ def test_preflight_read_only(fixture, capsys):
     assert not fixture.db.exists()
 
 
+def _inventory(folder):
+    return {path.name: pilot.hash_bytes(path.read_bytes()) for path in folder.iterdir()}
+
+
+@pytest.mark.parametrize("coordinator", [True, False], ids=["coordinator", "registry"])
+@pytest.mark.parametrize("journal", ["wal-header", "wal", "journal", "shm", "mj-fixture", "clean"])
+def test_sqlite_inspection_never_changes_directory(fixture, tmp_path, coordinator, journal):
+    folder = tmp_path / "snapshot"
+    folder.mkdir()
+    db = folder / ("queue.sqlite3" if coordinator else store.DB)
+    if coordinator:
+        with sqlite3.connect(db) as connection:
+            connection.execute(f"PRAGMA application_id={APPLICATION_ID}")
+            connection.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+            connection.execute("CREATE TABLE fixture(id INTEGER)")
+        connection.close()
+    else:
+        store.initialize(db)
+    if journal in {"wal", "wal-header"}:
+        live = tmp_path / "live.sqlite3"
+        shutil.copyfile(db, live)
+        with sqlite3.connect(live) as writer:
+            writer.execute("PRAGMA journal_mode=WAL")
+            writer.execute("CREATE TABLE committed_in_wal(id INTEGER)")
+            writer.commit()
+            shutil.copyfile(live, db)
+            if journal == "wal":
+                shutil.copyfile(str(live) + "-wal", str(db) + "-wal")
+        writer.close()
+    elif journal in {"journal", "shm", "mj-fixture"}:
+        db.with_name(db.name + "-" + journal).write_bytes(b"uncertain")
+
+    def inspect():
+        if coordinator:
+            with pilot._HistoricalCoordinator(db).snapshot():
+                pass
+        else:
+            store.assert_unconsumed(db, "synthetic:fixture")
+
+    before = _inventory(folder)
+    if journal == "clean":
+        inspect()
+    else:
+        with pytest.raises(ValueError, match="SQLite sidecar|clean rollback"):
+            inspect()
+    assert _inventory(folder) == before
+
+
 @pytest.mark.parametrize("failed_check", ["hash", "acl", "image", "receipt"])
 def test_preflight_blocks_invalid_input(fixture, capsys, monkeypatch, failed_check):
-    def deny(*_):
+    def deny(*_, **__):
         raise ValueError("fixture denied")
 
     if failed_check == "hash":
         monkeypatch.setattr(pilot, "plan_sha", lambda _: "0" * 64)
     elif failed_check == "receipt":
         monkeypatch.setattr(pilot, "_verified_binding", lambda _: (None, "0" * 64, None, None))
+    elif failed_check == "acl":
+        monkeypatch.setattr(store, "check_acl", deny)
     else:
-        monkeypatch.setattr(
-            fixture.cli, {"acl": "_windows_acl", "image": "_inspect_image"}[failed_check], deny
-        )
+        monkeypatch.setattr(fixture.cli, "_inspect_image", deny)
     code, result = _command(fixture, capsys, "preflight")
     assert code == 2 and result["status"] == "BLOCKED"
     assert not fixture.db.exists()
@@ -165,7 +232,7 @@ def test_approve_rejects_wrong_confirmation_and_moving_hash(fixture, capsys, mon
     )
     _answer(monkeypatch, lambda _: pytest.fail("Input guard must reject before reading"))
     _, result = _command(fixture, capsys, "approve")
-    assert "no longer matches" in result["reason"]
+    assert result["status"] == "BLOCKED"
     assert not fixture.db.exists()
 
 
@@ -186,14 +253,113 @@ def test_missing_permit_duplicate_approval_and_idempotent_run(fixture, capsys, m
     assert code == 0 and result["status"] == "COMPLETE" and not result["previously_sealed"]
     assert _command(fixture, capsys, "preflight")[0] == 2
     _answer(monkeypatch, lambda _: pytest.fail("A sealed retrieval requires no new confirmation"))
+    before = _inventory(fixture.registry)
     assert _command(fixture, capsys, "run", "--permit-id", key)[1]["previously_sealed"]
-    assert fixture.calls == [key]
+    assert _inventory(fixture.registry) == before
+    assert fixture.calls == ["fixture"]
+
+
+def test_direct_python_cannot_use_another_registry_or_skip_confirmation(
+    fixture, tmp_path, monkeypatch
+):
+    other = tmp_path / "alternate"
+    other.mkdir()
+    binding = fixture.permit.operator, fixture.permit.operator_sid
+    _answer(monkeypatch, lambda _: pytest.fail("Alternate registry must block before input"))
+    with pytest.raises(ValueError, match="canonical"):
+        store.grant(other / store.DB, fixture.permit)
+    with pytest.raises(ValueError, match="canonical"):
+        pilot.authorization_proposal(tmp_path, tmp_path, other)
+
+    _answer(monkeypatch, lambda _: store.phrase(fixture.permit))
+    key = store.grant(fixture.db, fixture.permit)
+    second = fixture.permit.model_copy(update={"attempt_id": "attempt_" + "2" * 32})
+    with pytest.raises(ValueError, match="already exists"):
+        store.grant(fixture.db, second)
+    terminal = SimpleNamespace(isatty=lambda: False)
+    monkeypatch.setattr(store, "sys", SimpleNamespace(stdin=terminal, stdout=terminal))
+    with pytest.raises(ValueError, match="canonical"):
+        pilot.run_historical(tmp_path, tmp_path, other, fixture.scratch, key)
+    with pytest.raises(ValueError, match="Interactive"):
+        pilot.run_historical(
+            tmp_path / "data", tmp_path / "queue" / "db", fixture.registry, fixture.scratch, key
+        )
+    _, state = store.historical_status(fixture.db, fixture.permit.scope, binding)
+    assert state is None and fixture.calls == [] and list(other.iterdir()) == []
+
+
+def test_direct_concurrent_reservation_prompts_once(fixture, monkeypatch):
+    _answer(monkeypatch, lambda _: store.phrase(fixture.permit))
+    key = store.grant(fixture.db, fixture.permit)
+    permit = fixture.permit
+    binding = (
+        permit.attempt_id,
+        permit.implementation_receipt_sha256,
+        permit.operator,
+        permit.operator_sid,
+    )
+    inputs = []
+
+    def confirm(phrase, action):
+        inputs.append((phrase, action))
+
+    monkeypatch.setattr(store, "_confirm", confirm)
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        results = list(
+            workers.map(
+                lambda _: store.reserve(
+                    fixture.db, key, permit.job_sha256, permit.purpose, "scratch", binding
+                ),
+                range(2),
+            )
+        )
+    assert sorted(fresh for fresh, _ in results) == [False, True]
+    assert len(inputs) == 1
+
+
+def test_direct_reservation_rejects_wal_header_without_creating_sidecars(fixture, monkeypatch):
+    _answer(monkeypatch, lambda _: store.phrase(fixture.permit))
+    key = store.grant(fixture.db, fixture.permit)
+    raw = bytearray(fixture.db.read_bytes())
+    raw[18:20] = b"\x02\x02"
+    fixture.db.write_bytes(raw)
+    before = _inventory(fixture.registry)
+    _answer(monkeypatch, lambda _: pytest.fail("An uncertain registry must block before input"))
+    with pytest.raises(ValueError, match="clean rollback"):
+        pilot.run_historical(
+            fixture.registry.parent / "data",
+            fixture.registry.parent / "queue" / "db",
+            fixture.registry,
+            fixture.scratch,
+            key,
+        )
+    assert _inventory(fixture.registry) == before and fixture.calls == []
+
+
+@pytest.mark.parametrize("target", ["registry", "database"])
+def test_identity_seal_blocks_replacement(fixture, monkeypatch, target):
+    _answer(monkeypatch, lambda _: store.phrase(fixture.permit))
+    store.grant(fixture.db, fixture.permit)
+    if target == "registry":
+        old = fixture.registry.with_name("old")
+        fixture.registry.rename(old)
+        fixture.registry.mkdir()
+        shutil.copyfile(old / store.DB, fixture.db)
+    else:
+        old = fixture.db.with_name("old.sqlite3")
+        fixture.db.rename(old)
+        shutil.copyfile(old, fixture.db)
+    with pytest.raises(ValueError, match="identity changed"):
+        store.historical_status(
+            fixture.db, fixture.permit.scope, (fixture.permit.operator, fixture.permit.operator_sid)
+        )
 
 
 @pytest.mark.parametrize("state", ["RESERVED", "UNKNOWN"])
 def test_run_blocks_uncertain_reservation(fixture, capsys, monkeypatch, state):
-    store.initialize(fixture.db)
-    key = store.grant(fixture.db, fixture.permit, store.phrase(fixture.permit))
+    _answer(monkeypatch, lambda _: store.phrase(fixture.permit))
+    key = _command(fixture, capsys, "approve")[1]["permit_id"]
+    _answer(monkeypatch, lambda _: f"RUN HISTORICAL_BACKTEST_ONCE {key}")
     p = fixture.permit
     store.reserve(
         fixture.db,
@@ -213,13 +379,14 @@ def test_run_blocks_uncertain_reservation(fixture, capsys, monkeypatch, state):
 
 def test_rejects_altered_permit_receipt(fixture, capsys):
     store.initialize(fixture.db)
+    store._anchor(fixture.registry, create=True)
     with store.transaction(fixture.db) as conn:
         conn.execute(
             "INSERT INTO permits VALUES (?, ?, ?, ?)",
             ("0" * 64, fixture.permit.scope, fixture.permit.model_dump_json(), "altered"),
         )
     code, result = _command(fixture, capsys, "preflight")
-    assert code == 2 and "altered" in result["reason"]
+    assert code == 2 and result["status"] == "BLOCKED"
 
 
 def test_image_inspection_has_no_run_or_pull(fixture, tmp_path, monkeypatch):
@@ -253,14 +420,29 @@ def test_native_cli_image_inspection_and_read_only_registry(tmp_path, cli_module
     ):
         cli._inspect_image(pilot.HistoricalVerifier(), scratch)
         assert not list(scratch.iterdir())
-        assert cli._registry(registry / pilot.DB, case) == (None, None)
+        assert store.permit_status(registry / pilot.DB, case) == (None, None)
         assert not list(registry.iterdir())
         database = registry / pilot.DB
         store.initialize(database)
         before = database.read_bytes()
-        assert cli._registry(database, case) == (None, None)
+        assert store.permit_status(database, case) == (None, None)
+        with store.rollback_snapshot(database) as reader:
+            assert reader.execute("SELECT COUNT(*) FROM permits").fetchone()[0] == 0
+            with pytest.raises(sqlite3.Error):
+                writer = sqlite3.connect(database.as_uri() + "?mode=rw", uri=True, timeout=0)
+                try:
+                    writer.execute("BEGIN IMMEDIATE")
+                    writer.execute("CREATE TABLE unexpected_write(id INTEGER)")
+                finally:
+                    writer.close()
         assert database.read_bytes() == before
         assert list(registry.iterdir()) == [database]
+        alias = registry / "hard-link.sqlite3"
+        os.link(database, alias)
+        with pytest.raises(ValueError, match="links"):
+            store.permit_status(database, case)
+        alias.unlink()
+        assert database.read_bytes() == before
 
 
 @pytest.mark.skipif(
@@ -283,11 +465,12 @@ def test_native_cli_checks_acl_and_effective_access(tmp_path, cli_module):
         cli.ntfs.pinned_root(registry, existing=True),
         cli.ntfs.pinned_root(scratch, existing=True),
     ):
-        cli._windows_acl(registry, scratch, sid)
+        store.check_acl(scratch, sid, private=True)
         subprocess.run(
             [str(icacls), str(scratch), "/grant", "*S-1-5-32-545:(RX)"],
             check=True,
             capture_output=True,
         )
-        with pytest.raises(cli.Blocked, match="ACL"):
-            cli._windows_acl(registry, scratch, sid)
+        store.check_acl(scratch, sid)
+        with pytest.raises(ValueError, match="ACL"):
+            store.check_acl(scratch, sid, private=True)
