@@ -1,5 +1,9 @@
 # Estado actual del Trading Lab
 
+[Fase 5.5B](orchestration-phase-5-5b.md) prepara el histórico aislado del Issue #3.
+El preflight verifica el bundle local y los ensayos artificiales cubren los seis casos.
+Aceptación nativa y autorización histórica independiente pendientes.
+
 [Fase 5.5A](orchestration-phase-5-5a.md) prepara un adaptador de
 StudyBackend v1 para ensayos sintéticos aislados y recepción JSON
 validada. La persistencia sintética usa un único documento NTFS por

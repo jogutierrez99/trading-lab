@@ -1,0 +1,392 @@
+"""5.5B host boundary. The existing synthetic entry and old pilot trigger stay unchanged."""
+
+import base64
+import sys
+from datetime import UTC, datetime
+from statistics import median
+from uuid import uuid4
+
+import pandas as pd
+
+from quant_lab.study_data import COLUMNS
+
+from . import historical_pilot_store as store
+from . import study_storage_windows as ntfs
+from .contracts import canonical
+from .execution_inputs import verified_implementation
+from .historical_pilot_contract import (
+    CANDLES,
+    MANIFEST_SHA,
+    Job,
+    candles_bytes,
+    decode_transport,
+    frozen_plan,
+    hash_bytes,
+    parse,
+    plan_sha,
+    preflight_dataset,
+    read_candles,
+)
+from .historical_pilot_oracle import audit_case
+from .isolated_study import LOG_LIMIT, MODULES
+from .isolated_study_contract import BASE, IMAGE, MAX_WIRE, PILOT_STRATEGY
+from .pilot_authorization import ISSUE_3_TASK, current_operator
+from .pilot_launch import read_launch
+from .readonly import ReadOnlyStore
+from .verification_container import (
+    ROOT,
+    RUNTIME,
+    IsolationUncertain,
+    VerificationContainer,
+    _base_sources,
+    _payload,
+    _regular_bytes,
+)
+
+WORKER = ("-m", "trading_lab_orchestration.historical_pilot_guest")
+DB = "historical-pilot.sqlite3"
+BUNDLE_LIMIT = 1024 * 1024
+RESULT = "result.json"
+
+
+def _fixture(plan):
+    first = min(case.start - pd.Timedelta(hours=case.warmup) for case in plan.cases)
+    end = max(case.end for case in plan.cases)
+    timestamps = pd.date_range(first, end, freq="h", inclusive="left")
+    # Piecewise-linear oscillator; enough crosses and various market paths in all six windows.
+    rows = []
+    for i in range(len(timestamps)):
+        cycle = i % 208
+        close = 1000 + (cycle if cycle <= 104 else 208 - cycle) + (i % 11) / 8
+        width = 1 + (i % 17) / 8
+        rows.append((close, close + width, close - width, close, 100 + i % 7))
+    return pd.DataFrame(rows, columns=COLUMNS, index=timestamps)
+
+
+def prepare(verifier, *, data_repo=None):
+    if verifier.image != IMAGE:
+        raise ValueError("Approved pinned Linux image required")
+    plan = frozen_plan(ROOT)
+    frame, evidence = (
+        (_fixture(plan), None) if data_repo is None else preflight_dataset(data_repo, plan.cases)
+    )
+    candles = candles_bytes(frame, plan.cases)
+    frozen = _base_sources(BASE)
+    files = {f"src/quant_lab/{name}.py": frozen[f"src/quant_lab/{name}.py"] for name in MODULES}
+    strategy = f"src/quant_lab/strategies/{PILOT_STRATEGY}.py"
+    files[strategy] = frozen[strategy]
+    # The proposal recorded the Git text with LF; Git for Windows may archive CRLF.
+    for path in (strategy, "src/quant_lab/study_backend.py"):
+        files[path] = files[path].replace(b"\r\n", b"\n")
+        if hash_bytes(files[path]) != plan.input_files[path]:
+            raise ValueError(f"Frozen source hash differs from the proposal: {path}")
+    package = "src/trading_lab_orchestration"
+    for name in (
+        "__init__.py",
+        "contracts.py",
+        "isolated_study_contract.py",
+        "historical_pilot_contract.py",
+        "historical_pilot_guest.py",
+    ):
+        files[f"{package}/{name}"] = _regular_bytes(RUNTIME, name)
+    files[CANDLES] = candles
+    control = {
+        name: hash_bytes(_regular_bytes(RUNTIME, name))
+        for name in (
+            "historical_pilot.py",
+            "historical_pilot_oracle.py",
+            "historical_pilot_store.py",
+            "study_storage_windows.py",
+        )
+    }
+    job = Job(
+        mode="SYNTHETIC" if data_repo is None else "HISTORICAL",
+        plan=plan,
+        candles_sha256=hash_bytes(candles),
+        manifest_sha256=MANIFEST_SHA if data_repo is not None else None,
+        supervisor_sha256=hash_bytes(
+            canonical(
+                {
+                    "verifier": verifier.fingerprint,
+                    "controls": control,
+                    "entrypoint": WORKER,
+                }
+            ).encode()
+        ),
+        closure={name: hash_bytes(raw) for name, raw in files.items()},
+    )
+    files["historical-job.json"] = canonical(job.model_dump(mode="json")).encode()
+    return job, files, evidence
+
+
+def _audit(job, candles, raw):
+    frame = read_candles(candles, job)
+    summaries = {}
+    sizes = []
+    distribution = {}
+    for case, member in decode_transport(raw, job):
+        audit_case(frame, case, job.plan.risk, member)
+        summaries[case.id] = member.metrics.model_dump(mode="json")
+        sizes.append(len(member.trades))
+        pnl = [t.net_pnl for t in member.trades]
+        total_abs = sum(abs(value) for value in pnl)
+        distribution[case.id] = {
+            "median_net_pnl": median(pnl) if pnl else None,
+            "worst_net_pnl": min(pnl, default=None),
+            "best_net_pnl": max(pnl, default=None),
+            "largest_absolute_pnl_share": max(map(abs, pnl)) / total_abs if total_abs else None,
+        }
+    comparison = {}
+    for label in ("train", "validation", "test_retrospective"):
+        base, adverse = (summaries[f"{label}_{scenario}"] for scenario in ("base", "adverse"))
+        comparison[label] = {
+            "net_return_change_pct_points": adverse["return_pct"] - base["return_pct"],
+            "closed_trades": [base["closed_trades"], adverse["closed_trades"]],
+            "fees_paid": [base["fees_paid"], adverse["fees_paid"]],
+        }
+    return {
+        "metrics": summaries,
+        "comparison": comparison,
+        "sample_sizes": sizes,
+        "trade_distribution": distribution,
+        "economic_decision": "NO_DECISION",
+    }
+
+
+def _stamp(root):
+    return canonical({"path": str(root).casefold(), "id": ntfs.directory_identity(root)})
+
+
+def _paths(registry, scratch):
+    registry, scratch = ntfs.local_path(registry), ntfs.local_path(scratch)
+    a, b = ntfs.directory_identity(registry), ntfs.directory_identity(scratch)
+    if (
+        a == b
+        or any(ntfs.directory_identity(p) == a for p in scratch.parents)
+        or any(ntfs.directory_identity(p) == b for p in registry.parents)
+    ):
+        raise ValueError("Historical registry and scratch must be independent dedicated roots")
+
+
+def _read_complete(folder, seal, job, candles):
+    raw = ntfs.read(folder / RESULT, BUNDLE_LIMIT)
+    if hash_bytes(raw) != seal:
+        raise ValueError("Historical evidence does not match the consumed permit seal")
+    result = parse(raw)
+    transport = base64.b64decode(result["stdout"], validate=True)
+    if (
+        result["status"] != "COMPLETE"
+        or result["job_sha256"] != plan_sha(job)
+        or result["stdout_sha256"] != hash_bytes(transport)
+        or result["audit"] != _audit(job, candles, transport)
+    ):
+        raise ValueError("Historical receipt integrity mismatch")
+    return result
+
+
+def _run(verifier, job, files, evidence, registry, scratch, permit_id, binding=None):
+    with (
+        ntfs.pinned_root(registry, existing=True) as trusted,
+        ntfs.pinned_root(scratch, existing=True) as root,
+    ):
+        _paths(trusted, root)
+        with (
+            ntfs.exclusive_lock(trusted / ".historical-pilot.lock"),
+            ntfs.exclusive_lock(root / ".historical-pilot.lock"),
+        ):
+            return _run_locked(
+                verifier, job, files, evidence, trusted / DB, root, permit_id, binding
+            )
+
+
+def _run_locked(verifier, job, files, evidence, database, root, permit_id, binding):
+    folder = root / job.plan.job_id
+    purpose = "HISTORICAL_BACKTEST_ONCE" if job.mode == "HISTORICAL" else "SYNTHETIC_BACKTEST_ONCE"
+    fresh, (folder_id, state, seal) = store.reserve(
+        database,
+        permit_id,
+        plan_sha(job),
+        purpose,
+        _stamp(root),
+        binding,
+    )
+    if not fresh:
+        if state != "SEALED":
+            raise IsolationUncertain("Historical reservation requires operator reconciliation")
+        with ntfs.directory(folder):
+            if _stamp(folder) != folder_id:
+                raise IsolationUncertain("Historical evidence directory identity changed")
+            return _read_complete(folder, seal, job, files[CANDLES])
+
+    with ntfs.directory(folder, fresh=True, occupy=True):
+        store.bind_job(database, permit_id, _stamp(folder))
+        try:
+            result = _execute(verifier, job, files, evidence, folder)
+        except (ValueError, OSError, IsolationUncertain) as exc:
+            store.finish(database, permit_id)
+            ntfs.publish(
+                folder / "failure.json",
+                canonical(
+                    {
+                        "status": "UNKNOWN",
+                        "job_sha256": plan_sha(job),
+                        "error": str(exc),
+                        "utc": datetime.now(UTC).isoformat(),
+                    }
+                ).encode(),
+                LOG_LIMIT,
+            )
+            raise
+        packed = canonical(result).encode()
+        if len(packed) >= BUNDLE_LIMIT:
+            raise IsolationUncertain("Historical receipt exceeds storage bound")
+        store.finish(database, permit_id, bundle_sha=hash_bytes(packed))
+        ntfs.publish(folder / RESULT, packed, BUNDLE_LIMIT)
+        return result
+
+
+def _execute(verifier, job, files, evidence, folder):
+    diagnostics = folder / "preflight"
+    with (
+        ntfs.directory(diagnostics, fresh=True, occupy=True),
+        ntfs.directory(diagnostics / "docker-config", fresh=True, occupy=True),
+    ):
+        probe = verifier.preflight(
+            diagnostics=diagnostics, read_bytes=lambda p: ntfs.read(p, LOG_LIMIT)
+        )
+    with ntfs.directory(folder / "docker-config", fresh=True, occupy=True):
+        outcome = verifier._execute(
+            WORKER,
+            _payload(files),
+            folder,
+            "historical",
+            job.plan.limits.wall_seconds,
+            stdout_capture_limit=MAX_WIRE,
+        )
+    cleanup = parse(ntfs.read(folder / "historical-cleanup.json", LOG_LIMIT))
+    raw = outcome.get("stdout_bytes")
+    if not verifier._ok(outcome) or not verifier._ok(cleanup) or not isinstance(raw, bytes):
+        raise IsolationUncertain("Historical run or cleanup is not verified")
+    return {
+        "schema_version": "1.0",
+        "status": "COMPLETE",
+        "job_sha256": plan_sha(job),
+        "job": job.model_dump(mode="json"),
+        "dataset_preflight": evidence,
+        "preflight": probe,
+        "cleanup": cleanup,
+        "process": {k: outcome[k] for k in ("exit_code", "timed_out", "duration_seconds")},
+        "stdout": base64.b64encode(raw).decode("ascii"),
+        "stdout_sha256": hash_bytes(raw),
+        "audit": _audit(job, files[CANDLES], raw),
+    }
+
+
+def _verified_binding(coordinator_db):
+    database = ReadOnlyStore(coordinator_db)
+    with database.snapshot():
+        with database.connection() as connection:
+            if (
+                connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='trigger' "
+                    "AND name='pilot_launch_no_backtest'"
+                ).fetchone()
+                is None
+            ):
+                raise ValueError("Original pilot backtest guard is not present")
+            rows = connection.execute(
+                """SELECT l.authorization_id,a.attempt_id FROM attempts a
+                   JOIN pilot_launch_authorizations l ON l.attempt_id=a.attempt_id
+                   WHERE a.task_id=? AND a.status='SUCCEEDED' AND l.state='CONSUMED'""",
+                (ISSUE_3_TASK,),
+            ).fetchall()
+            if len(rows) != 1:
+                raise ValueError("Expected one verified Issue #3 implementation")
+            row, attempt = rows[0]
+            _, launch = read_launch(connection, row)
+            if (launch.task_id, launch.attempt_id) != (ISSUE_3_TASK, attempt):
+                raise ValueError("Sealed launch identity differs from Issue #3")
+        _, _, receipt_path, receipt = verified_implementation(database, attempt)
+    proposal_hash = frozen_plan(ROOT).input_files[f"src/quant_lab/strategies/{PILOT_STRATEGY}.py"]
+    if receipt["files"].get(f"src/quant_lab/strategies/{PILOT_STRATEGY}.py") != proposal_hash:
+        raise ValueError("Approved source differs from the frozen published strategy")
+    return attempt, hash_bytes(receipt_path.read_bytes()), *current_operator()
+
+
+def authorization_proposal(data_repo, coordinator_db):
+    job, _, evidence = prepare(VerificationContainer(), data_repo=data_repo)
+    attempt, receipt, operator, sid = _verified_binding(coordinator_db)
+    permit = store.Permit(
+        purpose="HISTORICAL_BACKTEST_ONCE",
+        attempt_id=attempt,
+        implementation_receipt_sha256=receipt,
+        job_sha256=plan_sha(job),
+        operator=operator,
+        operator_sid=sid,
+        approved_at=datetime.now(UTC),
+    )
+    return permit, job, evidence
+
+
+def approve_historical(data_repo, coordinator_db, registry):
+    """Future operator action, independent of preparation and without running Docker."""
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        raise ValueError("Interactive historical authorization required")
+    permit, job, _ = authorization_proposal(data_repo, coordinator_db)
+    print(canonical(job.model_dump(mode="json")))
+    confirmation = input(f"Type {store.phrase(permit)} to authorize these six cases: ")
+    if confirmation != store.phrase(permit):
+        raise ValueError("Explicit historical confirmation did not match")
+    if _verified_binding(coordinator_db) != (
+        permit.attempt_id,
+        permit.implementation_receipt_sha256,
+        permit.operator,
+        permit.operator_sid,
+    ):
+        raise ValueError("Operator or pilot identity changed during approval")
+    with (
+        ntfs.pinned_root(registry, existing=True) as root,
+        ntfs.exclusive_lock(root / ".historical-pilot.lock"),
+    ):
+        permit = permit.model_copy(update={"approved_at": datetime.now(UTC)})
+        database = root / DB
+        if not database.exists():
+            store.initialize(database)
+        return store.grant(database, permit, confirmation)
+
+
+def run_historical(data_repo, coordinator_db, registry, scratch, permit_id):
+    """Operator-only entry. A prepared proposal never grants or consumes a permit by itself."""
+    verifier = VerificationContainer()
+    job, files, evidence = prepare(verifier, data_repo=data_repo)
+    binding = _verified_binding(coordinator_db)
+    return _run(verifier, job, files, evidence, registry, scratch, permit_id, binding)
+
+
+def run_synthetic(registry, scratch):
+    """Acceptance only. Generates its own candles and synthetic permit in a fresh registry."""
+    verifier = VerificationContainer()
+    job, files, _ = prepare(verifier)
+    permit = store.Permit(
+        purpose="SYNTHETIC_BACKTEST_ONCE",
+        attempt_id="attempt_" + uuid4().hex,
+        implementation_receipt_sha256="0" * 64,
+        job_sha256=plan_sha(job),
+        operator="synthetic-acceptance",
+        operator_sid="S-1-0-0",
+        approved_at=datetime.now(UTC),
+    )
+    with (
+        ntfs.pinned_root(registry, existing=True) as root,
+        ntfs.exclusive_lock(root / ".historical-pilot.lock"),
+    ):
+        database = root / DB
+        if database.exists():
+            key = store.synthetic_key(database, permit.scope)
+        else:
+            store.initialize(database)
+            key = store.grant(database, permit, store.phrase(permit))
+    result = _run(verifier, job, files, None, registry, scratch, key)
+    if _run(verifier, job, files, None, registry, scratch, key) != result:
+        raise ValueError("Historical acceptance replay diverged")
+    return result
