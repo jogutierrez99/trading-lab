@@ -1,6 +1,7 @@
 """5.5B host boundary. The existing synthetic entry and old pilot trigger stay unchanged."""
 
 import base64
+import os
 import sys
 from datetime import UTC, datetime
 from statistics import median
@@ -17,7 +18,10 @@ from .execution_inputs import verified_implementation
 from .historical_pilot_contract import (
     CANDLES,
     MANIFEST_SHA,
+    WIRE_LIMIT,
+    WIRE_MAX,
     Job,
+    base64_bound,
     candles_bytes,
     decode_transport,
     frozen_plan,
@@ -29,11 +33,13 @@ from .historical_pilot_contract import (
 )
 from .historical_pilot_oracle import audit_case
 from .isolated_study import LOG_LIMIT, MODULES
-from .isolated_study_contract import BASE, IMAGE, MAX_WIRE, PILOT_STRATEGY
+from .isolated_study_contract import BASE, IMAGE, PILOT_STRATEGY
 from .pilot_authorization import ISSUE_3_TASK, current_operator
 from .pilot_launch import read_launch
+from .processes import run_process
 from .readonly import ReadOnlyStore
 from .verification_container import (
+    ENDPOINT,
     ROOT,
     RUNTIME,
     IsolationUncertain,
@@ -45,8 +51,39 @@ from .verification_container import (
 
 WORKER = ("-m", "trading_lab_orchestration.historical_pilot_guest")
 DB = "historical-pilot.sqlite3"
-BUNDLE_LIMIT = 1024 * 1024
+BUNDLE_LIMIT = base64_bound(WIRE_MAX) + 3 * LOG_LIMIT
 RESULT = "result.json"
+
+
+class HistoricalVerifier(VerificationContainer):
+    """Reuse the pinned verifier and its cleanup with a scoped streaming stdout profile."""
+
+    def __init__(self):
+        super().__init__()
+        self.streaming_guest = _regular_bytes(RUNTIME, "historical_pilot_bootstrap.py").decode()
+
+    def _cli(self, arguments, folder, name, timeout, payload=None, *, stdout_capture_limit=None):
+        if stdout_capture_limit != WIRE_LIMIT:
+            return super()._cli(
+                arguments, folder, name, timeout, payload, stdout_capture_limit=stdout_capture_limit
+            )
+        if arguments[0] != "run" or tuple(arguments[-2:]) != WORKER or name != "historical":
+            raise ValueError("Extended stdout bound requires the sealed historical worker")
+        arguments = arguments.copy()
+        arguments[arguments.index(self.guest)] = self.streaming_guest
+        config = folder / "docker-config"
+        config.mkdir(exist_ok=True)
+        return run_process(
+            [str(self.docker), "--config", str(config), "--host", ENDPOINT, *arguments],
+            folder,
+            timeout,
+            folder / f"{name}.stdout",
+            folder / f"{name}.stderr",
+            payload,
+            omit_env=tuple(key.upper() for key in os.environ if key.upper().startswith("DOCKER_")),
+            output_limit=WIRE_LIMIT,
+            stdout_capture_limit=WIRE_LIMIT,
+        )
 
 
 def _fixture(plan):
@@ -94,6 +131,7 @@ def prepare(verifier, *, data_repo=None):
         name: hash_bytes(_regular_bytes(RUNTIME, name))
         for name in (
             "historical_pilot.py",
+            "historical_pilot_bootstrap.py",
             "historical_pilot_oracle.py",
             "historical_pilot_store.py",
             "study_storage_windows.py",
@@ -213,10 +251,15 @@ def _run_locked(verifier, job, files, evidence, database, root, permit_id, bindi
     if not fresh:
         if state != "SEALED":
             raise IsolationUncertain("Historical reservation requires operator reconciliation")
-        with ntfs.directory(folder):
-            if _stamp(folder) != folder_id:
-                raise IsolationUncertain("Historical evidence directory identity changed")
-            return _read_complete(folder, seal, job, files[CANDLES])
+        try:
+            with ntfs.directory(folder):
+                if _stamp(folder) != folder_id:
+                    raise IsolationUncertain("Historical evidence directory identity changed")
+                return _read_complete(folder, seal, job, files[CANDLES])
+        except FileNotFoundError as exc:
+            raise IsolationUncertain(
+                "Historical seal without result requires reconciliation"
+            ) from exc
 
     with ntfs.directory(folder, fresh=True, occupy=True):
         store.bind_job(database, permit_id, _stamp(folder))
@@ -261,7 +304,7 @@ def _execute(verifier, job, files, evidence, folder):
             folder,
             "historical",
             job.plan.limits.wall_seconds,
-            stdout_capture_limit=MAX_WIRE,
+            stdout_capture_limit=WIRE_LIMIT,
         )
     cleanup = parse(ntfs.read(folder / "historical-cleanup.json", LOG_LIMIT))
     raw = outcome.get("stdout_bytes")
@@ -307,15 +350,24 @@ def _verified_binding(coordinator_db):
             if (launch.task_id, launch.attempt_id) != (ISSUE_3_TASK, attempt):
                 raise ValueError("Sealed launch identity differs from Issue #3")
         _, _, receipt_path, receipt = verified_implementation(database, attempt)
-    proposal_hash = frozen_plan(ROOT).input_files[f"src/quant_lab/strategies/{PILOT_STRATEGY}.py"]
-    if receipt["files"].get(f"src/quant_lab/strategies/{PILOT_STRATEGY}.py") != proposal_hash:
-        raise ValueError("Approved source differs from the frozen published strategy")
+    plan = frozen_plan(ROOT)
+    for name in (
+        f"src/quant_lab/strategies/{PILOT_STRATEGY}.py",
+        f"configs/strategies/{PILOT_STRATEGY}.yaml",
+    ):
+        if not (
+            receipt["files"].get(name)
+            == plan.input_files[name]
+            == hash_bytes((ROOT / name).read_bytes().replace(b"\r\n", b"\n"))
+        ):
+            raise ValueError("Approved implementation differs from the frozen published files")
     return attempt, hash_bytes(receipt_path.read_bytes()), *current_operator()
 
 
-def authorization_proposal(data_repo, coordinator_db):
-    job, _, evidence = prepare(VerificationContainer(), data_repo=data_repo)
+def authorization_proposal(data_repo, coordinator_db, registry):
+    job, _, evidence = prepare(HistoricalVerifier(), data_repo=data_repo)
     attempt, receipt, operator, sid = _verified_binding(coordinator_db)
+    store.assert_unconsumed(registry / DB, f"issue-3:{attempt}")
     permit = store.Permit(
         purpose="HISTORICAL_BACKTEST_ONCE",
         attempt_id=attempt,
@@ -332,7 +384,7 @@ def approve_historical(data_repo, coordinator_db, registry):
     """Future operator action, independent of preparation and without running Docker."""
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
         raise ValueError("Interactive historical authorization required")
-    permit, job, _ = authorization_proposal(data_repo, coordinator_db)
+    permit, job, _ = authorization_proposal(data_repo, coordinator_db, registry)
     print(canonical(job.model_dump(mode="json")))
     confirmation = input(f"Type {store.phrase(permit)} to authorize these six cases: ")
     if confirmation != store.phrase(permit):
@@ -357,7 +409,7 @@ def approve_historical(data_repo, coordinator_db, registry):
 
 def run_historical(data_repo, coordinator_db, registry, scratch, permit_id):
     """Operator-only entry. A prepared proposal never grants or consumes a permit by itself."""
-    verifier = VerificationContainer()
+    verifier = HistoricalVerifier()
     job, files, evidence = prepare(verifier, data_repo=data_repo)
     binding = _verified_binding(coordinator_db)
     return _run(verifier, job, files, evidence, registry, scratch, permit_id, binding)
@@ -365,7 +417,7 @@ def run_historical(data_repo, coordinator_db, registry, scratch, permit_id):
 
 def run_synthetic(registry, scratch):
     """Acceptance only. Generates its own candles and synthetic permit in a fresh registry."""
-    verifier = VerificationContainer()
+    verifier = HistoricalVerifier()
     job, files, _ = prepare(verifier)
     permit = store.Permit(
         purpose="SYNTHETIC_BACKTEST_ONCE",

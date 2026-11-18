@@ -1,6 +1,7 @@
 """Container worker for the exact six-case sealed Issue #3 job."""
 
 import json
+import sys
 from dataclasses import asdict
 from importlib.metadata import version
 from pathlib import Path
@@ -20,8 +21,8 @@ from .contracts import canonical, digest
 from .historical_pilot_contract import (
     CANDLES,
     Job,
-    encode_transport,
     hash_bytes,
+    iter_transport,
     read_candles,
     window,
 )
@@ -106,8 +107,8 @@ def main():
         if hash_bytes(Path(name).read_bytes()) != expected:
             raise ValueError("Container input closure changed")
     frame = read_candles(Path(CANDLES).read_bytes(), job)
-    transport = encode_transport(job, (calculate(frame, job, case) for case in job.plan.cases))
-    print(transport.decode("utf-8"), end="")
+    for block in iter_transport(job, (calculate(frame, job, case) for case in job.plan.cases)):
+        sys.stdout.buffer.write(block)
 
 
 if __name__ == "__main__":

@@ -198,3 +198,28 @@ def synthetic_key(path, scope):
         if len(row) != 1 or row[0][1] != scope:
             raise ValueError("Use the same isolated synthetic registry for replay")
         return row[0][0]
+
+
+def assert_unconsumed(path, scope):
+    """Check the designated registry without creating a database or a journal."""
+    if path.name != "historical-pilot.sqlite3" or not path.parent.is_dir():
+        raise ValueError("A pre-provisioned historical registry directory is required")
+    try:
+        path.lstat()
+    except FileNotFoundError:
+        return
+    conn = sqlite3.connect(path.absolute().as_uri() + "?mode=ro", uri=True, timeout=5)
+    try:
+        conn.execute("PRAGMA query_only=ON")
+        if (
+            conn.execute("PRAGMA application_id").fetchone()[0] != APP_ID
+            or conn.execute("PRAGMA user_version").fetchone()[0] != 1
+        ):
+            raise ValueError("Unrecognized historical authorization database")
+        if conn.execute(
+            "SELECT 1 FROM permits JOIN runs ON permits.id=runs.permit WHERE permits.scope=?",
+            (scope,),
+        ).fetchone():
+            raise ValueError("The designated historical permit was already consumed")
+    finally:
+        conn.close()

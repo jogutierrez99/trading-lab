@@ -45,41 +45,49 @@ emite `NO_DECISION`. El TEST ya consumido no acredita independencia.
 
 ## Transporte y persistencia
 
-Seis partes zlib, una por caso, identificadas y ordenadas según el plan.
-El sobre JSON 1.0 incluye SHA-256 del trabajo, tamaño y SHA-256 de cada parte.
-Se conserva el contrato del resultado económico 1.1 a nivel de caso.
-Límite de salida de 524.287 bytes, más límite de expansión independiente
-inferior a 2 MiB por parte, con descompresión por partes. Una parte malformada,
-truncada, duplicada, desordenada, con datos sobrantes, hash inválido o
-longitud incongruente invalida la recepción completa. No se amplía el límite
-de pipe, de salida del invitado ni la memoria Docker. Se aceptaron seis casos
-de longitud completa en dos escenarios artificiales, de 22.205 y 93.373
-bytes. Los ensayos aceptaron el límite menos un byte con JSON válido y
-rechazaron el valor exacto y el superior. Si un resultado futuro excede
-el límite, se conserva el expediente para conciliación, sin repetir
-automáticamente el cálculo ni descartar operaciones.
+El transporte 2.0 usa un flujo JSON por líneas. Incluye una cabecera ligada al
+SHA-256 del trabajo, seis manifiestos en orden fijo y bloques de hasta 32 KiB
+por caso. Cada manifiesto declara identidad, tamaño, cantidad de bloques y
+SHA-256 del caso. El receptor verifica orden, tamaño e identidad de cada
+bloque y su SHA-256. Un bloque solo usa zlib cuando reduce sus bytes; en los
+demás casos se transmite sin compresión. La descompresión rechaza expansión
+excesiva, bytes sobrantes o streams incompletos. Tras el sexto caso se exige
+fin del flujo. La publicación exige que el auditor valide todos los casos.
 
-### Condición de capacidad antes de autorizar el histórico
+### Cota conservadora del lote completo
 
-El margen frente a 524.287 bytes fue de 502.082 bytes en el fixture base y
-430.914 bytes en el fixture denso de 182 operaciones. El lote real tendrá
-5.760 barras evaluadas entre los seis casos, con 5.766 puntos en cada una de
-las series equity y exposición, además de las operaciones y rechazos. El
-volumen de eventos y su compresibilidad pueden diferir de los fixtures.
-La prueba del límite comprueba admisión y rechazo por tamaño, sin certificar
-que el lote histórico completo quepa.
+Cada ventana tiene 1.416, 720 o 744 barras. BASE y ADVERSE suman 5.760 barras
+y 5.766 valores en cada serie equity y exposición. Como la primera apertura
+no opera señales del warmup, quedan como máximo 5.754 oportunidades de
+entrada entre los seis casos. Una oportunidad produce como máximo una
+operación cerrada o un rechazo. Los casos no mantienen posiciones abiertas.
 
-**Bloqueo previo a consumir el permiso histórico.** Se requiere una cota
-conservadora demostrada para todos los casos permitidos o una revisión del
-transporte. La alternativa propuesta conserva las seis partes, separa las
-series y eventos en bloques de tamaño fijo máximo y los transmite en una sola
-ejecución aislada. Un manifiesto sellaría orden, número de bloques, tamaños
-codificados y expandidos, SHA-256 e identidad del caso. El receptor consumiría
-los bloques de forma incremental, con límites globales justificados para
-memoria, almacenamiento y tiempo. Solo publicaría el lote si recibe y valida
-el manifiesto y todos los bloques. Antes de habilitarlo, medir con fixtures
-artificiales al máximo de eventos permitido y datos poco compresibles.
-Este transporte alternativo está propuesto y aún no está implementado.
+La representación de salida del invitado usa floats binarios finitos
+serializados por CPython, con hasta 24 bytes por número. Las marcas UTC
+horarias de 2022 se emiten con hasta 25 caracteres y sin fracciones. Las
+claves de los registros son fijas, los literales de operación están enumerados
+y un motivo de rechazo admite hasta 60 caracteres ASCII. Se asignan 1.024
+bytes a cada evento y 4.096 a los campos fijos de cada caso, incluidos costes,
+métricas y delimitadores. Para un caso de N barras, la cota del JSON es
+`4096 + (N - 1) * 1025 + 2 * (N + 1) * 25`. Los máximos por caso son
+1.525.321, 777.121 y 802.921 bytes, repetidos para BASE y ADVERSE.
+
+Por caso se añade base64, hasta 4 bytes de redondeo por bloque y hasta 256
+bytes de cabecera por manifiesto o bloque. El total máximo, incluida la
+cabecera del lote, es **8.332.696 bytes**. El pipe se captura con límite
+exclusivo de 8.332.697 y el documento anfitrión con límite exclusivo de
+14.255.992 bytes, incluida la copia exacta del flujo en base64. El lector
+procesa las líneas en orden y descomprime un bloque a la vez. El anfitrión
+conserva la captura completa acotada para sellarla. La memoria del contenedor,
+el tmpfs, el CPU, la red y el límite de archivos ordinarios del bootstrap
+permanecen fijados. El techo de 512 KiB de 5.5A permanece vigente; se mantiene
+en el contrato del piloto como referencia del transporte heredado.
+
+Esta cota cubre la salida serializada válida del invitado, incluso con todos
+los bloques sin comprimir. En pruebas, el receptor aceptó el máximo de 5.754
+eventos de forma estructural y el auditor rechazó los fills ficticios. Los
+límites no garantizan que un resultado numéricamente inválido o un proceso
+que agote el tiempo pueda terminar. Esos casos no se publican como COMPLETE.
 
 Se reutilizan el preflight, supervisor Docker, recursos, captura original de
 stdout y limpieza de 5.5A. La evidencia terminal queda en un documento NTFS
@@ -140,16 +148,23 @@ generar en una ubicación privada la propuesta exacta para revisión del operado
 
 ```powershell
 $queue = Join-Path $env:LOCALAPPDATA 'TradingLab/GitHubIntake53/queue.sqlite3'
-python -B scripts/prepare_historical_pilot.py proposal --data-repo $repoDatos --coordinator-db $queue
+$registry = Read-Host 'Ruta NTFS del registro histórico designado fuera del repositorio'
+$private = Join-Path $env:LOCALAPPDATA ('TL55B-proposal-' + [guid]::NewGuid() + '.json')
+python -B scripts/prepare_historical_pilot.py proposal --data-repo $repoDatos --coordinator-db $queue --registry $registry |
+    Set-Content -LiteralPath $private -Encoding UTF8
+if ($LASTEXITCODE -ne 0) { throw 'No se emitió una propuesta válida' }
 ```
 
-El resultado esperado de ese comando es `PROPOSAL_ONLY`. En una etapa posterior
+El resultado esperado de ese comando es `PROPOSAL_ONLY`. Se debe usar el
+registro histórico designado por el operador para comprobar si un permiso
+ya fue consumido. La consulta no crea una SQLite ni concede permiso. En una etapa posterior
 y tras aprobación independiente, la frase será
 `AUTHORIZE HISTORICAL_BACKTEST_ONCE <attempt_id> <job_sha256>` con los valores
 reales de la propuesta revisada. Antes de presentarla comprobar el recibo,
 la clausura efectiva, la imagen, las seis ventanas y los límites exactos.
 Conservar la propuesta y el SHA-256 fuera del checkout. Cualquier cambio
 posterior de huella requiere otra revisión, conservando las reservas existentes.
+El transporte 2.0 requiere repetir las dos pruebas nativas 5.5B de Docker.
 En la sesión de desarrollo, el proceso no pudo abrir el directorio de trabajo
 del piloto para reverificar el recibo y el motor Docker denegó el canal local.
 Los ensayos de cálculo y transporte ejecutados por pytest usaron datos

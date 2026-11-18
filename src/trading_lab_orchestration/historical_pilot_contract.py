@@ -4,6 +4,7 @@ import base64
 import binascii
 import json
 import zlib
+from datetime import date
 from hashlib import sha256
 from io import BytesIO
 from typing import Literal
@@ -15,9 +16,9 @@ from quant_lab.study_data import COLUMNS, audit
 
 from .contracts import Model, canonical, digest
 from .isolated_study_contract import (
-    MAX_WIRE,
     PILOT_DATASET,
     PILOT_PARQUET,
+    SCHEDULE,
     CaseResult,
     Hash,
     Plan,
@@ -30,8 +31,38 @@ DRAFT = "examples/orchestration/phase-5-5a/historical-authorization.draft.json"
 CANDLES = "inputs/historical-candles.json"
 FROZEN_PLAN = "07b99935aac61b237f622ecfb41c8a00350864d1f90d21d4665dd9a623181ded"
 MANIFEST_SHA = "1cafa7db033f47faa227620398b3b646113cf9cec85f637d48586103f0639b42"
-# A single case cannot allocate more than this even from a hostile compressed stream.
-CASE_LIMIT = 2 * 1024 * 1024
+BLOCK_BYTES = 32 * 1024
+HEADER_MAX = 256  # Includes terminal newline, excludes the base64 block body.
+FLOAT_BYTES = 24  # Canonical CPython binary64 representation, including sign and exponent.
+EVENT_BYTES = 1024  # Covers either TradeRecord or RejectionRecord in canonical form.
+METADATA_BYTES = 4096
+
+
+def case_bound(bars):
+    return METADATA_BYTES + (bars - 1) * (EVENT_BYTES + 1) + 2 * (bars + 1) * (FLOAT_BYTES + 1)
+
+
+def block_count(size):
+    return (size + BLOCK_BYTES - 1) // BLOCK_BYTES
+
+
+def base64_bound(size):
+    return 4 * ((size + 2) // 3)
+
+
+def _wire_case_bound(size):
+    # At most four bytes of extra base64 rounding per independently encoded block.
+    return HEADER_MAX + base64_bound(size) + block_count(size) * (HEADER_MAX + 4)
+
+
+CASE_BARS = tuple(
+    24 * (date.fromisoformat(end) - date.fromisoformat(start)).days
+    for start, end in SCHEDULE.values()
+    for _ in range(2)
+)
+WIRE_MAX = HEADER_MAX + sum(_wire_case_bound(case_bound(bars)) for bars in CASE_BARS)
+WIRE_LIMIT = WIRE_MAX + 1  # The supervisor uses an exclusive capture limit.
+TRANSPORT_VERSION = "2.0"
 DATA_LIMIT = 2 * 1024 * 1024
 
 
@@ -192,71 +223,115 @@ def read_candles(raw, job):
     return frame
 
 
-def encode_transport(job, cases):
-    parts = []
+def _line(value, *, payload_bytes=0):
+    raw = canonical(value).encode() + b"\n"
+    if len(raw) > HEADER_MAX + payload_bytes:
+        raise ValueError("Historical transport header exceeds its bound")
+    return raw
+
+
+def iter_transport(job, cases):
+    yield _line({"schema_version": TRANSPORT_VERSION, "job_sha256": plan_sha(job)})
     for case, value in zip(job.plan.cases, cases, strict=True):
-        raw = canonical(value).encode()
-        if len(raw) >= CASE_LIMIT:
-            raise ValueError("Historical transport part exceeds expansion limit")
-        parts.append(
-            {
-                "id": case.id,
-                "size": len(raw),
-                "sha256": hash_bytes(raw),
-                "zlib": base64.b64encode(zlib.compress(raw, level=9)).decode("ascii"),
-            }
+        payload = canonical(value).encode()
+        if not 0 < len(payload) <= case_bound(case.bars):
+            raise ValueError("Historical case exceeds its serialized bound")
+        blocks = block_count(len(payload))
+        yield _line(
+            {"id": case.id, "bytes": len(payload), "blocks": blocks, "sha256": hash_bytes(payload)}
         )
-    output = canonical(
-        {"schema_version": "1.0", "job_sha256": plan_sha(job), "parts": parts}
-    ).encode()
-    if len(output) >= MAX_WIRE:
-        raise ValueError("Historical transport exceeds wire limit")
-    return output
+        for index, start in enumerate(range(0, len(payload), BLOCK_BYTES)):
+            block = payload[start : start + BLOCK_BYTES]
+            compressed = zlib.compress(block, level=6)
+            codec, stored = ("zlib", compressed) if len(compressed) < len(block) else ("raw", block)
+            data = base64.b64encode(stored).decode("ascii")
+            yield _line(
+                {
+                    "id": case.id,
+                    "index": index,
+                    "codec": codec,
+                    "sha256": hash_bytes(block),
+                    "data": data,
+                },
+                payload_bytes=len(data),
+            )
+
+
+def encode_transport(job, cases):
+    return b"".join(iter_transport(job, cases))
+
+
+def _read_line(stream, limit, keys):
+    raw = stream.readline(limit + 1)
+    if not raw.endswith(b"\n") or len(raw) > limit:
+        raise ValueError("Missing, oversized or truncated historical transport frame")
+    frame = parse(raw)
+    if not isinstance(frame, dict) or frame.keys() != keys:
+        raise ValueError("Invalid historical transport frame")
+    return frame
+
+
+def _decode_block(frame, expected):
+    if not isinstance(frame["data"], str) or len(frame["data"]) > base64_bound(expected):
+        raise ValueError("Historical wire block exceeds size bound")
+    try:
+        stored = base64.b64decode(frame["data"], validate=True)
+        if frame["codec"] == "raw":
+            block = stored
+        elif frame["codec"] == "zlib" and len(stored) < expected:
+            decoder = zlib.decompressobj()
+            block = decoder.decompress(stored, expected + 1)
+            if not decoder.eof or decoder.unused_data or decoder.unconsumed_tail:
+                raise ValueError("Invalid bounded zlib stream")
+        else:
+            raise ValueError("Unsupported or oversized historical block encoding")
+    except (binascii.Error, zlib.error) as exc:
+        raise ValueError("Invalid historical block encoding") from exc
+    if len(block) != expected or hash_bytes(block) != frame["sha256"]:
+        raise ValueError("Historical block size or hash mismatch")
+    return block
 
 
 def decode_transport(raw, job):
-    if not 0 < len(raw) < MAX_WIRE:
+    if not 0 < len(raw) <= WIRE_MAX:
         raise ValueError("Historical transport exceeds wire limit")
-    document = parse(raw)
-    if (
-        not isinstance(document, dict)
-        or document.keys() != {"schema_version", "job_sha256", "parts"}
-        or document["schema_version"] != "1.0"
-        or document["job_sha256"] != plan_sha(job)
-        or not isinstance(document["parts"], list)
-        or len(document["parts"]) != 6
-    ):
-        raise ValueError("Invalid historical transport identity or cardinality")
-    for case, part in zip(job.plan.cases, document["parts"], strict=True):
+    stream = BytesIO(raw)
+    header = _read_line(stream, HEADER_MAX, {"schema_version", "job_sha256"})
+    if header != {"schema_version": TRANSPORT_VERSION, "job_sha256": plan_sha(job)}:
+        raise ValueError("Invalid historical transport identity")
+    for case in job.plan.cases:
+        part = _read_line(stream, HEADER_MAX, {"id", "bytes", "blocks", "sha256"})
+        size = part["bytes"]
         if (
-            not isinstance(part, dict)
-            or part.keys() != {"id", "size", "sha256", "zlib"}
-            or part["id"] != case.id
-            or type(part["size"]) is not int
-            or not 0 < part["size"] < CASE_LIMIT
-            or not isinstance(part["zlib"], str)
+            part["id"] != case.id
+            or type(size) is not int
+            or not 0 < size <= case_bound(case.bars)
+            or type(part["blocks"]) is not int
+            or part["blocks"] != block_count(size)
         ):
-            raise ValueError("Invalid historical transport part")
-        try:
-            compressed = base64.b64decode(part["zlib"], validate=True)
-            stream = zlib.decompressobj()
-            payload = stream.decompress(compressed, part["size"] + 1)
-        except (binascii.Error, zlib.error, ValueError) as exc:
-            raise ValueError("Invalid historical transport encoding") from exc
-        if (
-            not stream.eof
-            or stream.unused_data
-            or stream.unconsumed_tail
-            or len(payload) != part["size"]
-            or hash_bytes(payload) != part["sha256"]
-        ):
-            raise ValueError("Historical transport part size, hash or stream mismatch")
+            raise ValueError("Invalid historical case manifest")
+        payload = bytearray()
+        for index in range(part["blocks"]):
+            expected = min(BLOCK_BYTES, size - len(payload))
+            frame = _read_line(
+                stream,
+                HEADER_MAX + base64_bound(expected),
+                {"id", "index", "codec", "sha256", "data"},
+            )
+            if frame["id"] != case.id or type(frame["index"]) is not int or frame["index"] != index:
+                raise ValueError("Missing, repeated or out-of-order historical block")
+            payload.extend(_decode_block(frame, expected))
+        if hash_bytes(payload) != part["sha256"]:
+            raise ValueError("Historical case SHA-256 mismatch")
         member = CaseResult.model_validate_json(canonical(parse(payload)))
-        if (member.id, member.segment, member.scenario, member.costs) != (
-            case.id,
-            case.segment,
-            case.scenario,
-            case.costs,
+        if (
+            (member.id, member.segment, member.scenario, member.costs)
+            != (case.id, case.segment, case.scenario, case.costs)
+            or len(member.trades) + len(member.rejections) > case.bars - 1
+            or len(member.equity) != case.bars + 1
+            or len(member.exposure) != case.bars + 1
         ):
-            raise ValueError("Historical result case changed")
+            raise ValueError("Historical result case changed or exceeds its cardinality")
         yield case, member
+    if stream.read(1):
+        raise ValueError("Unexpected data after the six historical cases")

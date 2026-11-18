@@ -20,6 +20,7 @@ def main():
     proposal = sub.add_parser("proposal")
     proposal.add_argument("--data-repo", type=Path, required=True)
     proposal.add_argument("--coordinator-db", type=Path, required=True)
+    proposal.add_argument("--registry", type=Path, required=True)
     synthetic = sub.add_parser("synthetic")
     synthetic.add_argument("--registry", type=Path, required=True)
     synthetic.add_argument("--scratch", type=Path, required=True)
@@ -30,7 +31,9 @@ def main():
                 args.data_repo, frozen_plan(Path(__file__).resolve().parents[1]).cases
             )
         elif args.command == "proposal":
-            permit, job, evidence = authorization_proposal(args.data_repo, args.coordinator_db)
+            permit, job, evidence = authorization_proposal(
+                args.data_repo, args.coordinator_db, args.registry
+            )
             answer = {
                 "status": "PROPOSAL_ONLY",
                 "permit": permit.model_dump(mode="json"),

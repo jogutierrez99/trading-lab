@@ -19,11 +19,15 @@ from trading_lab_orchestration import historical_pilot as host
 from trading_lab_orchestration import historical_pilot_store as store
 from trading_lab_orchestration.contracts import canonical
 from trading_lab_orchestration.historical_pilot_contract import (
+    BLOCK_BYTES,
     CANDLES,
-    MAX_WIRE,
+    EVENT_BYTES,
+    WIRE_LIMIT,
+    WIRE_MAX,
     BlockedDataset,
     Job,
     candles_bytes,
+    case_bound,
     decode_transport,
     encode_transport,
     hash_bytes,
@@ -43,7 +47,6 @@ from trading_lab_orchestration.pilot_launch import DDL
 from trading_lab_orchestration.verification_container import (
     IsolationUnavailable,
     IsolationUncertain,
-    VerificationContainer,
     _payload,
 )
 
@@ -58,7 +61,7 @@ def synthetic():
 
 def test_six_cases_account_for_every_trade(synthetic):
     job, files, _, cases, wire = synthetic
-    assert len(wire) < MAX_WIRE
+    assert len(wire) <= WIRE_MAX
     assert [len(case["trades"]) for case in cases] == [7, 7, 4, 4, 3, 3]
     assert job.plan.holdout == "CONSUMED" and job.mode == "SYNTHETIC"
     audit = host._audit(job, files[CANDLES], wire)
@@ -87,7 +90,7 @@ def test_full_windows_with_dense_artificial_trades(synthetic):
     )
     cases = [calculate(frame, job, case) for case in job.plan.cases]
     wire = encode_transport(job, cases)
-    assert 80 * 1024 < len(wire) < MAX_WIRE
+    assert 80 * 1024 < len(wire) <= WIRE_MAX
     assert host._audit(job, payload, wire)["sample_sizes"] == [48, 48, 20, 20, 23, 23]
 
 
@@ -194,57 +197,142 @@ def test_resealed_economic_attack_rejected(synthetic, attack):
 @pytest.mark.parametrize(
     "attack",
     [
-        "exact",
         "above",
         "truncated",
+        "duplicate_key",
+        "missing",
         "duplicate",
-        "count",
         "order",
         "hash",
+        "case_hash",
         "extra",
+        "overflow",
+        "wrong_job",
         "nonfinite",
-        "trailing_zlib",
+        "oversized_frame",
     ],
 )
 def test_transport_rejects_malformed_or_unsealed_parts(synthetic, attack):
     job, _, _, _, wire = synthetic
-    document = json.loads(wire)
-    if attack in {"exact", "above"}:
-        length = MAX_WIRE + (attack == "above")
-        wire += b" " * (length - len(wire))
+    lines = wire.splitlines(keepends=True)
+    block = json.loads(lines[2])
+    if attack == "above":
+        wire += b" " * (WIRE_LIMIT - len(wire))
     elif attack == "truncated":
         wire = wire[:-3]
+    elif attack == "duplicate_key":
+        wire = wire.replace(b'{"job_sha256"', b'{"schema_version":"2.0","job_sha256"', 1)
+    elif attack == "missing":
+        lines.pop(2)
+        wire = b"".join(lines)
     elif attack == "duplicate":
-        wire = wire.replace(b'{"job_sha256"', b'{"schema_version":"1.0","job_sha256"', 1)
+        lines.insert(2, lines[2])
+        wire = b"".join(lines)
+    elif attack == "order":
+        lines[1], lines[2] = lines[2], lines[1]
+        wire = b"".join(lines)
+    elif attack == "case_hash":
+        part = json.loads(lines[1])
+        part["sha256"] = "0" * 64
+        wire = lines[0] + canonical(part).encode() + b"\n" + b"".join(lines[2:])
+    elif attack == "wrong_job":
+        wire = wire.replace(plan_sha(job).encode(), b"0" * 64, 1)
+    elif attack == "nonfinite":
+        wire = (
+            b"".join(lines[:1])
+            + lines[1].replace(b'"bytes":', b'"bytes":NaN,"unused":', 1)
+            + b"".join(lines[2:])
+        )
+    elif attack == "oversized_frame":
+        wire = b" " * 300 + wire
     else:
-        part = document["parts"][0]
-        if attack == "count":
-            document["parts"].pop()
-        elif attack == "order":
-            document["parts"].reverse()
-        elif attack == "hash":
-            part["sha256"] = "0" * 64
+        if attack == "hash":
+            block["sha256"] = "0" * 64
         elif attack == "extra":
-            part["unexpected"] = True
-        elif attack == "nonfinite":
-            raw = zlib.decompress(base64.b64decode(part["zlib"])).replace(
-                b'"equity":[', b'"equity":[NaN,', 1
-            )
-            part.update(
-                size=len(raw),
-                sha256=hash_bytes(raw),
-                zlib=base64.b64encode(zlib.compress(raw)).decode(),
-            )
+            block["extra"] = True
         else:
-            part["zlib"] = base64.b64encode(base64.b64decode(part["zlib"]) + b"garbage").decode()
-        wire = canonical(document).encode()
+            block["codec"] = "zlib"
+            block["data"] = base64.b64encode(zlib.compress(b"x" * (BLOCK_BYTES + 1))).decode()
+        wire = b"".join(lines[:2]) + canonical(block).encode() + b"\n" + b"".join(lines[3:])
     with pytest.raises(ValueError):
         list(decode_transport(wire, job))
 
 
-def test_valid_wire_just_below_limit(synthetic):
-    job, _, _, _, wire = synthetic
-    assert len(list(decode_transport(wire + b" " * (MAX_WIRE - len(wire) - 1), job))) == 6
+def test_streaming_profile_is_used_only_for_the_frozen_worker(tmp_path, monkeypatch):
+    verifier = object.__new__(host.HistoricalVerifier)
+    verifier.image = IMAGE
+    verifier.docker = tmp_path / "docker.exe"
+    verifier.fingerprint = "0" * 64
+    verifier.guest = "legacy guest"
+    verifier.streaming_guest = "streaming guest"
+    calls = []
+
+    def process(argv, cwd, timeout, stdout, stderr, payload, **limits):
+        calls.append((argv, limits))
+        status = {"exit_code": 0, "timed_out": False, "output_truncated": False}
+        return status | ({"stdout_bytes": b"framed"} if "run" in argv else {})
+
+    monkeypatch.setattr(host, "run_process", process)
+    monkeypatch.setattr(
+        host.VerificationContainer,
+        "_cli",
+        lambda *args, **kwargs: process(
+            args[1],
+            None,
+            None,
+            None,
+            None,
+            None,
+            **kwargs,
+        ),
+    )
+    assert (
+        verifier._execute(
+            host.WORKER,
+            "payload",
+            tmp_path,
+            "historical",
+            60,
+            stdout_capture_limit=WIRE_LIMIT,
+        )["stdout_bytes"]
+        == b"framed"
+    )
+    first, last = calls
+    assert "streaming guest" in first[0] and "legacy guest" not in first[0]
+    assert not any(flag in first[0] for flag in ("--mount", "--privileged"))
+    assert first[1]["stdout_capture_limit"] == WIRE_LIMIT
+    assert last[0][0] == "rm" and last[1]["stdout_capture_limit"] is None
+    with pytest.raises(ValueError, match="sealed historical worker"):
+        verifier._cli(
+            ["run", "anything"], tmp_path, "historical", 5, stdout_capture_limit=WIRE_LIMIT
+        )
+
+
+def test_all_case_event_slots_fit_even_without_compression(synthetic, monkeypatch):
+    job, _, _, cases, _ = synthetic
+    stressed = deepcopy(cases)
+    worst_float = float.fromhex("0x1.fffffffffffffp+1023")
+    assert len(canonical(-worst_float)) == 24
+    for case, value in zip(job.plan.cases, stressed, strict=True):
+        trade = value["trades"][0]
+        for key, field in trade.items():
+            if type(field) is float:
+                trade[key] = -worst_float if key == "net_pnl" else worst_float
+        trade.update(holding_bars=case.bars, reason="end_of_study", exit_timing="intrabar")
+        assert len(canonical(trade).encode()) < EVENT_BYTES
+        value["trades"] = [trade] * (case.bars - 1)
+        value["rejections"] = []
+        value["equity"] = [worst_float] * (case.bars + 1)
+        value["exposure"] = [worst_float] * (case.bars + 1)
+        assert len(canonical(value).encode()) <= case_bound(case.bars)
+    # Model all blocks taking the raw path. There is no favorable compression assumption.
+    monkeypatch.setattr(zlib, "compress", lambda data, **kwargs: data + b"!")
+    wire = encode_transport(job, stressed)
+    results = list(decode_transport(wire, job))
+    assert 512 * 1024 < len(wire) <= WIRE_MAX
+    assert sum(len(result.trades) for _, result in results) == 5754
+    with pytest.raises(SemanticInconsistency):
+        host._audit(job, synthetic[1][CANDLES], wire)
 
 
 @pytest.fixture
@@ -298,6 +386,19 @@ def test_historical_permit_requires_verified_operator_and_attempt_binding(permit
         assert conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 0
 
 
+def test_proposal_registry_check_is_read_only(permit_db):
+    database, permit = permit_db
+    before = database.read_bytes()
+    store.assert_unconsumed(database, permit.scope)
+    assert database.read_bytes() == before
+    key = store.grant(database, permit, store.phrase(permit))
+    store.reserve(database, key, permit.job_sha256, permit.purpose, "dir")
+    consumed = database.read_bytes()
+    with pytest.raises(ValueError, match="already consumed"):
+        store.assert_unconsumed(database, permit.scope)
+    assert database.read_bytes() == consumed
+
+
 def test_reservation_is_atomic_and_never_rearmed(permit_db):
     database, permit = permit_db
     key = store.grant(database, permit, store.phrase(permit))
@@ -340,7 +441,16 @@ def test_legacy_trigger_still_rejects_even_with_separate_permit(permit_db):
 
 @pytest.mark.parametrize(
     "interruption",
-    [None, "before_docker_returns", "before_publish", "preflight", "timeout", "cleanup", "capture"],
+    [
+        None,
+        "before_docker_returns",
+        "before_publish",
+        "preflight",
+        "timeout",
+        "cleanup",
+        "capture",
+        "missing_block",
+    ],
 )
 def test_coordinator_replays_or_stops_without_second_docker(
     tmp_path, synthetic, permit_db, monkeypatch, interruption
@@ -375,7 +485,7 @@ def test_coordinator_replays_or_stops_without_second_docker(
 
         def _execute(self, command, stdin, folder, name, timeout, *, stdout_capture_limit):
             starts.append(command)
-            assert stdout_capture_limit == MAX_WIRE
+            assert stdout_capture_limit == WIRE_LIMIT
             if interruption == "before_docker_returns":
                 raise KeyboardInterrupt
             result = {"exit_code": 0, "timed_out": False, "output_truncated": False}
@@ -386,7 +496,13 @@ def test_coordinator_replays_or_stops_without_second_docker(
             )
             (folder / "historical.stdout").write_bytes(b"substituted diagnostic")
             return result | {
-                "stdout_bytes": None if interruption == "capture" else wire,
+                "stdout_bytes": None
+                if interruption == "capture"
+                else (
+                    b"".join(wire.splitlines(keepends=True)[:-1])
+                    if interruption == "missing_block"
+                    else wire
+                ),
                 "duration_seconds": 0.01,
                 "timed_out": interruption == "timeout",
             }
@@ -407,6 +523,7 @@ def test_coordinator_replays_or_stops_without_second_docker(
             "before_docker_returns": KeyboardInterrupt,
             "before_publish": KeyboardInterrupt,
             "preflight": IsolationUnavailable,
+            "missing_block": ValueError,
         }.get(interruption, IsolationUncertain)
         with pytest.raises(expected):
             host._run_locked(*args)
@@ -433,19 +550,26 @@ def test_synthetic_six_cases_in_native_docker(tmp_path):
     reason="Explicit Windows Docker acceptance",
 )
 def test_historical_verifier_timeout_and_cleanup_in_native_docker(tmp_path):
-    verifier = VerificationContainer()
+    verifier = host.HistoricalVerifier()
     with (
         host.ntfs.pinned_root(tmp_path, existing=True),
         host.ntfs.exclusive_lock(tmp_path / ".historical-pilot.lock"),
         host.ntfs.directory(tmp_path / "docker-config", fresh=True, occupy=True),
     ):
         outcome = verifier._execute(
-            ["-c", "import time; time.sleep(90)"],
-            _payload({}),
+            host.WORKER,
+            _payload(
+                {
+                    "src/trading_lab_orchestration/__init__.py": b"",
+                    "src/" + host.WORKER[-1].replace(".", "/") + ".py": (
+                        b"import time; time.sleep(90)"
+                    ),
+                }
+            ),
             tmp_path,
-            "deadline",
+            "historical",
             10,
-            stdout_capture_limit=MAX_WIRE,
+            stdout_capture_limit=WIRE_LIMIT,
         )
-        cleanup = json.loads((tmp_path / "deadline-cleanup.json").read_bytes())
+        cleanup = json.loads((tmp_path / "historical-cleanup.json").read_bytes())
     assert outcome["timed_out"] and cleanup["exit_code"] == 0
