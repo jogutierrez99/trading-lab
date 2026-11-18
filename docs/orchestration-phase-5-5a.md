@@ -1,7 +1,7 @@
 # Fase 5.5A — StudyBackend aislado y recepción de resultados
 
 Commit de partida `5cef79b45780c9a0e9964b01b2fa46d9531ae18a`.
-La única entrada ejecutable de esta fase es `run_synthetic(job_id, scratch)`.
+La única entrada ejecutable de esta fase es `run_synthetic(job_id, scratch, registry=registry)`.
 Construye su propio OHLCV artificial y señales fijas del año 2000. No acepta
 rutas de datasets, estrategias, planes ni comandos del llamador.
 
@@ -124,15 +124,20 @@ auxiliar o un VFS propio.
 
 ### Publicación y recuperación
 
-- **R1.** El anfitrión captura stdout una vez después del cálculo y de
-  confirmar la limpieza. Valida los bytes, calcula SHA-256 y conserva la
-  captura exacta en base64 junto con los logs capturados y sus hashes. El
+- **R1 y H2.** El supervisor captura los bytes directamente del pipe
+  de stdout mientras drena la salida. El límite de la captura es
+  estrictamente inferior a 512 KiB. La salida truncada o una captura
+  ausente impiden publicar un export válido. La verificación económica
+  sucede después de confirmar la limpieza del contenedor. Esos mismos
+  bytes aportan el SHA-256 y se conservan en base64 junto con los logs
+  capturados y sus hashes. El fichero de diagnóstico recibe una copia
+  desde el descriptor adquirido en exclusiva al iniciar el proceso. El
   recibo anfitrión 1.2 incluye identidad del plan, trabajo, imagen, motor y
   protocolo. Los casos e identidades de ejecución están dentro del export
   económico, que mantiene su versión 1.1. El fichero fijo `result.json`
-  contiene todo lo necesario para verificar `COMPLETE`. El fichero mutable
-  `study.stdout` queda como diagnóstico y `accepted-stdout.json` ya no forma
-  parte de la publicación. Ningún nombre recibido del invitado se convierte
+  conserva todo el resultado. La consulta coteja su hash con el registro
+  independiente. El fichero mutable `study.stdout` queda como diagnóstico,
+  sin reapertura para aceptar los bytes. Ningún nombre recibido del invitado se convierte
   en una ruta local.
 - **R2.** Se abre el temporal con `CREATE_NEW` y sin compartición. Se
   verifica su contenido usando el mismo handle tras flush y fsync. La
@@ -155,23 +160,35 @@ auxiliar o un VFS propio.
   [InitializeObjectAttributes](https://learn.microsoft.com/en-us/windows/win32/api/ntdef/nf-ntdef-initializeobjectattributes)
   [FILE_RENAME_INFO](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_rename_info)
 
-El directorio del trabajo es el primer marcador de reserva. Antes de Docker
-se publica el plan de reserva. El cerrojo nativo excluye otra invocación en la
-misma raíz. Si el proceso termina antes de promover el resultado, se conserva
-la reserva y una consulta indica que requiere conciliación. Si terminó después,
-la consulta recupera el resultado solo si concilian plan, recibo, hashes, bytes
-capturados y validación económica. Un `UNKNOWN`, un archivo corrupto o una
-reserva sin cierre detienen nuevos cálculos en esa raíz. El operador debe
-preservar la carpeta original y revisar el marcador, los logs y la identidad
-del contenedor. Repetir la consulta del mismo trabajo nunca relanza una reserva.
-Los expedientes experimentales 1.1 se conservan en su raíz original. El
-lector 1.2 no migra ni reinterpreta sus recibos.
+**H1.** El operador configura un par fijo de raíces NTFS independientes.
+El registro externo, preaprovisionado, queda fuera de scratch. En
+`root.json` fija la ruta de scratch y su identificador de volumen y
+objeto NTFS. Una reserva exclusiva por trabajo vincula esa raíz, el
+directorio del trabajo y la huella del plan. Se publica antes del
+preflight y de cualquier ejecución Docker. El cerrojo externo excluye
+otra invocación para el mismo registro. Las escrituras reutilizan
+`storage.publish`, con sincronización y promoción sin reemplazo.
+
+El anfitrión sella en el registro el SHA-256 de todo `result.json` antes
+de publicar el documento. Un sello sin documento conserva la reserva
+pendiente. Tras la promoción se recupera el recibo solo si coinciden
+la identidad de los directorios, la reserva, el sello, el plan y los
+bytes validados. Un `UNKNOWN`, una reserva sin cierre, un documento
+corrupto o una raíz ausente o sustituida impiden repetir el cálculo.
+No hay conciliación automática. Para investigar una incidencia, el
+operador preserva las dos raíces, el sello, los logs y la identidad
+del contenedor. Debe restaurar la ubicación original cuando conserve
+el mismo objeto NTFS o conciliar manualmente; crear una carpeta vacía
+no concede otra ejecución. Los recibos previos se conservan en sus
+ubicaciones de origen. Este protocolo no los migra ni los reactiva.
 
 ### Límite de confianza
 
-Usar una raíz dedicada bajo una carpeta local del operador, con ACL que
+Usar dos raíces dedicadas en carpetas locales del operador, con ACL que
 excluyan a otros usuarios de escritura, borrado y cambios de permisos sobre
-el almacén. Los handles y el rechazo de reparses controlan la sustitución de
+ambos almacenes y sus ascendientes relevantes. La continuidad exige
+reutilizar el mismo registro: otra ubicación equivale a otro ámbito de
+confianza. Los handles y el rechazo de reparses controlan la sustitución de
 directorios durante una invocación. El código no instala una ACL ni administra
 permisos. Los hashes detectan divergencias respecto al recibo, y un usuario
 que pueda reescribir toda la evidencia, cambiar la asignación de una unidad o
@@ -199,14 +216,11 @@ verificador compartido, cambia su huella. Una autorización que todavía
 dependiera de la huella anterior requeriría revisión mediante el control
 existente. Los recibos ya emitidos mantienen su huella original.
 
-El almacén protege la identidad de los directorios durante una invocación.
-La prueba de reapertura observó que mover toda la raíz y recrearla vacía
-en el mismo nombre oculta el registro de reserva a la siguiente invocación.
-La idempotencia se aplica a la raíz que conserva sus registros. El
-anclaje persistente entre invocaciones requeriría una identidad esperada
-conservada fuera de esa raíz.
-El documento único elimina la ventana entre dos publicaciones y se verificó
-con salidas abruptas del proceso antes y después de la promoción. No se ha
+La raíz externa distingue el reemplazo de scratch entre invocaciones.
+Una cuenta con control completo de ambas raíces puede sustituir los
+marcadores y las evidencias. Los hashes son comprobaciones de continuidad,
+integridad y coherencia local. La política ante fallos entre el sello y
+la promoción conserva una reserva incierta, sin repetir el cálculo. No se ha
 probado un corte de energía o pérdida completa del volumen. El fsync y
 la escritura write-through sincronizan el archivo, y queda sujeta al
 sistema de archivos la persistencia de la entrada del directorio tras una
@@ -222,11 +236,22 @@ $env:PYTHONPATH = Join-Path (Get-Location) 'src'
 $env:TRADING_LAB_VERIFICATION_IMAGE = 'sha256:539a1a6c2f1669b6c36612417f9cf70fe28e822095433d8a1453e706396b5f2e'
 $env:TRADING_LAB_55A_REAL_ISOLATION_TEST = '1'
 $evidence = Join-Path $env:LOCALAPPDATA ('TL55A-' + [guid]::NewGuid())
-python -B -m pytest -q -p no:cacheprovider --basetemp $evidence tests/unit/test_isolated_study.py
+docker version --format '{{.Server.Os}} {{.Server.Version}}'
+python -B -m pytest -q -ra -p no:cacheprovider --basetemp $evidence tests/unit/test_isolated_study.py tests/unit/test_process_identity.py -k 'native_registry or real_process_exit_at_publication or real_synthetic_study_in_docker or real_docker_deadline or pipe_stdout_capture'
 ```
 
+Ejecutar en una sesión Windows normal autorizada, con Docker Desktop para
+Linux, la imagen local fijada y acceso efectivo a dos directorios NTFS en
+la carpeta temporal. Revisar el propietario, la herencia y los permisos
+de las raíces con `Get-Acl` e `icacls`. La prueba nativa de reemplazo
+ordinario compara sus identificadores NTFS y comprueba que el trabajo original
+se ejecutó una sola vez. Los casos de cierre recuperan el sello y el recibo
+tras la promoción o conservan la incertidumbre antes de ella.
+Las pruebas de pipe comparan bytes exactos y rechazan alcanzar el límite.
 El ensayo Docker usa casos BASE y ADVERSE artificiales y exige operaciones
-con objetivo y stop. Un segundo ensayo provoca un timeout del supervisor
+con objetivo y stop, sondeo satisfactorio, recibo COMPLETE y consulta
+idempotente. Tras ejecutar, corroborar la ausencia de los contenedores
+mediante sus nombres guardados en los ficheros de diagnóstico y `docker ps -a`. Un segundo ensayo provoca un timeout del supervisor
 y verifica que elimina el contenedor. Los dobles de prueba cubren errores
 de esquema, rutas, hashes, finitud, coherencia, duplicados, concurrencia,
 interrupción y recuperación. El ensayo real reutiliza el sondeo adversarial

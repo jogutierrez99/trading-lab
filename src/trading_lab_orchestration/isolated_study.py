@@ -4,6 +4,7 @@ import base64
 import binascii
 import hashlib
 import json
+from contextlib import ExitStack
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
@@ -20,6 +21,7 @@ from .isolated_study_contract import (
     MAX_WIRE,
     Case,
     Costs,
+    Hash,
     Key,
     Limits,
     Plan,
@@ -154,8 +156,10 @@ def _pack(record, capture, logs):
     return canonical({"body": body, "body_sha256": digest(canonical(body))}).encode()
 
 
-def _unpack(path):
+def _unpack(path, *, expected_sha=None):
     raw = _bounded_bytes(path, BUNDLE_LIMIT)
+    if expected_sha is not None and hashlib.sha256(raw).hexdigest() != expected_sha:
+        raise ValueError("Stored study bundle does not match the registry seal")
     bundle = json.loads(raw)
     if (
         not isinstance(bundle, dict)
@@ -204,8 +208,8 @@ def _unbase64(encoded, limit):
     return decoded
 
 
-def _read_terminal(path, plan, plan_sha):
-    record, capture = _unpack(path)
+def _read_terminal(path, plan, plan_sha, *, expected_sha=None):
+    record, capture = _unpack(path, expected_sha=expected_sha)
     if (
         record["job_id"] != plan.job_id
         or record["plan_sha256"] != plan_sha
@@ -237,56 +241,161 @@ def _reserved_plan(job):
     return reservation["plan_sha256"]
 
 
-def run_synthetic(job_id, scratch: Path, *, timeout=60):
-    """One execution on a dedicated Windows NTFS root. Historical input cannot enter here."""
+def _registry_entry(path):
+    try:
+        raw = _bounded_bytes(path, LOG_LIMIT)
+    except FileNotFoundError:
+        return None
+    data = json.loads(raw)
+    if not isinstance(data, dict) or raw != canonical(data).encode():
+        raise ValueError("Invalid study registry entry")
+    return data
+
+
+def _bind_registry(registry, root):
+    identity = storage.directory_identity(root)
+    registry_id = storage.directory_identity(registry)
+    if identity == registry_id or (
+        any(storage.directory_identity(parent) == identity for parent in registry.parents)
+        or any(storage.directory_identity(parent) == registry_id for parent in root.parents)
+    ):
+        raise ValueError("The study registry must be outside and separate from scratch")
+    binding = {"schema_version": "1.0", "scratch": str(root).casefold(), "identity": identity}
+    anchor = registry / "root.json"
+    previous = _registry_entry(anchor)
+    if previous is None:
+        if any(p.name != ".isolated-study.lock" for p in registry.iterdir()):
+            raise IsolationUncertain("Study registry lost its root binding")
+        storage.publish(anchor, canonical(binding).encode(), LOG_LIMIT)
+    elif previous != binding:
+        raise IsolationUncertain("Scratch identity changed; operator reconciliation required")
+    return binding
+
+
+def _registry_reservation(plan_sha, binding, job, job_identity):
+    return {
+        "schema_version": "1.0",
+        "job_id": job.name,
+        "plan_sha256": plan_sha,
+        "root": binding,
+        "job_identity": list(job_identity),
+    }
+
+
+def _seal_hash(registry, job, reservation):
+    seal = _registry_entry(registry / f"{job.name}.bundle.json")
+    expected = seal.get("sha256") if seal is not None else None
+    if seal is None:
+        raise IsolationUncertain("No sealed publication; reservation requires reconciliation")
+    if seal.keys() != {"reservation", "sha256"} or seal["reservation"] != reservation:
+        raise ValueError("Invalid study bundle seal")
+    TypeAdapter(Hash).validate_python(expected, strict=True)
+    return expected
+
+
+def run_synthetic(job_id, scratch: Path, *, registry: Path, timeout=60):
+    """Run once against a dedicated scratch root and a pre-provisioned independent registry."""
     TypeAdapter(Key).validate_python(job_id, strict=True)
     if storage.reserved_name(job_id):
         raise ValueError("Reserved study job name")
+    scratch = storage.local_path(scratch)
+    registry = storage.local_path(registry)
+    if scratch == registry or scratch in registry.parents or registry in scratch.parents:
+        raise ValueError("The study registry must be outside and separate from scratch")
     verifier = VerificationContainer()
     if verifier.image != IMAGE:
         raise ValueError("Approved verifier image required")
     plan, files = synthetic_job(job_id, verifier.fingerprint, timeout=timeout)
     plan_sha = digest(files["plan.json"].decode())
     with (
-        storage.pinned_root(scratch) as root,
-        storage.exclusive_lock(root / ".isolated-study.lock"),
+        storage.pinned_root(registry, existing=True) as trusted,
+        storage.exclusive_lock(trusted / ".isolated-study.lock"),
+        ExitStack() as stack,
     ):
-        job = root / job_id
-        # The directory is itself a reservation marker. A crash before recording the plan
-        # or publishing the bundle leaves it unresolved, including a crash during rename.
-        if job.exists() or job.is_symlink() or job.is_junction():
-            with storage.directory(job):
-                try:
-                    if _reserved_plan(job) != plan_sha:
-                        raise ValueError("Job identity already bound to a different plan")
-                    return _read_terminal(job / TERMINAL, plan, plan_sha)
-                except FileNotFoundError as exc:
-                    raise IsolationUncertain(
-                        "An interrupted reservation requires reconciliation"
-                    ) from exc
+        bound = _registry_entry(trusted / "root.json") is not None
+        try:
+            root = stack.enter_context(storage.pinned_root(scratch, existing=bound))
+        except FileNotFoundError as exc:
+            if bound:
+                raise IsolationUncertain(
+                    "Registered scratch is missing; operator reconciliation required"
+                ) from exc
+            raise
+        binding = _bind_registry(trusted, root)
+        stack.enter_context(storage.exclusive_lock(root / ".isolated-study.lock"))
+        return _run_bound(trusted, root, binding, verifier, plan, files, plan_sha)
 
-        for previous in root.iterdir():
-            if previous.name == ".isolated-study.lock":
-                continue
-            with storage.directory(previous):
-                try:
-                    prior, _ = _unpack(previous / TERMINAL)
-                    prior_plan = _reserved_plan(previous)
-                except FileNotFoundError as exc:
-                    raise IsolationUncertain(
-                        "An interrupted reservation requires reconciliation"
-                    ) from exc
+
+def _run_bound(registry, root, binding, verifier, plan, files, plan_sha):
+    job = root / plan.job_id
+    claim_path = registry / f"{job.name}.reserved.json"
+    claim = _registry_entry(claim_path)
+    if claim is not None:
+        try:
+            with storage.directory(job) as identity:
+                if claim.get("plan_sha256") != plan_sha:
+                    raise ValueError("Job identity already bound to a different plan")
+                if claim != _registry_reservation(plan_sha, binding, job, identity):
+                    raise IsolationUncertain("Study reservation belongs to a different directory")
+                if _reserved_plan(job) != plan_sha:
+                    raise ValueError("Job identity already bound to a different plan")
+                expected = _seal_hash(registry, job, claim)
+                return _read_terminal(job / TERMINAL, plan, plan_sha, expected_sha=expected)
+        except FileNotFoundError as exc:
+            raise IsolationUncertain("An interrupted reservation requires reconciliation") from exc
+
+    if any(
+        not (registry / (seal.name.removesuffix(".bundle.json") + ".reserved.json")).is_file()
+        for seal in registry.glob("*.bundle.json")
+    ):
+        raise IsolationUncertain("Publication seal without a reservation")
+    for claim_file in registry.glob("*.reserved.json"):
+        previous = root / claim_file.name.removesuffix(".reserved.json")
+        try:
+            with storage.directory(previous) as identity:
+                prior_claim = _registry_entry(claim_file)
+                if prior_claim != _registry_reservation(
+                    _reserved_plan(previous), binding, previous, identity
+                ):
+                    raise IsolationUncertain("A study reservation requires reconciliation")
+                prior, _ = _unpack(
+                    previous / TERMINAL, expected_sha=_seal_hash(registry, previous, prior_claim)
+                )
                 if (
                     prior["job_id"] != previous.name
-                    or prior["plan_sha256"] != prior_plan
+                    or prior["plan_sha256"] != prior_claim["plan_sha256"]
                     or prior["status"] not in FINAL
                 ):
                     raise IsolationUncertain("An uncertain study requires reconciliation")
-        with storage.directory(job, fresh=True, occupy=True):
-            return _reserve_and_run(job, verifier, plan, files, plan_sha)
+        except FileNotFoundError as exc:
+            raise IsolationUncertain("An interrupted reservation requires reconciliation") from exc
+
+    for previous in root.iterdir():
+        if (
+            previous.name != ".isolated-study.lock"
+            and not (registry / f"{previous.name}.reserved.json").is_file()
+        ):
+            raise IsolationUncertain(
+                "An unregistered or interrupted reservation requires reconciliation"
+            )
+
+    with storage.directory(job, fresh=True, occupy=True) as identity:
+        claim = _registry_reservation(plan_sha, binding, job, identity)
+        storage.publish(claim_path, canonical(claim).encode(), LOG_LIMIT)
+
+        def publish_terminal(raw):
+            if len(raw) >= BUNDLE_LIMIT:
+                raise ValueError("Evidence exceeds publication limit")
+            seal = {"reservation": claim, "sha256": hashlib.sha256(raw).hexdigest()}
+            storage.publish(
+                registry / f"{job.name}.bundle.json", canonical(seal).encode(), LOG_LIMIT
+            )
+            storage.publish(job / TERMINAL, raw, BUNDLE_LIMIT)
+
+        return _reserve_and_run(job, verifier, plan, files, plan_sha, publish_terminal)
 
 
-def _reserve_and_run(job, verifier, plan, files, plan_sha):
+def _reserve_and_run(job, verifier, plan, files, plan_sha, publish_terminal):
     storage.publish(
         job / "reservation.json",
         canonical(
@@ -300,10 +409,10 @@ def _reserve_and_run(job, verifier, plan, files, plan_sha):
         LOG_LIMIT,
     )
     with storage.directory(job / "docker-config", create=True, occupy=True):
-        return _run_reserved(verifier, job, plan, files, plan_sha)
+        return _run_reserved(verifier, job, plan, files, plan_sha, publish_terminal)
 
 
-def _run_reserved(verifier, job, plan, files, plan_sha):
+def _run_reserved(verifier, job, plan, files, plan_sha, publish_terminal):
     record = {
         "schema_version": "1.2",
         "plan_sha256": plan_sha,
@@ -332,7 +441,12 @@ def _run_reserved(verifier, job, plan, files, plan_sha):
             logs.pop(PREFLIGHT)
             raise ValueError("Preflight evidence exceeds limit")
         outcome = verifier._execute(
-            ENTRYPOINT, _payload(files), job, "study", plan.limits.wall_seconds
+            ENTRYPOINT,
+            _payload(files),
+            job,
+            "study",
+            plan.limits.wall_seconds,
+            stdout_capture_limit=plan.limits.output_bytes,
         )
         record["process"] = {k: outcome[k] for k in ("exit_code", "timed_out", "duration_seconds")}
         logs[CLEANUP] = _bounded_bytes(job / CLEANUP, LOG_LIMIT)
@@ -351,7 +465,11 @@ def _run_reserved(verifier, job, plan, files, plan_sha):
         elif not verifier._ok(outcome):
             raise ValueError("Study subprocess failed or output exceeded its limit")
         else:
-            raw = _bounded_bytes(job / "study.stdout", plan.limits.output_bytes)
+            raw = outcome.get("stdout_bytes")
+            if not isinstance(raw, bytes):
+                raise IsolationUncertain("Original supervised stdout capture is unavailable")
+            if len(raw) >= plan.limits.output_bytes:
+                raise ValueError("Supervised stdout exceeds its limit")
             decode_result(raw, plan)
             capture = raw
     except ValueError as exc:
@@ -372,7 +490,7 @@ def _run_reserved(verifier, job, plan, files, plan_sha):
         )
     Reception.model_validate_json(canonical(record))
     try:
-        storage.publish(job / TERMINAL, _pack(record, capture, logs), BUNDLE_LIMIT)
+        publish_terminal(_pack(record, capture, logs))
     except (OSError, ValueError) as exc:
         raise IsolationUncertain(
             "Could not publish the bundle; inspect the reserved study"

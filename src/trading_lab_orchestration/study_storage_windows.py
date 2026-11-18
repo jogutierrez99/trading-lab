@@ -226,27 +226,34 @@ def directory(path, *, create=False, fresh=False, occupy=False):
         is_directory=True,
     )
     try:
-        _info(handle, directory=True)
+        info = _info(handle, directory=True)
         with ExitStack() as stack:
             if occupy:
                 # NTFS prohibits attaching a mount point to a nonempty directory. Keep this
                 # entry live and deny deleting it until the last named operation completes.
                 stack.enter_context(exclusive_lock(path / ".study-anchor"))
-            yield
+            yield (info.volume, (info.index_high << 32) | info.index_low)
     finally:
         close_handle(handle)
 
 
 @contextmanager
-def pinned_root(path):
+def pinned_root(path, *, existing=False):
     path = local_path(path)
     if len(path.parts) < 2:
         raise ValueError("Study storage requires a dedicated root directory")
     with ExitStack() as stack:
         for segment in reversed(path.parents):
-            stack.enter_context(directory(segment, create=segment.parent != segment))
-        stack.enter_context(directory(path, create=True))
+            stack.enter_context(
+                directory(segment, create=not existing and segment.parent != segment)
+            )
+        stack.enter_context(directory(path, create=not existing))
         yield path
+
+
+def directory_identity(path):
+    with directory(path) as identity:
+        return list(identity)
 
 
 @contextmanager

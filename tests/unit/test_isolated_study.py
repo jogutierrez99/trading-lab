@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from ctypes import wintypes
 from datetime import datetime, timedelta
 from pathlib import Path
-from threading import Event
+from threading import Event, Lock
 from types import SimpleNamespace
 
 import pytest
@@ -134,6 +134,12 @@ def valid_export(plan):
     return exported
 
 
+def run_study(job_id, scratch, **kwargs):
+    registry = scratch.with_name(scratch.name + "-registry")
+    registry.mkdir(exist_ok=True, parents=True)
+    return study.run_synthetic(job_id, scratch, registry=registry, **kwargs)
+
+
 @pytest.fixture
 def simulated(monkeypatch):
     if os.name != "nt":
@@ -152,8 +158,8 @@ def simulated(monkeypatch):
             assert (diagnostics / "docker-config").is_dir()
             return {"probe": ["ISOLATION_PROBE_OK"]}
 
-        def _execute(self, command, payload, folder, name, timeout):
-            assert command == study.ENTRYPOINT
+        def _execute(self, command, payload, folder, name, timeout, *, stdout_capture_limit):
+            assert command == study.ENTRYPOINT and stdout_capture_limit == MAX_WIRE
             self.starts += 1
             self.started.set()
             if self.wait is not None:
@@ -166,7 +172,10 @@ def simulated(monkeypatch):
             output = canonical(flat_export(plan)) if self.outcome != "invalid" else "garbage"
             if self.outcome == "manipulated":
                 output = corrupt_flat(flat_export(plan)).decode()
-            (folder / f"{name}.stdout").write_text(output, encoding="utf-8")
+            raw = b" \n" + output.encode() + b"\n "
+            (folder / f"{name}.stdout").write_bytes(raw)
+            if self.outcome == "substituted":
+                (folder / f"{name}.stdout").write_bytes(b"replacement diagnostic")
             write_json(
                 folder / f"{name}-cleanup.json",
                 {"exit_code": 0, "timed_out": False, "output_truncated": False},
@@ -176,6 +185,13 @@ def simulated(monkeypatch):
                 "timed_out": self.outcome == "timeout",
                 "duration_seconds": 0.01,
                 "output_truncated": False,
+                "stdout_bytes": (
+                    None
+                    if self.outcome == "missing_capture"
+                    else b" " * MAX_WIRE
+                    if self.outcome == "oversized_capture"
+                    else raw
+                ),
             }
 
         @staticmethod
@@ -189,6 +205,211 @@ def simulated(monkeypatch):
 
 def _bundle(path):
     return json.loads((path / study.TERMINAL).read_bytes())["body"]
+
+
+@pytest.fixture
+def registry_simulation(monkeypatch, simulated):
+    """Exercise durable registry logic without relying on Windows-native calls."""
+    locks = {}
+
+    @contextmanager
+    def root(path, *, existing=False):
+        with directory(path, create=not existing):
+            yield path
+
+    def identity(path):
+        stat = path.stat()
+        return [stat.st_dev, stat.st_ino]
+
+    @contextmanager
+    def directory(path, *, create=False, fresh=False, occupy=False):
+        if create or fresh:
+            path.mkdir(parents=True, exist_ok=not fresh)
+        if not path.is_dir():
+            raise FileNotFoundError(path)
+        yield identity(path)
+
+    @contextmanager
+    def exclusive_lock(path):
+        lock = locks.setdefault(path, Lock())
+        if not lock.acquire(blocking=False):
+            raise ValueError("Another study owns the OS lock")
+        try:
+            path.touch(exist_ok=True)
+            yield
+        finally:
+            lock.release()
+
+    def publish(path, raw, limit):
+        assert len(raw) < limit
+        with path.open("xb") as handle:
+            handle.write(raw)
+
+    monkeypatch.setattr(study.storage, "local_path", Path.absolute)
+    monkeypatch.setattr(study.storage, "pinned_root", root)
+    monkeypatch.setattr(study.storage, "directory", directory)
+    monkeypatch.setattr(study.storage, "directory_identity", identity)
+    monkeypatch.setattr(study.storage, "exclusive_lock", exclusive_lock)
+    monkeypatch.setattr(study.storage, "publish", publish)
+    monkeypatch.setattr(study, "_bounded_bytes", lambda path, limit: path.read_bytes())
+    return simulated
+
+
+@pytest.mark.parametrize("level", ["root", "job"])
+def test_registry_rejects_recreated_directory(tmp_path, registry_simulation, level):
+    scratch = tmp_path / "scratch"
+    result = run_study("first", scratch)
+    displaced = scratch if level == "root" else scratch / "first"
+    moved = tmp_path / "previous"
+    displaced.rename(moved)
+    with pytest.raises(IsolationUncertain, match="reconciliation"):
+        run_study("first", scratch)
+    displaced.mkdir()
+    with pytest.raises(IsolationUncertain, match="identity changed|different directory"):
+        run_study("first", scratch)
+    assert (moved / ("first/result.json" if level == "root" else "result.json")).is_file()
+    assert registry_simulation.starts == 1
+    assert result["status"] == "COMPLETE"
+
+
+def test_native_registry_blocks_ordinary_scratch_replacement(tmp_path, simulated):
+    scratch = tmp_path / "scratch"
+    assert run_study("first", scratch)["status"] == "COMPLETE"
+    original = study.storage.directory_identity(scratch)
+    moved = tmp_path / "previous"
+    scratch.rename(moved)
+    scratch.mkdir()
+    assert study.storage.directory_identity(scratch) != original
+    with pytest.raises(IsolationUncertain, match="Scratch identity changed"):
+        run_study("first", scratch)
+    assert simulated.starts == 1 and (moved / "first/result.json").is_file()
+
+
+def test_registry_denies_invalid_and_unprovisioned_location(tmp_path, registry_simulation):
+    scratch = tmp_path / "scratch"
+    with pytest.raises(ValueError, match="must be outside"):
+        study.run_synthetic("first", scratch, registry=scratch / "registry")
+    with pytest.raises(FileNotFoundError):
+        study.run_synthetic("first", scratch, registry=tmp_path / "missing")
+    assert not scratch.exists() and registry_simulation.starts == 0
+
+
+@pytest.mark.parametrize("checkpoint", ["root.json", "first.reserved.json", "reservation.json"])
+def test_registry_failure_precedes_docker(tmp_path, registry_simulation, monkeypatch, checkpoint):
+    scratch = tmp_path / "scratch"
+    publish = study.storage.publish
+
+    def fail(path, raw, limit):
+        if path.name == checkpoint:
+            raise PermissionError("injected persistence failure")
+        return publish(path, raw, limit)
+
+    with monkeypatch.context() as guarded:
+        guarded.setattr(study.storage, "publish", fail)
+        with pytest.raises(PermissionError, match="injected"):
+            run_study("first", scratch)
+    if checkpoint != "root.json":
+        with pytest.raises(IsolationUncertain, match="reconciliation"):
+            run_study("first", scratch)
+    assert registry_simulation.starts == 0
+
+
+def test_registry_uncertain_after_bundle_seal_does_not_reexecute(
+    tmp_path, registry_simulation, monkeypatch
+):
+    scratch = tmp_path / "scratch"
+    publish = study.storage.publish
+
+    def stop(path, raw, limit):
+        if path.name == study.TERMINAL:
+            raise KeyboardInterrupt
+        return publish(path, raw, limit)
+
+    with monkeypatch.context() as guarded:
+        guarded.setattr(study.storage, "publish", stop)
+        with pytest.raises(KeyboardInterrupt):
+            run_study("first", scratch)
+    assert (tmp_path / "scratch-registry" / "first.bundle.json").is_file()
+    with pytest.raises(IsolationUncertain, match="reconciliation"):
+        run_study("first", scratch)
+    with pytest.raises(IsolationUncertain, match="reconciliation"):
+        run_study("second", scratch)
+    assert registry_simulation.starts == 1
+
+
+def test_registry_concurrent_and_consumed_reservation(tmp_path, registry_simulation):
+    scratch = tmp_path / "scratch"
+    registry_simulation.wait = Event()
+    with ThreadPoolExecutor(1) as pool:
+        pending = pool.submit(run_study, "first", scratch)
+        try:
+            assert registry_simulation.started.wait(timeout=10)
+            with pytest.raises(ValueError, match="owns the OS lock"):
+                run_study("first", scratch)
+        finally:
+            registry_simulation.wait.set()
+        first = pending.result(timeout=10)
+    assert run_study("first", scratch) == first
+    assert registry_simulation.starts == 1
+
+
+@pytest.mark.parametrize(
+    ("outcome", "status"),
+    [("substituted", "COMPLETE"), ("missing_capture", "UNKNOWN"), ("oversized_capture", "FAILED")],
+)
+def test_study_uses_only_captured_stdout(
+    tmp_path, registry_simulation, monkeypatch, outcome, status
+):
+    scratch = tmp_path / "scratch"
+    registry_simulation.outcome = outcome
+    read = study._bounded_bytes
+
+    def no_stdout(path, limit):
+        assert path.name != "study.stdout"
+        return read(path, limit)
+
+    monkeypatch.setattr(study, "_bounded_bytes", no_stdout)
+    result = run_study("first", scratch)
+    stored = _bundle(scratch / "first")
+    assert result["status"] == status and stored["receipt"] == result
+    assert run_study("first", scratch) == result and registry_simulation.starts == 1
+    if status == "COMPLETE":
+        capture = base64.b64decode(stored["stdout"])
+        assert capture.startswith(b" \n") and capture.endswith(b"\n ")
+        assert hashlib.sha256(capture).hexdigest() == result["output_sha256"]
+        assert (scratch / "first/study.stdout").read_bytes() == b"replacement diagnostic"
+    else:
+        assert stored["stdout"] is None and "export" not in result
+
+
+@pytest.mark.parametrize("clean", [True, False])
+def test_verifier_retains_pipe_capture_only_after_cleanup(tmp_path, monkeypatch, clean):
+    verifier = object.__new__(VerificationContainer)
+    verifier.image = IMAGE
+    verifier.guest = "guest"
+    verifier.fingerprint = "a" * 64
+    calls = []
+
+    def cli(arguments, folder, name, *args, **kwargs):
+        calls.append(name)
+        result = {"exit_code": 0, "timed_out": False, "output_truncated": False}
+        if name == "study":
+            assert kwargs == {"stdout_capture_limit": MAX_WIRE}
+            return result | {"stdout_bytes": b" pipe \n"}
+        assert name == "study-cleanup" and not kwargs
+        return result | {"exit_code": 0 if clean else 1}
+
+    monkeypatch.setattr(verifier, "_cli", cli)
+    if clean:
+        result = verifier._execute(
+            [], "payload", tmp_path, "study", 60, stdout_capture_limit=MAX_WIRE
+        )
+        assert result["stdout_bytes"] == b" pipe \n"
+    else:
+        with pytest.raises(IsolationUncertain, match="cleanup not confirmed"):
+            verifier._execute([], "payload", tmp_path, "study", 60, stdout_capture_limit=MAX_WIRE)
+    assert calls == ["study", "study-cleanup"]
+    assert "stdout_bytes" not in json.loads((tmp_path / "study-cleanup.json").read_bytes())
 
 
 def test_preflight_uses_fixed_paths_and_does_not_delete_diagnostics(tmp_path, monkeypatch):
@@ -291,13 +512,17 @@ def test_study_pins_diagnostics_before_calculation(tmp_path, monkeypatch, failur
         assert read_bytes(marker) == b"owned diagnostic"
         return {"probe": ["ISOLATION_PROBE_OK"]}
 
-    def execute(command, payload, folder, name, timeout):
+    def execute(command, payload, folder, name, timeout, *, stdout_capture_limit):
+        assert stdout_capture_limit == MAX_WIRE
         assert failure == "success" and folder == job and not stack
         starts.append(name)
         (job / "study.stdout").write_bytes(reseal(flat_export(plan)))
         record = {"exit_code": 0, "timed_out": False, "output_truncated": False}
         write_json(job / "study-cleanup.json", record)
-        return record | {"duration_seconds": 0.01}
+        return record | {
+            "duration_seconds": 0.01,
+            "stdout_bytes": (job / "study.stdout").read_bytes(),
+        }
 
     def publish(path, raw, limit):
         assert path == job / "result.json"
@@ -311,7 +536,14 @@ def test_study_pins_diagnostics_before_calculation(tmp_path, monkeypatch, failur
     monkeypatch.setattr(verifier, "preflight", preflight, raising=False)
     monkeypatch.setattr(verifier, "_execute", execute, raising=False)
     plan_sha = digest(files["plan.json"].decode())
-    answer = study._run_reserved(verifier, job, plan, files, plan_sha)
+    answer = study._run_reserved(
+        verifier,
+        job,
+        plan,
+        files,
+        plan_sha,
+        lambda raw: publish(job / "result.json", raw, study.BUNDLE_LIMIT),
+    )
     assert answer["status"] == expected
     bundle = _bundle(job)
     assert bundle["receipt"] == answer
@@ -325,20 +557,20 @@ def test_study_pins_diagnostics_before_calculation(tmp_path, monkeypatch, failur
 
 
 def test_receive_persists_and_replays_without_running_again(tmp_path, simulated):
-    result = study.run_synthetic("first", tmp_path)
+    result = run_study("first", tmp_path)
     assert result["status"] == "COMPLETE" and result["cleanup_confirmed"]
-    assert study.run_synthetic("first", tmp_path) == result
+    assert run_study("first", tmp_path) == result
     with pytest.raises(ValueError, match="different plan"):
-        study.run_synthetic("first", tmp_path, timeout=61)
+        run_study("first", tmp_path, timeout=61)
     job = tmp_path / "first"
     (job / "study.stdout").write_bytes(b"changed")
     (job / "study-cleanup.json").write_bytes(b"changed")
-    assert study.run_synthetic("first", tmp_path) == result
+    assert run_study("first", tmp_path) == result
     terminal = job / study.TERMINAL
     altered = terminal.read_bytes().replace(b'"COMPLETE"', b'"TIMED_OUT"', 1)
     terminal.write_bytes(altered)
-    with pytest.raises(ValueError, match="integrity check failed"):
-        study.run_synthetic("first", tmp_path)
+    with pytest.raises(ValueError, match="does not match the registry seal"):
+        run_study("first", tmp_path)
     assert terminal.read_bytes() == altered
     assert simulated.starts == 1
 
@@ -353,7 +585,7 @@ def test_r1_swaps_spool_and_legacy_file_at_promotion(tmp_path, simulated, monkey
     def track(path, limit):
         if path.name == "study.stdout":
             reads.append(path)
-            path.write_bytes(json.dumps(json.loads(path.read_bytes()), indent=2).encode() + b"\n")
+            pytest.fail("The diagnostic stdout must never be reopened")
         return bounded(path, limit)
 
     def inject(raw, plan):
@@ -371,34 +603,34 @@ def test_r1_swaps_spool_and_legacy_file_at_promotion(tmp_path, simulated, monkey
     monkeypatch.setattr(study.storage, "_rename", swap)
     with monkeypatch.context() as guarded:
         guarded.setattr(study, "decode_result", inject)
-        outcome = study.run_synthetic("race", tmp_path)
+        outcome = run_study("race", tmp_path)
     job = tmp_path / "race"
-    assert reads == [job / "study.stdout"] and len(captured) == 1
+    assert not reads and len(captured) == 1
     assert outcome["status"] == "COMPLETE"
     body = _bundle(job)
     assert body["receipt"] == outcome
     assert base64.b64decode(body["stdout"]) == captured[0]
     assert outcome["output_sha256"] == hashlib.sha256(captured[0]).hexdigest()
-    assert study.run_synthetic("race", tmp_path) == outcome
-    assert len(reads) == simulated.starts == 1
+    assert run_study("race", tmp_path) == outcome
+    assert not reads and simulated.starts == 1
 
 
 def test_capture_corruption_with_resealed_bundle_is_detected(tmp_path, simulated):
-    study.run_synthetic("first", tmp_path)
+    run_study("first", tmp_path)
     job = tmp_path / "first"
     body = _bundle(job)
     body["stdout"] = base64.b64encode(b"altered").decode()
     (job / study.TERMINAL).write_text(
         canonical({"body": body, "body_sha256": digest(canonical(body))}), encoding="utf-8"
     )
-    with pytest.raises(ValueError, match="Accepted evidence SHA-256 changed"):
-        study.run_synthetic("first", tmp_path)
+    with pytest.raises(ValueError, match="does not match the registry seal"):
+        run_study("first", tmp_path)
     assert simulated.starts == 1
 
 
 @pytest.mark.parametrize("kind", ["hardlink", "symlink"])
 def test_linked_evidence_is_rejected_without_repeating(tmp_path, simulated, kind):
-    study.run_synthetic("first", tmp_path)
+    run_study("first", tmp_path)
     terminal = tmp_path / "first" / study.TERMINAL
     alias = tmp_path / "alias.json"
     try:
@@ -410,7 +642,7 @@ def test_linked_evidence_is_rejected_without_repeating(tmp_path, simulated, kind
     except OSError:
         pytest.skip(f"This account cannot create a {kind} on the evidence volume")
     with pytest.raises((OSError, ValueError), match="links|reparse"):
-        study.run_synthetic("first", tmp_path)
+        run_study("first", tmp_path)
     assert simulated.starts == 1
 
 
@@ -435,11 +667,11 @@ def test_r2_preserves_unowned_temp_on_collision(tmp_path, simulated, monkeypatch
 
     monkeypatch.setattr(study.storage, "_rename", install_foreign_temp)
     with pytest.raises(IsolationUncertain, match="Could not publish"):
-        study.run_synthetic("first", tmp_path)
+        run_study("first", tmp_path)
     assert foreign.read_bytes() == b"other invocation"
     assert not (foreign.parent / study.TERMINAL).exists()
     with pytest.raises(IsolationUncertain, match="interrupted reservation"):
-        study.run_synthetic("first", tmp_path)
+        run_study("first", tmp_path)
     assert simulated.starts == 1
 
 
@@ -513,7 +745,7 @@ def test_r3_in_place_junction_before_first_anchor_never_writes_outside(
         patch.setattr(study.storage, "_open_no_reparse", redirect)
         try:
             with pytest.raises(ValueError, match="reparse"):
-                study.run_synthetic("first", root)
+                run_study("first", root)
             assert job.is_junction()
             assert list(outside.iterdir()) == [sentinel]
             assert sentinel.read_bytes() == b"untouched"
@@ -521,7 +753,7 @@ def test_r3_in_place_junction_before_first_anchor_never_writes_outside(
             if job.is_junction():
                 _junction_in_place(job, outside, remove=True)
     with pytest.raises(IsolationUncertain, match="interrupted reservation"):
-        study.run_synthetic("first", root)
+        run_study("first", root)
     assert simulated.starts == 0
 
 
@@ -544,7 +776,7 @@ def test_r3_rejects_real_junction_installed_before_directory_open(tmp_path, simu
     monkeypatch.setattr(study.storage, "_open_no_reparse", substitute)
     try:
         with pytest.raises(ValueError, match="reparse"):
-            study.run_synthetic("first", root)
+            run_study("first", root)
         assert list(outside.iterdir()) == [sentinel]
         assert sentinel.read_bytes() == b"untouched" and simulated.starts == 0
     finally:
@@ -552,7 +784,7 @@ def test_r3_rejects_real_junction_installed_before_directory_open(tmp_path, simu
             root.rmdir()
     old.rename(root)
     monkeypatch.setattr(study.storage, "_open_no_reparse", native_open)
-    assert study.run_synthetic("first", root)["status"] == "COMPLETE"
+    assert run_study("first", root)["status"] == "COMPLETE"
 
 
 @pytest.mark.parametrize("scope", ["job", "root", "ancestor"])
@@ -584,11 +816,11 @@ def test_r3_pinned_directories_block_replacement_at_temp_open(
         return native_open(path, *args)
 
     monkeypatch.setattr(study.storage, "_open", attempt_swap)
-    assert study.run_synthetic("first", root)["status"] == "COMPLETE"
+    assert run_study("first", root)["status"] == "COMPLETE"
     assert len(blocked) == 1
     assert list(outside.iterdir()) == [sentinel]
     assert sentinel.read_bytes() == b"untouched"
-    assert study.run_synthetic("first", root)["status"] == "COMPLETE"
+    assert run_study("first", root)["status"] == "COMPLETE"
     assert simulated.starts == 1
 
 
@@ -614,18 +846,18 @@ def test_publication_failure_leaves_no_partial_result(tmp_path, simulated, monke
 
     monkeypatch.setattr(study.storage, "publish", broken)
     with pytest.raises(IsolationUncertain, match="Could not publish"):
-        study.run_synthetic("first", tmp_path)
+        run_study("first", tmp_path)
     job = tmp_path / "first"
     if failure == "fsync":
         assert not list(job.glob("*.tmp"))
     if failure == "existing_name":
         assert (job / study.TERMINAL).read_bytes() == b"prior evidence"
         with pytest.raises(ValueError):
-            study.run_synthetic("first", tmp_path)
+            run_study("first", tmp_path)
     else:
         assert not (job / study.TERMINAL).exists()
         with pytest.raises(IsolationUncertain, match="interrupted reservation"):
-            study.run_synthetic("first", tmp_path)
+            run_study("first", tmp_path)
     assert simulated.starts == 1
 
 
@@ -645,17 +877,17 @@ def test_restart_resolves_ambiguous_promotion_without_new_execution(
     with monkeypatch.context() as patch:
         patch.setattr(study.storage, "_rename", interrupt)
         with pytest.raises(KeyboardInterrupt):
-            study.run_synthetic("first", tmp_path)
+            run_study("first", tmp_path)
     job = tmp_path / "first"
     assert (job / "reservation.json").exists()
     if committed:
-        assert study.run_synthetic("first", tmp_path)["status"] == "COMPLETE"
+        assert run_study("first", tmp_path)["status"] == "COMPLETE"
     else:
         assert not (job / study.TERMINAL).exists()
         with pytest.raises(IsolationUncertain):
-            study.run_synthetic("first", tmp_path)
+            run_study("first", tmp_path)
         with pytest.raises(IsolationUncertain):
-            study.run_synthetic("second", tmp_path)
+            run_study("second", tmp_path)
     assert simulated.starts == 1
 
 
@@ -683,7 +915,10 @@ def exit_at_rename(handle, path):
     os._exit(73)
 
 study.storage._rename = exit_at_rename
-study.run_synthetic("first", Path(sys.argv[2]))
+scratch = Path(sys.argv[2])
+registry = scratch.with_name(scratch.name + "-registry")
+registry.mkdir(exist_ok=True)
+study.run_synthetic("first", scratch, registry=registry)
 """
     child = subprocess.run(
         [sys.executable, "-B", "-c", program, __file__, str(tmp_path), str(int(committed))],
@@ -693,10 +928,10 @@ study.run_synthetic("first", Path(sys.argv[2]))
     )
     assert child.returncode == 73, child.stderr
     if committed:
-        assert study.run_synthetic("first", tmp_path)["status"] == "COMPLETE"
+        assert run_study("first", tmp_path)["status"] == "COMPLETE"
     else:
         with pytest.raises(IsolationUncertain, match="interrupted reservation"):
-            study.run_synthetic("first", tmp_path)
+            run_study("first", tmp_path)
     assert simulated.starts == 0
 
 
@@ -707,6 +942,8 @@ study.run_synthetic("first", Path(sys.argv[2]))
         ("invalid", "FAILED"),
         ("uncertain", "UNKNOWN"),
         ("interrupt", "UNKNOWN"),
+        ("missing_capture", "UNKNOWN"),
+        ("oversized_capture", "FAILED"),
     ],
 )
 def test_failure_timeout_interruption_and_uncertainty_are_persisted(
@@ -715,14 +952,14 @@ def test_failure_timeout_interruption_and_uncertainty_are_persisted(
     simulated.outcome = outcome
     if outcome == "interrupt":
         with pytest.raises(KeyboardInterrupt):
-            study.run_synthetic("first", tmp_path)
+            run_study("first", tmp_path)
     else:
-        assert study.run_synthetic("first", tmp_path)["status"] == status
-    recovered = study.run_synthetic("first", tmp_path)
+        assert run_study("first", tmp_path)["status"] == status
+    recovered = run_study("first", tmp_path)
     assert recovered["status"] == status and "export" not in recovered
     if status == "UNKNOWN":
         with pytest.raises(IsolationUncertain):
-            study.run_synthetic("next", tmp_path)
+            run_study("next", tmp_path)
     assert simulated.starts == 1
 
 
@@ -733,7 +970,7 @@ def test_duplicate_concurrent_execution_blocked(tmp_path, simulated):
         try:
             assert simulated.started.wait(timeout=10)
             with pytest.raises(ValueError, match="owns the OS lock"):
-                study.run_synthetic("same", tmp_path)
+                run_study("same", tmp_path)
         finally:
             simulated.wait.set()
         assert future.result()["status"] == "COMPLETE"
@@ -743,20 +980,20 @@ def test_duplicate_concurrent_execution_blocked(tmp_path, simulated):
 def test_abrupt_restart_keeps_unresolved_reservation(tmp_path, simulated):
     (tmp_path / "first").mkdir()
     with pytest.raises(IsolationUncertain, match="interrupted reservation"):
-        study.run_synthetic("other", tmp_path)
+        run_study("other", tmp_path)
     assert simulated.starts == 0
 
 
 def test_only_frozen_synthetic_inputs_are_executable(plan, tmp_path, simulated):
     with pytest.raises(ValueError):
-        study.run_synthetic("../outside", tmp_path)
+        run_study("../outside", tmp_path)
     with pytest.raises(TypeError):
-        study.run_synthetic("safe", tmp_path, dataset="historical")
+        run_study("safe", tmp_path, dataset="historical")
     with pytest.raises(ValueError, match="synthetic"):
         Plan.model_validate(plan.model_dump() | {"holdout": "CONSUMED"})
     simulated.image = "sha256:" + "0" * 64
     with pytest.raises(ValueError, match="Approved verifier image"):
-        study.run_synthetic("first", tmp_path)
+        run_study("first", tmp_path)
     assert simulated.starts == 0
 
 
@@ -812,7 +1049,7 @@ def test_rejects_original_flat_account_attack(plan, tmp_path, simulated):
     with pytest.raises(SemanticInconsistency, match="REJECTED_SEMANTIC_INCONSISTENCY"):
         decode_result(raw, plan)
     simulated.outcome = "manipulated"
-    result = study.run_synthetic("flat_attack", tmp_path)
+    result = run_study("flat_attack", tmp_path)
     assert result["status"] == "FAILED" and "export" not in result
     assert "REJECTED_SEMANTIC_INCONSISTENCY" in result["reason"]
 
@@ -937,7 +1174,7 @@ def test_historical_proposal_is_frozen_and_has_no_execution_entrypoint():
     reason="Explicit synthetic acceptance with the pinned Docker Linux image",
 )
 def test_real_synthetic_study_in_docker(tmp_path):
-    record = study.run_synthetic("docker_acceptance", tmp_path)
+    record = run_study("docker_acceptance", tmp_path)
     assert record["status"] == "COMPLETE", record
     assert record["cleanup_confirmed"]
     job = tmp_path / "docker_acceptance"
@@ -953,7 +1190,7 @@ def test_real_synthetic_study_in_docker(tmp_path):
     probe = json.loads(base64.b64decode(_bundle(job)["logs"][study.PREFLIGHT]))
     for label in ("external write", "external TCP", "external DNS", "VM-to-host socket"):
         assert probe["probe"].count(f"{label}: blocked") == 2
-    assert study.run_synthetic("docker_acceptance", tmp_path) == record
+    assert run_study("docker_acceptance", tmp_path) == record
 
 
 @pytest.mark.skipif(

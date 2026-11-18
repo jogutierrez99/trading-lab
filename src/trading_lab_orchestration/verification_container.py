@@ -228,7 +228,7 @@ class VerificationContainer:
             )
         )
 
-    def _cli(self, arguments, folder, name, timeout, payload=None):
+    def _cli(self, arguments, folder, name, timeout, payload=None, *, stdout_capture_limit=None):
         config = folder / "docker-config"
         config.mkdir(exist_ok=True)
         return run_process(
@@ -240,13 +240,18 @@ class VerificationContainer:
             payload,
             omit_env=tuple(key.upper() for key in os.environ if key.upper().startswith("DOCKER_")),
             output_limit=768 * 1024,
+            **(
+                {"stdout_capture_limit": stdout_capture_limit}
+                if stdout_capture_limit is not None
+                else {}
+            ),
         )
 
     @staticmethod
     def _ok(result):
         return not (result["timed_out"] or result["exit_code"] or result["output_truncated"])
 
-    def _execute(self, command, payload, folder, name, timeout):
+    def _execute(self, command, payload, folder, name, timeout, *, stdout_capture_limit=None):
         container = "tl-pilot-verify-" + uuid4().hex
         write_json(
             folder / f"{name}-container.json",
@@ -276,6 +281,11 @@ class VerificationContainer:
                 name,
                 timeout,
                 payload,
+                **(
+                    {"stdout_capture_limit": stdout_capture_limit}
+                    if stdout_capture_limit is not None
+                    else {}
+                ),
             )
         finally:
             try:

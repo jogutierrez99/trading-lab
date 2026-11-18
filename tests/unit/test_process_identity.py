@@ -5,6 +5,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -145,3 +146,31 @@ def test_identity_is_persisted_before_windows_child_can_execute(tmp_path):
     assert result["exit_code"] == 0
     assert json.loads((tmp_path / "birth.json").read_text()) == result["process_identity"]
     assert (tmp_path / "executed").is_file()
+
+
+@pytest.mark.parametrize("limit", [7, 8, None])
+def test_pipe_stdout_capture_is_exact_and_does_not_reopen_logs(tmp_path, monkeypatch, limit):
+    open_path = Path.open
+
+    def reject_reopen(path, mode="r", *args, **kwargs):
+        assert mode != "ab"
+        return open_path(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", reject_reopen)
+    result = run_process(
+        [sys.executable, "-c", "import os; os.write(1, bytes.fromhex('200d0aff0a2020'))"],
+        tmp_path,
+        10,
+        tmp_path / "stdout",
+        tmp_path / "stderr",
+        output_limit=64,
+        stdout_capture_limit=limit,
+    )
+    exact = bytes.fromhex("200d0aff0a2020")
+    assert result["exit_code"] == 0 and (tmp_path / "stdout").read_bytes() == exact
+    if limit is None:
+        assert "stdout_bytes" not in result and not result["output_truncated"]
+    elif limit == len(exact):
+        assert result["stdout_bytes"] is None and result["output_truncated"]
+    else:
+        assert result["stdout_bytes"] == exact and not result["output_truncated"]
