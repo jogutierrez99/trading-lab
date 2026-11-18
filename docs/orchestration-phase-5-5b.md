@@ -2,7 +2,7 @@
 
 Base de desarrollo: `2986ffa2a85e810cd558ebba3bdf8c42958a0cc3`.
 Código congelado de estrategia y StudyBackend: `5cef79b45780c9a0e9964b01b2fa46d9531ae18a`.
-El histórico está pendiente de aceptación nativa y de una autorización posterior.
+La ejecución histórica requiere una autorización posterior del operador.
 Esta fase conserva 5.5A, el YAML deshabilitado y el trigger que bloquea el piloto
 en las rutas antiguas.
 
@@ -23,7 +23,9 @@ TEST conserva `CONSUMED`. El paquete efectivo contiene un conjunto cerrado de
 módulos Git de D y los módulos del adaptador. Los hashes de estrategia y motor
 en el borrador se verifican tras normalizar archivos de texto a LF si el
 archivo Git de Windows entrega CRLF. El trabajo añade los SHA-256 de la
-clausura efectiva, la proyección, el manifiesto y el supervisor.
+clausura efectiva, la proyección, el manifiesto y el supervisor. Los archivos de
+control del supervisor se sellan con finales LF para reproducir la huella tras
+un checkout de Git para Windows.
 La imagen y las dependencias se comprueban con las identidades fijadas.
 
 ## Ejecución y auditoría
@@ -102,6 +104,11 @@ No se modificaron las huellas ni los contratos de 5.5A.
 `HISTORICAL_BACKTEST_ONCE` tiene su propio registro SQLite con identificador de
 aplicación y esquema 1. El registro se aprovisiona fuera de scratch y
 fuera de las bases operativas, en una raíz NTFS dedicada con ACL de operador.
+La ruta canónica se deriva de LocalAppData mediante Windows y se vincula al
+SID del lanzamiento original. La primera aprobación crea un sello de identidad
+NTFS de la raíz y de la SQLite en el directorio padre protegido. Una base sin
+sello, una raíz sustituida o una SQLite de identidad distinta requieren
+conciliación manual. Conservar el sello junto a las copias del registro.
 La preparación, el lanzamiento Codex y el permiso sintético carecen de poder
 para reservar un histórico. La fila de ejecución se inserta con
 `BEGIN IMMEDIATE` y una clave única que referencia el permiso. La inserción es
@@ -115,15 +122,27 @@ terminal interactiva, operador Windows, evidencia del intento original e
 identidad del recibo de implementación. La frase incluye propósito, intento
 y huella del trabajo completo. La reserva vuelve a cotejar operador e
 identidad del piloto; el acceso al expediente viejo es de solo lectura.
+Las llamadas directas a las funciones Python pasan por el mismo registro y
+las mismas confirmaciones. La segunda confirmación se solicita dentro de la
+reserva del primer cálculo, tras validar el permiso. Una consulta sellada
+omite la confirmación y recupera los resultados verificados.
 El programa de preparación solo expone lectura, propuesta y ensayo sintético.
-El lanzamiento histórico independiente se mantiene fuera del comando
-de preparación y requiere el permiso persistido y explícito.
+El lanzamiento histórico independiente usa la CLI operativa descrita abajo y
+requiere un permiso persistido y explícito.
 
 El registro y sus ficheros auxiliares SQLite son infraestructura de confianza.
 Mantener un único registro operativo designado bajo ACL que impidan a terceros
 crear, borrar o sustituir entradas. Una cuenta que controle ambos almacenes
 puede falsificar hashes y reservas. No se ha ensayado pérdida de alimentación.
 El expediente original y su trigger permanecen intactos.
+
+En la propuesta y el preflight se fijan los directorios NTFS y la base de
+datos se abre con un handle que excluye escrituras y reemplazos por otros
+procesos. Se rechazan los ficheros `-wal`, `-shm` y `-journal` y las cabeceras
+WAL. Después de estas comprobaciones, SQLite lee con `mode=ro&immutable=1`
+mientras el handle sigue abierto. Un escritor activo o un journal incierto
+hace fallar la consulta. El coordinador histórico usa la misma comprobación
+sin cambiar las demás rutas de lectura del coordinador.
 
 ## Operación de preparación y aceptación nativa
 
@@ -164,9 +183,90 @@ reales de la propuesta revisada. Antes de presentarla comprobar el recibo,
 la clausura efectiva, la imagen, las seis ventanas y los límites exactos.
 Conservar la propuesta y el SHA-256 fuera del checkout. Cualquier cambio
 posterior de huella requiere otra revisión, conservando las reservas existentes.
-El transporte 2.0 requiere repetir las dos pruebas nativas 5.5B de Docker.
-En la sesión de desarrollo, el proceso no pudo abrir el directorio de trabajo
-del piloto para reverificar el recibo y el motor Docker denegó el canal local.
-Los ensayos de cálculo y transporte ejecutados por pytest usaron datos
-artificiales. Queda pendiente la ejecución nativa en Docker y la generación
-de la propuesta nominativa a partir de su expediente verificado.
+
+## Operación supervisada del Issue #3
+
+Ejecutar cada paso por separado, tras aprobar la publicación de la CLI, desde
+una terminal Windows personal con Docker Desktop Linux iniciado y el checkout
+limpio de `main`. Usar el SHA exacto de la publicación revisada de la CLI.
+La CLI verifica que desciende de `b726ecf174bf3a87e0d550510cbd6c947e3c7826`
+y que el diff se limita a la interfaz, el supervisor anfitrión, las lecturas
+SQLite de esta fase, sus pruebas y documentación. La huella anterior
+`bed1315307979dba449b3137e84b65ae11f09d63a8ffeb7d6e8dbaf03a448670`
+se conserva para auditoría y queda sustituida para futuras autorizaciones.
+La propuesta de solo lectura con el supervisor corregido utiliza
+`c8fefa01f00bfae7c303115c19b305ccbad76b19321f1e1a5e923627e28c1b42`.
+Cotejar esta huella con la propuesta privada revisada antes de cualquier permiso.
+
+Preparar las variables en PowerShell:
+
+```powershell
+$env:PYTHONPATH = Join-Path (Get-Location) 'src'
+$env:TRADING_LAB_VERIFICATION_IMAGE = 'sha256:539a1a6c2f1669b6c36612417f9cf70fe28e822095433d8a1453e706396b5f2e'
+$python = (Get-Command python -ErrorAction Stop).Source
+$release = Read-Host 'SHA completo del commit aprobado que publica esta CLI'
+$dataRepo = Read-Host 'Ruta del repositorio que contiene el bundle local congelado'
+$queue = Join-Path $env:LOCALAPPDATA 'TradingLab/GitHubIntake53/queue.sqlite3'
+$registry = Join-Path $env:LOCALAPPDATA 'TradingLab/HistoricalPilot55B'
+$scratch = Read-Host 'Ruta absoluta del scratch NTFS privado ya aprovisionado'
+$common = @('--checkout-commit', $release, '--data-repo', $dataRepo,
+    '--coordinator-db', $queue, '--registry', $registry, '--scratch', $scratch)
+```
+
+El registro designado reside en LocalAppData. Registro y scratch deben existir
+en NTFS local, ser independientes y quedar fuera del repositorio, de los datos
+y del directorio de la SQLite operativa. El operador debe ser propietario y
+tener permisos efectivos para agregar archivos y subdirectorios. La operación
+rechaza ACL con entradas de concesión a otros principales en el registro
+y scratch, salvo SYSTEM, Administradores y derechos del propietario.
+La lectura de la propuesta admite entradas sin derechos de modificación.
+Una ACL de lectura compartida permite preparar la propuesta, pero requiere
+revisión antes de aprobar o ejecutar. Los handles fijan los directorios
+y sus ascendentes durante las comprobaciones y la operación. El CLI Docker
+forma parte de la huella del supervisor. Una actualización del binario puede
+cambiar el SHA del trabajo y exige revisión.
+
+1. **Preflight**. Comprueba recibo de implementación, identidad, dataset, seis
+   casos, imagen local Linux fijada, límites y estado del registro. Solo usa
+   `docker image inspect`; carece de descarga, contenedor y reserva.
+
+   ```powershell
+   & $python -B scripts/operate_historical_pilot.py preflight @common
+   ```
+
+   Continuar únicamente si devuelve `HISTORICAL_PREFLIGHT_PASSED`. El resultado
+   indica `NO_PERMIT` o `APPROVED` según el registro.
+
+2. **Aprobación**. Revisar estrategia, ventanas, costes y alcance que muestra
+   la consola. Escribir personalmente la frase que presenta la aplicación
+   al decidir aprobar. La confirmación es interactiva y la frase queda
+   vinculada al trabajo revisado. Conservar el ID mostrado en privado. El
+  recibo y su ID quedan persistidos en el registro autorizado. La identidad
+  Windows y la presencia de una terminal son controles locales. No prueban
+  criptográficamente el consentimiento de una persona con esa sesión abierta.
+
+   ```powershell
+   & $python -B scripts/operate_historical_pilot.py approve @common
+   ```
+
+3. **Ejecución**. Introducir el ID exacto del permiso en la misma sesión de
+   operador. Escribir personalmente la segunda frase para consumir el permiso
+   e iniciar Docker. La reserva persistente antecede al inicio y ningún
+   error o timeout rearma el permiso.
+
+   ```powershell
+   $permit = Read-Host 'ID privado del permiso aprobado'
+   & $python -B scripts/operate_historical_pilot.py run @common --permit-id $permit
+   ```
+
+4. **Auditoría**. El supervisor verifica los seis casos antes de sellar el
+   resultado. Si se vuelve a consultar con el mismo `run`, el resultado
+   sellado se vuelve a verificar y se recupera sin otro cálculo. Una reserva
+   `RESERVED` o `UNKNOWN`, o un sello sin evidencia válida, requiere
+   conciliación manual. Conservar registro, scratch y logs. Evitar un
+   registro alternativo o una reserva nueva para recuperar el trabajo.
+5. **Informe**. Revisar el resultado sellado en el scratch privado, junto
+   con su SHA-256 de transporte y la auditoría. Mantener TEST como
+   retrospectivo y evitar atribuir relevancia estadística a una muestra
+   insuficiente. La CLI devuelve los hashes del trabajo y del transporte;
+   el informe económico es un paso separado.

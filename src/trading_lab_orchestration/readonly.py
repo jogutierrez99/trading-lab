@@ -1,7 +1,7 @@
 """Existing coordinator queries through SQLite read-only snapshots; no initialization."""
 
 import sqlite3
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 from .store import APPLICATION_ID, SCHEMA_VERSION, Store
@@ -15,10 +15,16 @@ class ReadOnlyStore(Store):
             raise FileNotFoundError("Existing orchestration database required: " + str(self.path))
 
     @contextmanager
+    def _open_reader(self):
+        with closing(
+            sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True, timeout=15)
+        ) as conn:
+            yield conn
+
+    @contextmanager
     def _reader(self):
-        conn = sqlite3.connect(self.path.as_uri() + "?mode=ro", uri=True, timeout=15)
-        conn.row_factory = sqlite3.Row
-        try:
+        with self._open_reader() as conn:
+            conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA query_only=ON")
             if conn.execute("PRAGMA application_id").fetchone()[0] != APPLICATION_ID:
                 raise ValueError("Not an orchestration database")
@@ -27,8 +33,6 @@ class ReadOnlyStore(Store):
                     "Unsupported schema for read-only verification; no migration performed"
                 )
             yield conn
-        finally:
-            conn.close()
 
     @contextmanager
     def connection(self):

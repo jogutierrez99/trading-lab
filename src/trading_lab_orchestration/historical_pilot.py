@@ -2,7 +2,6 @@
 
 import base64
 import os
-import sys
 from datetime import UTC, datetime
 from statistics import median
 from uuid import uuid4
@@ -50,7 +49,7 @@ from .verification_container import (
 )
 
 WORKER = ("-m", "trading_lab_orchestration.historical_pilot_guest")
-DB = "historical-pilot.sqlite3"
+DB = store.DB
 BUNDLE_LIMIT = base64_bound(WIRE_MAX) + 3 * LOG_LIMIT
 RESULT = "result.json"
 
@@ -128,12 +127,13 @@ def prepare(verifier, *, data_repo=None):
         files[f"{package}/{name}"] = _regular_bytes(RUNTIME, name)
     files[CANDLES] = candles
     control = {
-        name: hash_bytes(_regular_bytes(RUNTIME, name))
+        name: hash_bytes(_regular_bytes(RUNTIME, name).replace(b"\r\n", b"\n"))
         for name in (
             "historical_pilot.py",
             "historical_pilot_bootstrap.py",
             "historical_pilot_oracle.py",
             "historical_pilot_store.py",
+            "readonly.py",
             "study_storage_windows.py",
         )
     }
@@ -228,8 +228,13 @@ def _run(verifier, job, files, evidence, registry, scratch, permit_id, binding=N
         ntfs.pinned_root(scratch, existing=True) as root,
     ):
         _paths(trusted, root)
+        registry_lock = (
+            trusted.parent / store.LOCK
+            if job.mode == "HISTORICAL"
+            else trusted / ".historical-pilot.lock"
+        )
         with (
-            ntfs.exclusive_lock(trusted / ".historical-pilot.lock"),
+            ntfs.exclusive_lock(registry_lock),
             ntfs.exclusive_lock(root / ".historical-pilot.lock"),
         ):
             return _run_locked(
@@ -325,8 +330,13 @@ def _execute(verifier, job, files, evidence, folder):
     }
 
 
+class _HistoricalCoordinator(ReadOnlyStore):
+    def _open_reader(self):
+        return store.rollback_snapshot(self.path)
+
+
 def _verified_binding(coordinator_db):
-    database = ReadOnlyStore(coordinator_db)
+    database = _HistoricalCoordinator(coordinator_db)
     with database.snapshot():
         with database.connection() as connection:
             if (
@@ -349,6 +359,9 @@ def _verified_binding(coordinator_db):
             _, launch = read_launch(connection, row)
             if (launch.task_id, launch.attempt_id) != (ISSUE_3_TASK, attempt):
                 raise ValueError("Sealed launch identity differs from Issue #3")
+            operator = current_operator()
+            if operator[1] != launch.operator_sid:
+                raise ValueError("Historical operator differs from the sealed launch operator")
         _, _, receipt_path, receipt = verified_implementation(database, attempt)
     plan = frozen_plan(ROOT)
     for name in (
@@ -361,13 +374,13 @@ def _verified_binding(coordinator_db):
             == hash_bytes((ROOT / name).read_bytes().replace(b"\r\n", b"\n"))
         ):
             raise ValueError("Approved implementation differs from the frozen published files")
-    return attempt, hash_bytes(receipt_path.read_bytes()), *current_operator()
+    return attempt, hash_bytes(receipt_path.read_bytes()), *operator
 
 
 def authorization_proposal(data_repo, coordinator_db, registry):
     job, _, evidence = prepare(HistoricalVerifier(), data_repo=data_repo)
     attempt, receipt, operator, sid = _verified_binding(coordinator_db)
-    store.assert_unconsumed(registry / DB, f"issue-3:{attempt}")
+    store.assert_unconsumed(registry / DB, store.ISSUE_SCOPE, operator=(operator, sid))
     permit = store.Permit(
         purpose="HISTORICAL_BACKTEST_ONCE",
         attempt_id=attempt,
@@ -380,31 +393,13 @@ def authorization_proposal(data_repo, coordinator_db, registry):
     return permit, job, evidence
 
 
-def approve_historical(data_repo, coordinator_db, registry):
+def approve_historical(data_repo, coordinator_db, registry, *, expected_job_sha256):
     """Future operator action, independent of preparation and without running Docker."""
-    if not (sys.stdin.isatty() and sys.stdout.isatty()):
-        raise ValueError("Interactive historical authorization required")
     permit, job, _ = authorization_proposal(data_repo, coordinator_db, registry)
+    if permit.job_sha256 != expected_job_sha256:
+        raise ValueError("Historical job SHA-256 changed before approval")
     print(canonical(job.model_dump(mode="json")))
-    confirmation = input(f"Type {store.phrase(permit)} to authorize these six cases: ")
-    if confirmation != store.phrase(permit):
-        raise ValueError("Explicit historical confirmation did not match")
-    if _verified_binding(coordinator_db) != (
-        permit.attempt_id,
-        permit.implementation_receipt_sha256,
-        permit.operator,
-        permit.operator_sid,
-    ):
-        raise ValueError("Operator or pilot identity changed during approval")
-    with (
-        ntfs.pinned_root(registry, existing=True) as root,
-        ntfs.exclusive_lock(root / ".historical-pilot.lock"),
-    ):
-        permit = permit.model_copy(update={"approved_at": datetime.now(UTC)})
-        database = root / DB
-        if not database.exists():
-            store.initialize(database)
-        return store.grant(database, permit, confirmation)
+    return store.grant(registry / DB, permit)
 
 
 def run_historical(data_repo, coordinator_db, registry, scratch, permit_id):
@@ -412,11 +407,26 @@ def run_historical(data_repo, coordinator_db, registry, scratch, permit_id):
     verifier = HistoricalVerifier()
     job, files, evidence = prepare(verifier, data_repo=data_repo)
     binding = _verified_binding(coordinator_db)
-    return _run(verifier, job, files, evidence, registry, scratch, permit_id, binding)
+    with (
+        store.operator_registry(registry / DB, binding[2:]) as root,
+        ntfs.pinned_root(scratch, existing=True) as output,
+        store.guard_registry_file(root, binding[3]),
+    ):
+        store.check_acl(output, binding[3], private=True)
+        for protected in (ROOT, data_repo.resolve(), coordinator_db.resolve().parent):
+            if output.is_relative_to(protected) or protected.is_relative_to(output):
+                raise ValueError(
+                    "Historical scratch must be outside code, data and coordinator roots"
+                )
+        return _run(verifier, job, files, evidence, root, output, permit_id, binding)
 
 
 def run_synthetic(registry, scratch):
     """Acceptance only. Generates its own candles and synthetic permit in a fresh registry."""
+    protected = store.designated_registry()
+    for path in (ntfs.local_path(registry), ntfs.local_path(scratch)):
+        if path.is_relative_to(protected) or protected.is_relative_to(path):
+            raise ValueError("Synthetic runs require storage separate from the historical registry")
     verifier = HistoricalVerifier()
     job, files, _ = prepare(verifier)
     permit = store.Permit(
