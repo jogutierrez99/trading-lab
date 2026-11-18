@@ -1,5 +1,11 @@
 # Estado actual del Trading Lab
 
+[Fase 5.5A](orchestration-phase-5-5a.md) prepara un adaptador de
+StudyBackend v1 para ensayos sintéticos aislados y recepción JSON
+validada. La persistencia sintética usa un único documento NTFS por
+trabajo, con captura original y recibo 1.2. Los seis casos históricos
+del Issue #3 siguen como propuesta y su bloqueo operativo permanece vigente.
+
 [Lanzamiento independiente 5.4B](orchestration-pilot-launch.md) incorpora
 el permiso de un solo uso para un intento técnico preparado y un
 verificador Linux para el Python entregado. Las regresiones del
