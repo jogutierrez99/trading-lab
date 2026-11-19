@@ -1,5 +1,12 @@
 # Estado actual del Trading Lab
 
+[Catálogo Capa 1](strategy-catalog-v1.md) añade SQLite independiente,
+descubrimiento mediante adaptador y contratos inmutables de versiones,
+experimentos, resultados y decisiones. CLI manual strategy_catalog.py,
+comparabilidad determinista e import-preview de evidencia sellada.
+El Issue #3 conserva NO_DECISION y holdout CONSUMED. Su ingesta real está
+limitada a validación/dry-run. Sin ejecución, agentes ni promoción automática.
+
 [Fase 5.5B](orchestration-phase-5-5b.md) prepara el histórico aislado del Issue #3.
 El preflight verifica el bundle local y los ensayos artificiales cubren los seis casos.
 La CLI operativa separa preflight, aprobación Windows y ejecución con permiso de un
