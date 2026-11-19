@@ -46,8 +46,21 @@ def compare(rows):
             reasons.append("Holdout consumed or unknown; retrospective evidence")
         if any(r["trades"] < 30 for r in rows):
             reasons.append("Small trade samples")
-        if any(r["audit_status"] != "SOURCE_AUDITED" for r in rows):
+        if any(
+            r.get("audit_status") != "SOURCE_AUDITED"
+            or r.get("run_audit_status") != "SOURCE_AUDITED"
+            or r.get("case_audit_status") != "SOURCE_AUDITED"
+            or r.get("declared_run_audit_status") != "SOURCE_AUDITED"
+            or r.get("declared_case_audit_status") != "SOURCE_AUDITED"
+            for r in rows
+        ):
             reasons.append("Evidence is not source-audited")
+        if any(
+            r.get("run_audit_status") != r.get("case_audit_status")
+            or r.get("declared_run_audit_status") != r.get("declared_case_audit_status")
+            for r in rows
+        ):
+            reasons.append("Run and case audit provenance disagree")
         if any(r["status"] != "COMPLETE" for r in rows):
             reasons.append("Incomplete technical execution")
         status = "COMPARABLE_WITH_LIMITATIONS" if reasons else "COMPARABLE"

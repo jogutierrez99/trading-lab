@@ -55,7 +55,12 @@ def main(argv=None):
             if args.command == "import-preview":
                 result = {"status": "VALIDATED_DRY_RUN", "bundle": bundle.model_dump(mode="json")}
             else:
-                result = Store(args.db).ingest(bundle, args.source)
+                result = Store(args.db).ingest(
+                    bundle,
+                    args.source,
+                    sealed_source=args.sealed_source,
+                    receipt_sha256=args.receipt_sha256,
+                )
         else:
             store = Store(args.db)
             if args.command == "init":

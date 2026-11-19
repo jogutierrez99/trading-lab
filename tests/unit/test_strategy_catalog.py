@@ -8,6 +8,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -225,6 +226,10 @@ def test_comparable_results_do_not_choose_a_winner(store, bundle):
         "holdout": "UNOBSERVED",
         "trades": 40,
         "audit_status": "SOURCE_AUDITED",
+        "run_audit_status": "SOURCE_AUDITED",
+        "case_audit_status": "SOURCE_AUDITED",
+        "declared_run_audit_status": "SOURCE_AUDITED",
+        "declared_case_audit_status": "SOURCE_AUDITED",
     }
     comparison = compare([row, {**row, "net_return_pct": 10}])
     assert comparison["status"] == "COMPARABLE" and comparison["winner"] is None
@@ -440,8 +445,16 @@ def test_preview_confirmed_idempotency_and_no_source_effects(exported, store):
     bundle = preview(source, seal, anchor)
     assert len(bundle.case_results) == 6 and bundle.experiments[0].holdout == "CONSUMED"
     assert bundle.research_decisions[0].verdict == "NO_DECISION"
-    assert store.ingest(bundle, str(source))["status"] == "INGESTED"
-    assert store.ingest(preview(source, seal, anchor), str(source))["status"] == "DUPLICATE"
+    assert (
+        store.ingest(bundle, str(source), sealed_source=seal, receipt_sha256=anchor)["status"]
+        == "INGESTED"
+    )
+    assert (
+        store.ingest(
+            preview(source, seal, anchor), str(source), sealed_source=seal, receipt_sha256=anchor
+        )["status"]
+        == "DUPLICATE"
+    )
     assert {p.name: p.read_bytes() for p in source.iterdir()} == before
 
 
@@ -469,3 +482,180 @@ def test_preview_rejects_corruption(exported, mutation):
         (source / "manifest.json").write_text(json.dumps(manifest))
     with pytest.raises(BlockedSource):
         preview(source, seal, anchor)
+
+
+@pytest.mark.parametrize("entity", ["runs", "case_results"])
+def test_generic_persistence_rejects_audit_claims(store, bundle, entity):
+    changed = bundle.model_copy(
+        update={
+            entity: [
+                getattr(bundle, entity)[0].model_copy(update={"audit_status": "SOURCE_AUDITED"})
+            ]
+        }
+    )
+    with pytest.raises(IntegrityError, match="cannot accredit"):
+        store.ingest(changed, "operator declaration")
+    assert store.records("runs") == [] and store.records("case_results") == []
+
+
+def test_generic_register_cannot_bypass_persistence(store, bundle, tmp_path, capsys):
+    changed = bundle.model_copy(
+        update={"runs": [bundle.runs[0].model_copy(update={"audit_status": "SOURCE_AUDITED"})]}
+    )
+    source = tmp_path / "declaration.json"
+    source.write_text(changed.model_dump_json())
+    assert main(["--db", str(store.path), "register", str(source)]) == 6
+    assert "cannot accredit" in capsys.readouterr().out
+    assert store.records("runs") == []
+
+
+def test_artifact_integrity_requires_matching_bytes(store, bundle, tmp_path):
+    store.ingest(bundle, "fixture")
+    file = tmp_path / "artifact.json"
+    file.write_bytes(b"{}")
+    claimed = Artifact(
+        id="forged",
+        run_id="r1",
+        artifact_type="fixture",
+        reference=str(file),
+        sha256="0" * 64,
+        verification_status="HASH_VERIFIED",
+    )
+    with pytest.raises(IntegrityError, match="captured source"):
+        store.ingest(Bundle(artifacts=[claimed]), "manual claim")
+    assert store.records("artifacts") == []
+    valid = claimed.model_copy(update={"sha256": sha(file.read_bytes())})
+    store.ingest(Bundle(artifacts=[valid]), "verified file")
+    assert store.records("artifacts")[0]["verification_status"] == "HASH_VERIFIED"
+    assert store.records("runs")[0]["audit_status"] == "UNVERIFIED"
+
+
+def test_sealed_persistence_requires_source_and_exact_bundle(exported, store, capsys):
+    source, sealed, anchor = exported
+    bundle = preview(source, sealed, anchor)
+    with pytest.raises(IntegrityError, match="cannot accredit"):
+        store.ingest(bundle, "copied preview")
+    changed = bundle.model_copy(
+        update={
+            "case_results": [
+                bundle.case_results[0].model_copy(update={"net_return_pct": 50}),
+                *bundle.case_results[1:],
+            ]
+        }
+    )
+    with pytest.raises(IntegrityError, match="differs"):
+        store.ingest(changed, source, sealed_source=sealed, receipt_sha256=anchor)
+    store.ingest(bundle, source, sealed_source=sealed, receipt_sha256=anchor)
+    assert store.records("runs")[0]["audit_status"] == "SOURCE_AUDITED"
+    assert all(c["audit_status"] == "SOURCE_AUDITED" for c in store.records("case_results"))
+    row = joined_cases(store)[0]
+    assert row["run_audit_status"] == row["case_audit_status"] == "SOURCE_AUDITED"
+    assert row["verdict"] == "NO_DECISION" and row["holdout"] == "CONSUMED"
+    assert (
+        main(
+            [
+                "--db",
+                str(store.path),
+                "import-confirmed",
+                "--source",
+                str(source),
+                "--sealed-source",
+                str(sealed),
+                "--receipt-sha256",
+                anchor,
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["status"] == "DUPLICATE"
+
+
+def test_manual_verification_event_is_not_audit_accreditation(store, bundle):
+    store.ingest(bundle, "fixture")
+    store.record_verification({"status": "SOURCE_AUDITED", "run_id": "r1"})
+    assert store.records("runs")[0]["audit_status"] == "UNVERIFIED"
+    row = joined_cases(store)[0]
+    forged_case_claim = {**row, "audit_status": "SOURCE_AUDITED"}
+    result = compare([forged_case_claim, forged_case_claim])
+    assert result["status"] == "COMPARABLE_WITH_LIMITATIONS"
+    assert "Evidence is not source-audited" in result["reasons"]
+
+
+def test_legacy_unbacked_claims_are_not_accreditations(store, bundle):
+    store.ingest(bundle, "fixture")
+    # Model an old schema-1 database containing manually asserted audit flags.
+    # No original database is used. Only this disposable fixture loses its triggers.
+    from trading_lab_catalog.models import canonical, fingerprint
+
+    with store.connection(write=True) as c:
+        c.execute("DROP TRIGGER case_results_no_update")
+        legacy = bundle.case_results[0].model_copy(update={"audit_status": "SOURCE_AUDITED"})
+        data = legacy.model_dump(mode="json")
+        c.execute(
+            "UPDATE case_results SET payload=?,sha256=? WHERE id=?",
+            (canonical(data), fingerprint(data), legacy.id),
+        )
+    assert store.records("case_results")[0]["audit_status"] == "UNVERIFIED"
+    row = joined_cases(store)[0]
+    result = compare([row, row])
+    assert result["status"] == "COMPARABLE_WITH_LIMITATIONS"
+    assert "Run and case audit provenance disagree" in result["reasons"]
+
+
+@pytest.fixture
+def discovery_repo(tmp_path):
+    root = tmp_path / "repo"
+    root.mkdir()
+    strategy = root / "src/quant_lab/strategies/fixture.py"
+    config = root / "configs/strategies/fixture.yaml"
+    strategy.parent.mkdir(parents=True)
+    config.parent.mkdir(parents=True)
+    strategy.write_text("# trusted test source\n")
+    config.write_text("enabled: false\n")
+
+    def git(*args):
+        subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
+
+    git("init")
+    git("config", "user.name", "Catalogue fixture")
+    git("config", "user.email", "catalogue@example.invalid")
+    git("add", "--", "src", "configs")
+    git("commit", "-m", "test fixture")
+    checked = subprocess.run(
+        ["git", "-C", str(root), "cat-file", "blob", "HEAD:src/quant_lab/strategies/fixture.py"],
+        capture_output=True,
+    )
+    assert checked.returncode == 0, checked.stderr
+    cls = SimpleNamespace(parameter_model=SimpleNamespace(model_json_schema=lambda: {}))
+    row = {
+        "strategy_id": "fixture",
+        "version": "1.0.0",
+        "description": "fixture",
+        "implementation": "fixture.Strategy",
+        "config": "configs/strategies/fixture.yaml",
+        "status": "experimental",
+        "created_at": None,
+        "timeframes": ["1h"],
+        "modes": ["LONG_ONLY"],
+    }
+    registry = SimpleNamespace(catalogue=lambda: [row], implementation=lambda _: cls)
+    return root, strategy, config, registry
+
+
+@pytest.mark.parametrize("target", ["strategy", "config"])
+def test_discovery_rejects_modified_relevant_files(discovery_repo, monkeypatch, target):
+    root, strategy, config, registry = discovery_repo
+    monkeypatch.setattr("trading_lab_catalog.service.inspect.getfile", lambda _: str(strategy))
+    initial = discover(registry, root=root)
+    assert initial.versions[0].git_commit is not None
+    assert discover(registry, root=root) == initial
+    (strategy if target == "strategy" else config).write_text("# uncommitted change\n")
+    with pytest.raises(ValueError, match="clean strategy"):
+        discover(registry, root=root)
+
+
+def test_discovery_rejects_untracked_strategy(discovery_repo):
+    root, strategy, _, registry = discovery_repo
+    (strategy.parent / "untracked.py").write_text("# uncommitted\n")
+    with pytest.raises(ValueError, match="clean strategy"):
+        discover(registry, root=root)

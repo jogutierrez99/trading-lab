@@ -93,6 +93,8 @@ class Experiment(Model):
 
 
 class Run(Model):
+    """Declared audit state; persistence requires sealed-source validation to accredit it."""
+
     id: Key
     experiment_id: Key
     engine: str
@@ -138,6 +140,8 @@ class Case(Model):
 
 
 class Artifact(Model):
+    """A verification request; HASH_VERIFIED requires an actual read and hash check."""
+
     id: Key
     run_id: Key
     artifact_type: str

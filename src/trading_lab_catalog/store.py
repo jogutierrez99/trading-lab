@@ -117,9 +117,32 @@ class Store:
             (kind, source, digest, now()),
         )
 
-    def ingest(self, bundle: Bundle, source):
+    def ingest(self, bundle: Bundle, source, *, sealed_source=None, receipt_sha256=None):
+        source = str(source)
         bundle = Bundle.model_validate_json(bundle.model_dump_json())
         document = bundle.model_dump(mode="json")
+        sealed = sealed_source is not None or receipt_sha256 is not None
+        if sealed:
+            from .ingestion import preview
+
+            if sealed_source is None or receipt_sha256 is None:
+                raise IntegrityError("Sealed source and reviewed receipt hash are both required")
+            verified = preview(source, sealed_source, receipt_sha256)
+            if verified.model_dump(mode="json") != document:
+                raise IntegrityError("Bundle differs from the verified sealed source")
+        elif any(
+            r["audit_status"] != "UNVERIFIED"
+            for table in ("runs", "case_results")
+            for r in document[table]
+        ):
+            raise IntegrityError("Generic ingestion cannot accredit source audits")
+        # A request for file integrity is only credited after checking captured bytes.
+        from .verification import read, sha
+
+        for artifact in document["artifacts"]:
+            if artifact["verification_status"] == "HASH_VERIFIED":
+                if sha(read(artifact["reference"])) != artifact["sha256"]:
+                    raise IntegrityError("Artifact hash does not match captured source bytes")
         digest = fingerprint(document)
         added = 0
         try:
@@ -135,6 +158,9 @@ class Store:
                         if old:
                             if old[0] != raw:
                                 raise Conflict(f"Conflicting {table} identity")
+                            self._accredit(
+                                c, table, record, source, sealed, sealed_source, receipt_sha256
+                            )
                             continue
                         columns = ["id", "payload", "sha256", "registered_at_utc", *refs]
                         values = [record["id"], raw, hashed, now(), *(record[k] for k in refs)]
@@ -143,6 +169,9 @@ class Store:
                             f"INSERT INTO {table}({','.join(columns)}) VALUES({marks})", values
                         )
                         self._event(c, "REGISTERED_" + table.upper(), source, hashed)
+                        self._accredit(
+                            c, table, record, source, sealed, sealed_source, receipt_sha256
+                        )
                         added += 1
                 self._event(c, "INGESTED" if added else "DUPLICATE", source, digest)
         except (Conflict, sqlite3.IntegrityError):
@@ -150,6 +179,36 @@ class Store:
                 self._event(c, "CONFLICT", source, digest)
             raise Conflict("Ingestion conflict; scientific records rolled back") from None
         return {"status": "INGESTED" if added else "DUPLICATE", "added": added}
+
+    def _accredit(self, c, table, record, source, sealed, sealed_source, receipt_sha256):
+        if sealed and table in ("runs", "case_results"):
+            kind = "SOURCE_AUDITED_" + table
+            provenance = canonical(
+                {
+                    "source": str(Path(source).absolute()),
+                    "receipt": str(Path(sealed_source).absolute()),
+                    "receipt_sha256": receipt_sha256,
+                }
+            )
+        elif table == "artifacts" and record["verification_status"] == "HASH_VERIFIED":
+            kind, provenance = "HASH_VERIFIED_artifacts", record["reference"]
+        else:
+            return
+        hashed = fingerprint(record)
+        if not c.execute(
+            "SELECT 1 FROM catalog_events WHERE kind=? AND fingerprint=?", (kind, hashed)
+        ).fetchone():
+            self._event(c, kind, provenance, hashed)
+
+    def accreditations(self):
+        with self.connection() as c:
+            return set(
+                c.execute(
+                    "SELECT kind,fingerprint FROM catalog_events "
+                    "WHERE kind IN ('SOURCE_AUDITED_runs','SOURCE_AUDITED_case_results',"
+                    "'HASH_VERIFIED_artifacts')"
+                ).fetchall()
+            )
 
     @staticmethod
     def _decision_lineage(c, decision):
@@ -168,13 +227,31 @@ class Store:
             if row is None or row[0] != decision["strategy_id"]:
                 raise Conflict("Decision refers to a different strategy")
 
-    def records(self, table):
+    def records(self, table, *, declarations=False):
         import json
 
         if table not in REFERENCES:
             raise ValueError("Unknown catalogue entity")
         with self.connection() as c:
-            return [json.loads(r[0]) for r in c.execute(f"SELECT payload FROM {table} ORDER BY id")]
+            records = [
+                json.loads(r[0]) for r in c.execute(f"SELECT payload FROM {table} ORDER BY id")
+            ]
+            accredited = set(
+                c.execute(
+                    "SELECT kind,fingerprint FROM catalog_events "
+                    "WHERE kind LIKE 'SOURCE_AUDITED_%' "
+                    "OR kind='HASH_VERIFIED_artifacts'"
+                ).fetchall()
+            )
+        if not declarations:
+            for record in records:
+                if table in ("runs", "case_results"):
+                    if ("SOURCE_AUDITED_" + table, fingerprint(record)) not in accredited:
+                        record["audit_status"] = "UNVERIFIED"
+                elif table == "artifacts":
+                    if ("HASH_VERIFIED_artifacts", fingerprint(record)) not in accredited:
+                        record["verification_status"] = "UNVERIFIED"
+        return records
 
     def verify(self):
         with self.connection() as c:

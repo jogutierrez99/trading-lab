@@ -60,6 +60,14 @@ distinguir esas etapas. La descripción declarada se conserva en metadata de
 versión. La identidad lógica usa un descriptor estable para coexistir con
 adaptadores futuros sin reescribir el primer registro.
 
+La política Git bloquea discover si src/quant_lab o configs/strategies contiene
+cambios relevantes, incluidos archivos staged y sin seguimiento. Exige Git y
+HEAD conocido. Compara el código y la configuración capturados con sus blobs
+en esa revisión mediante git cat-file, normalizando CRLF a LF para la comparación
+de texto. Conserva también los SHA de los bytes locales originales. Revalida
+HEAD, estado y capturas al finalizar. Una revisión sin cambios mantiene los
+mismos identificadores. No atribuye código modificado a un commit.
+
 Las decisiones son registros nuevos. ECONOMIC, RESEARCH, DEMO_ELIGIBILITY y
 AUTHORIZATION son categorías independientes. Una categoría no cambia otra.
 Los registros son memoria y nunca ejercen permisos de ejecución.
@@ -73,6 +81,8 @@ ventana, segmento, warmup, capital y política de capital, costes, riesgo,
 supuestos, protocolo, motor y tipo de ejecución. Campos diferentes o desconocidos
 devuelven NOT_COMPARABLE. Holdout consumido, muestra pequeña, auditoría ausente
 o ejecución incompleta producen COMPARABLE_WITH_LIMITATIONS.
+La comparación usa acreditaciones de caso y ejecución, conserva sus estados
+declarados por separado y señala cualquier discrepancia entre ambos.
 El umbral descriptivo de muestra pequeña es 30 operaciones y no constituye
 un gate científico. winner siempre es null.
 No se suman retornos de capital reiniciado ni operaciones BASE y ADVERSE.
@@ -82,7 +92,25 @@ La familia desconocida permanece null; el esquema de activos es abierto.
 
 Bundle 1.0 es la interfaz Python y JSON general para registros revisados.
 register es una escritura explícita de ese contrato. Sus afirmaciones proceden
-del operador. No certifica independientemente sus datos.
+del operador. La API Store.ingest aplica las mismas restricciones que register.
+Una declaración genérica de SOURCE_AUDITED se rechaza. HASH_VERIFIED solo se
+acredita tras leer la referencia y comparar el SHA con los bytes capturados.
+La integridad de un archivo no acredita la auditoría económica de su ejecución.
+
+La ruta sellada exige sealed_source y receipt_sha256 en Store.ingest, revalida
+la fuente con preview y exige igualdad completa con el Bundle recibido.
+No acepta un booleano ni un Bundle copiado como prueba de verificación.
+Las acreditaciones se registran atómicamente en catalog_events mediante tipos
+SOURCE_AUDITED_runs, SOURCE_AUDITED_case_results y HASH_VERIFIED_artifacts,
+ligados al fingerprint completo del registro. La procedencia sellada incluye
+referencias y hash del recibo. record_verification no concede esas acreditaciones.
+
+Se conservan esquema SQLite v1, application_id y los ocho contratos originales.
+No hay migración ni reescritura de filas. Las bases anteriores sin eventos de
+acreditación se consultan conservadoramente como UNVERIFIED. records usa estados
+efectivos; records(..., declarations=True) permite inspeccionar afirmaciones
+originales y no acredita su veracidad. Una fuente antigua puede acreditarse
+mediante una validación explícita y nuevos eventos, sin alterar sus filas.
 
 El adaptador import-preview del Issue #3 exige el directorio exportado, la ruta
 del recibo anfitrión sellado y su SHA revisado por el operador. El SHA es el
