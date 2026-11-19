@@ -1,32 +1,42 @@
 # Estado actual del Trading Lab
 
+[Catálogo Capa 1](strategy-catalog-v1.md) añade SQLite independiente,
+descubrimiento mediante adaptador y contratos inmutables de versiones,
+experimentos, resultados y decisiones. CLI manual strategy_catalog.py,
+comparabilidad determinista e import-preview de evidencia sellada.
+El Issue #3 completó su primera ejecución histórica y quedó sellado con seis
+casos, dictamen NO_DECISION y holdout CONSUMED. No tiene promoción a demo.
+Su ingesta real en el catálogo está limitada a validación/dry-run.
+El catálogo no ejecuta estrategias ni activa agentes.
+
 [Fase 5.5B](orchestration-phase-5-5b.md) prepara el histórico aislado del Issue #3.
 El preflight verifica el bundle local y los ensayos artificiales cubren los seis casos.
 La CLI operativa separa preflight, aprobación Windows y ejecución con permiso de un
-solo uso. La autorización y el histórico real siguen pendientes.
+solo uso. La primera ejecución histórica del Issue #3 está completada y sellada.
 
 [Fase 5.5A](orchestration-phase-5-5a.md) prepara un adaptador de
 StudyBackend v1 para ensayos sintéticos aislados y recepción JSON
 validada. La persistencia sintética usa un único documento NTFS por
 trabajo, con captura original y recibo 1.2. Los seis casos históricos
-del Issue #3 siguen como propuesta y su bloqueo operativo permanece vigente.
+del Issue #3 se ejecutaron por la vía independiente de 5.5B; su bloqueo
+en las rutas operativas anteriores permanece vigente.
 
 [Lanzamiento independiente 5.4B](orchestration-pilot-launch.md) incorpora
 el permiso de un solo uso para un intento técnico preparado y un
 verificador Linux para el Python entregado. Las regresiones del
 coordinador usan simulaciones. La prueba real en Windows pasó con
 Docker Desktop, WSL2 y una estrategia SMA ficticia. El Issue #3 conserva
-el intento original en PREPARED y cero autorizaciones LAUNCH_CODEX.
+el intento original en SUCCEEDED y su autorización LAUNCH_CODEX en CONSUMED.
 
 [Autorización local 5.4B](orchestration-pilot-one-shot.md) añade un recibo
 de preparación de un solo uso para pilotos técnicos. Se desarrolla con
-SQLite aislada y procesos simulados. La preparación real del Issue #3 y
-el lanzamiento independiente quedan pendientes.
+SQLite aislada y procesos simulados. La preparación real y el lanzamiento
+independiente del Issue #3 se completaron con sus autorizaciones consumidas.
 
 [Fase 5.4B](orchestration-phase-5-4b-pilot.md) prepara un Issue técnico
 de BTC spot 1h y su plan. El origen supervisado admite revisión manual
-y bloquea la preparación. Quedan pendientes la revisión del commit,
-la publicación supervisada y las autorizaciones independientes.
+y bloquea la preparación sin autorización. El piloto del Issue #3 se publicó,
+implementó y ejecutó históricamente bajo sus autorizaciones independientes.
 
 [Fase 5.4A](orchestration-phase-5-4a.md) añade un diagnóstico de solo
 lectura para propuestas GitHub. En una copia de la cola periódica,
