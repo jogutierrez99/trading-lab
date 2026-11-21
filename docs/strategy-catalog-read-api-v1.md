@@ -2,7 +2,16 @@
 
 Implementación local aditiva dentro de trading_lab_catalog. No es un servidor,
 agente, scheduler o motor de ejecución. Funciona sin red ni dependencias nuevas.
-Estado: preparada para revisión, sin commit ni publicación.
+Estado: API V1 implementada y publicada en el
+[PR #8](https://github.com/jogutierrez99/trading-lab/pull/8).
+La auditoría técnica local ha concluido. Según el dictamen comunicado por el
+operador, la revisión independiente es favorable con observaciones para Windows
+NTFS confiable. La integración en main y el merge siguen pendientes de
+autorización expresa. No se han registrado resultados CI remotos satisfactorios.
+
+Los agentes y los flujos 1 y 2 siguen desconectados de esta API. No se ha activado
+el trigger de las 09:00 desde esta capa. No hay consumo operativo de OpenAI API
+ni autorización para trading.
 
 ## Arquitectura
 
@@ -336,8 +345,9 @@ y el trabajo de conteo/checkpoint. No se cambió el esquema real.
 
 ## Preparación para 5.9B y límites restantes
 
-Esta capa no contiene agentes reales. Antes de publicar requiere revisión
-externa y autorización de commit/push.
+Esta capa no contiene agentes reales. El código está publicado en el PR #8;
+la integración en main requiere autorización posterior y expresa de merge.
+La fase 5.9B no se ha iniciado.
 Un encargo posterior podrá ampliar pruebas de consumidores y contratos,
 conservando la separación entre dictámenes, gates y permisos.
 

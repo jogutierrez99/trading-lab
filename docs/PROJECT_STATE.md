@@ -1,13 +1,15 @@
 # Estado actual del Trading Lab
 
-[API Python de lectura, 5.9A](strategy-catalog-read-api-v1.md), preparada
-localmente para revisión: instantánea por petición, filtros estrictos,
-paginación autenticada y perfiles deterministas para cuatro consumidores.
+[API Python de lectura, 5.9A](strategy-catalog-read-api-v1.md), publicada en el
+[PR #8](https://github.com/jogutierrez99/trading-lab/pull/8): instantánea por petición,
+filtros estrictos, paginación autenticada y perfiles deterministas para cuatro consumidores.
 Sin agentes, modelos, flujos o scheduling conectados. El catálogo real se
 consultó sin cambios, conservando las fuentes selladas y las ACL.
 El cierre técnico revalida filtros y procedencia, protege las aperturas NTFS
 con handles de lectura y conserva cuatro omisiones nativas documentadas.
-Publicación y PR siguen pendientes de autorización independiente.
+Auditoría técnica local cerrada; revisión independiente favorable con observaciones
+para Windows NTFS confiable, según el dictamen comunicado por el operador.
+La integración en main sigue pendiente de autorización expresa de merge.
 
 [Catálogo Capa 1](strategy-catalog-v1.md) añade SQLite independiente,
 descubrimiento mediante adaptador y contratos inmutables de versiones,
