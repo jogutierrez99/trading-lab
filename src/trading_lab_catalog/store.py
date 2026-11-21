@@ -227,20 +227,33 @@ class Store:
             if row is None or row[0] != decision["strategy_id"]:
                 raise Conflict("Decision refers to a different strategy")
 
-    def records(self, table, *, declarations=False):
+    def records(self, table, *, declarations=False, ids=None):
         import json
 
         if table not in REFERENCES:
             raise ValueError("Unknown catalogue entity")
+        if ids is not None:
+            ids = tuple(ids)
+            if not ids:
+                return []
+            if len(ids) > 200 or any(not isinstance(key, str) for key in ids):
+                raise ValueError("At most 200 string identities may be selected")
+        where = "" if ids is None else " WHERE id IN (" + ",".join("?" for _ in ids) + ")"
         with self.connection() as c:
             records = [
-                json.loads(r[0]) for r in c.execute(f"SELECT payload FROM {table} ORDER BY id")
+                json.loads(r[0])
+                for r in c.execute(f"SELECT payload FROM {table}{where} ORDER BY id", ids or ())
             ]
+            hashes = () if ids is None else tuple(fingerprint(record) for record in records)
+            scope = (
+                "" if ids is None else " AND fingerprint IN (" + ",".join("?" for _ in hashes) + ")"
+            )
             accredited = set(
                 c.execute(
                     "SELECT kind,fingerprint FROM catalog_events "
-                    "WHERE kind LIKE 'SOURCE_AUDITED_%' "
-                    "OR kind='HASH_VERIFIED_artifacts'"
+                    "WHERE (kind LIKE 'SOURCE_AUDITED_%' "
+                    "OR kind='HASH_VERIFIED_artifacts')" + scope,
+                    () if ids is None else hashes,
                 ).fetchall()
             )
         if not declarations:

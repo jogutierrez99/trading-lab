@@ -1,12 +1,22 @@
 # Estado actual del Trading Lab
 
+[API Python de lectura, 5.9A](strategy-catalog-read-api-v1.md), preparada
+localmente para revisión: instantánea por petición, filtros estrictos,
+paginación autenticada y perfiles deterministas para cuatro consumidores.
+Sin agentes, modelos, flujos o scheduling conectados. El catálogo real se
+consultó sin cambios, conservando las fuentes selladas y las ACL.
+El cierre técnico revalida filtros y procedencia, protege las aperturas NTFS
+con handles de lectura y conserva cuatro omisiones nativas documentadas.
+Publicación y PR siguen pendientes de autorización independiente.
+
 [Catálogo Capa 1](strategy-catalog-v1.md) añade SQLite independiente,
 descubrimiento mediante adaptador y contratos inmutables de versiones,
 experimentos, resultados y decisiones. CLI manual strategy_catalog.py,
 comparabilidad determinista e import-preview de evidencia sellada.
 El Issue #3 completó su primera ejecución histórica y quedó sellado con seis
 casos, dictamen NO_DECISION y holdout CONSUMED. No tiene promoción a demo.
-Su ingesta real en el catálogo está limitada a validación/dry-run.
+El expediente está registrado en el catálogo: seis resultados, doce
+artefactos y una decisión NO_DECISION. La validación posterior fue de lectura.
 El catálogo no ejecuta estrategias ni activa agentes.
 
 [Fase 5.5B](orchestration-phase-5-5b.md) prepara el histórico aislado del Issue #3.
