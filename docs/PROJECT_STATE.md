@@ -1,5 +1,14 @@
 # Estado actual del Trading Lab
 
+[Investigador V1, 5.9B.1](agents/agent-01-researcher-implementation-v1.md), implementación
+local simulada para revisión: dos contratos TLAgents estrictos, contexto por el perfil
+researcher de solo lectura, proveedor falso y recibos acotados en memoria. No hay
+recuperación entre reinicios ni capacidades operativas. Ensayos solo con fixtures;
+sin abrir catálogo/ledger reales, modelos API, Codex anidado o backtests.
+El [diseño multiagente 5.9B.0](agents/multiagent-master-v1.md) está integrado por PR #9.
+La [hoja de ruta central](ROADMAP.md) prioriza MVP hasta ambos flujos verificados;
+biblioteca/formación y evolución del motor quedan pos-MVP (7.0 y 8.0).
+
 [API Python de lectura, 5.9A](strategy-catalog-read-api-v1.md), publicada en el
 [PR #8](https://github.com/jogutierrez99/trading-lab/pull/8): instantánea por petición,
 filtros estrictos, paginación autenticada y perfiles deterministas para cuatro consumidores.
@@ -9,7 +18,7 @@ El cierre técnico revalida filtros y procedencia, protege las aperturas NTFS
 con handles de lectura y conserva cuatro omisiones nativas documentadas.
 Auditoría técnica local cerrada; revisión independiente favorable con observaciones
 para Windows NTFS confiable, según el dictamen comunicado por el operador.
-La integración en main sigue pendiente de autorización expresa de merge.
+La API 5.9A está integrada en main; su aceptación no activa agentes o flujos.
 
 [Catálogo Capa 1](strategy-catalog-v1.md) añade SQLite independiente,
 descubrimiento mediante adaptador y contratos inmutables de versiones,
