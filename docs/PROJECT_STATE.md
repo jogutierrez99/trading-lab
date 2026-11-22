@@ -1,7 +1,15 @@
 # Estado actual del Trading Lab
 
-[Diseñador V1, 5.9B.2](agents/agent-02-designer-implementation-v1.md), implementación
-local simulada pendiente de revisión: StrategySpecification 1.0, transferencia desde
+[Validador V1, 5.9B.3](agents/agent-03-validator-implementation-v1.md), implementación
+local exclusivamente simulada pendiente de revisión: ValidationAssessment 1.0 reutiliza
+ModelReview y conserva el AuditVerdict original. Contexto auditor de solo lectura,
+captura acotada con checkpoint, proveedor falso y recibos en memoria. Solo observaciones
+declarativas contrastadas y limitaciones con referencias; no acredita resultados ni
+modifica decisiones. Las pruebas utilizan únicamente fuentes y catálogos sintéticos.
+
+[Diseñador V1, 5.9B.2](agents/agent-02-designer-implementation-v1.md), integrado
+por PR #11 en la base `91c9840f08f25ced200e39c159ab0cbcf168fa61`:
+StrategySpecification 1.0, transferencia desde
 el Investigador con revisión del host, catálogo por el perfil designer, capacidades
 inspeccionadas y mapeo TLAgents.semantic/1.0 al HypothesisManifest sin cambiar su
 contrato o fingerprint. Proveedor exclusivamente falso; ensayos con fixtures temporales.
@@ -10,7 +18,7 @@ No se abre catálogo/ledger real ni se implementan estrategias o ejecutan backte
 [Investigador V1, 5.9B.1](agents/agent-01-researcher-implementation-v1.md), integrado
 por PR #10 en la base `0a713557ae19ee549a39bfbc46aa6472ee2bbd2e`: dos contratos
 TLAgents estrictos, contexto researcher de solo lectura y proveedor simulado.
-Ambos componentes mantienen recibos acotados en memoria, sin recuperación durable,
+Los tres componentes mantienen recibos acotados en memoria, sin recuperación durable,
 modelos reales, permisos de ejecución, Codex anidado ni conexiones operativas.
 El [diseño multiagente 5.9B.0](agents/multiagent-master-v1.md) está integrado por PR #9.
 La [hoja de ruta central](ROADMAP.md) prioriza MVP hasta ambos flujos verificados;
