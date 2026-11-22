@@ -306,7 +306,9 @@ def test_no_direct_operational_or_network_imports():
         for name in imports
     )
     assert {name for name in imports if name.startswith("trading_lab_orchestration")} == {
-        "trading_lab_orchestration.contracts"
+        "trading_lab_orchestration.contracts",
+        # Validator V1 reuses passive audit models, never operational auditors.
+        "trading_lab_orchestration.audit_contracts",
     }
 
 

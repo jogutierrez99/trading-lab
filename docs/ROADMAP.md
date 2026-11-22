@@ -1,7 +1,7 @@
 # Trading Lab — Hoja de ruta del MVP y evolución posterior
 
 Planificación, no autorización de ejecución. Prioridad: completar primero el MVP.
-Base de esta revisión: `0a713557ae19ee549a39bfbc46aa6472ee2bbd2e`.
+Base de esta revisión: `91c9840f08f25ced200e39c159ab0cbcf168fa61`.
 Se consultaron README, PROJECT_STATE y los diseños existentes; no había una hoja
 de ruta central vigente. Las notas antiguas de fases conservan su ámbito histórico.
 
@@ -11,8 +11,8 @@ de ruta central vigente. Las notas antiguas de fases conservan su ámbito histó
 |---|---|
 | 5.9B.0 | COMPLETADO e integrado por PR #9: diseño multiagente V1 |
 | 5.9B.1 | COMPLETADO e integrado por PR #10: Investigador exclusivamente simulado |
-| 5.9B.2 | Implementación local pendiente de revisión: Diseñador simulado, transferencia y mapeo científico |
-| 5.9B.3 | Pendiente: Validador Cuantitativo |
+| 5.9B.2 | COMPLETADO e integrado por PR #11: Diseñador simulado, transferencia y mapeo científico |
+| 5.9B.3 | Implementación local pendiente de revisión: Validador exclusivamente simulado y consultivo |
 | 5.9B.4 | Pendiente: Coordinador e integración, reutilizando el controlador existente |
 | 5.9C | Pendiente: integración, pruebas y piloto IA con autorización separada |
 | 6.0A | Pendiente: Flujo 1 de extremo a extremo hasta Telegram verificado y autorizado |
@@ -31,7 +31,7 @@ recuperación, ejemplos especializados, memoria de errores verificados, exámene
 benchmarks por agente, calificaciones/certificaciones, optimización controlada de
 instrucciones y evaluación de mejoras sin regresiones. Cada fuente mantendrá
 procedencia y será contenido no confiable, nunca una autorización privilegiada.
-Nada de esta fase se implementa en 5.9B.1 o 5.9B.2.
+Nada de esta fase se implementa en 5.9B.1, 5.9B.2 o 5.9B.3.
 
 ## Pos-MVP — Fase 8.0: rendimiento y evolución del motor
 
@@ -48,7 +48,7 @@ Antes de cualquier cambio: benchmarks de referencia, casos de equivalencia
 congelados, error numérico medido, semántica de ejecución verificada, resultados
 antiguos/nuevos comparados y riesgos de migración revisados. Mejorar eficiencia
 no permite cambiar silenciosamente resultados científicos. No se modifica el
-motor en 5.9B.1 o 5.9B.2. Las fases 7.0 y 8.0 quedan detrás del MVP y requieren otro encargo.
+motor en 5.9B.1, 5.9B.2 o 5.9B.3. Las fases 7.0 y 8.0 quedan detrás del MVP y requieren otro encargo.
 
 ## Gates comunes
 
@@ -63,3 +63,5 @@ la [implementación del Investigador](agents/agent-01-researcher-implementation-
 describe exclusivamente simulaciones y sus límites.
 La [implementación del Diseñador](agents/agent-02-designer-implementation-v1.md)
 añade únicamente transferencia local simulada y especificaciones para revisión.
+La [implementación del Validador](agents/agent-03-validator-implementation-v1.md)
+interpreta evidencia sintética preparada; no activa el coordinador ni los flujos.
