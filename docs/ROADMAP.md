@@ -1,7 +1,7 @@
 # Trading Lab — Hoja de ruta del MVP y evolución posterior
 
 Planificación, no autorización de ejecución. Prioridad: completar primero el MVP.
-Base de esta revisión: `1089e80a2bb62b95d8e88bb363b6c710d64f75dd`.
+Base de esta revisión: `0a713557ae19ee549a39bfbc46aa6472ee2bbd2e`.
 Se consultaron README, PROJECT_STATE y los diseños existentes; no había una hoja
 de ruta central vigente. Las notas antiguas de fases conservan su ámbito histórico.
 
@@ -10,8 +10,8 @@ de ruta central vigente. Las notas antiguas de fases conservan su ámbito histó
 | Fase | Estado / objetivo |
 |---|---|
 | 5.9B.0 | COMPLETADO e integrado por PR #9: diseño multiagente V1 |
-| 5.9B.1 | EN DESARROLLO: Investigador local simulado; implementación pendiente de revisión e integración |
-| 5.9B.2 | Pendiente: Diseñador de Estrategias |
+| 5.9B.1 | COMPLETADO e integrado por PR #10: Investigador exclusivamente simulado |
+| 5.9B.2 | Implementación local pendiente de revisión: Diseñador simulado, transferencia y mapeo científico |
 | 5.9B.3 | Pendiente: Validador Cuantitativo |
 | 5.9B.4 | Pendiente: Coordinador e integración, reutilizando el controlador existente |
 | 5.9C | Pendiente: integración, pruebas y piloto IA con autorización separada |
@@ -31,7 +31,7 @@ recuperación, ejemplos especializados, memoria de errores verificados, exámene
 benchmarks por agente, calificaciones/certificaciones, optimización controlada de
 instrucciones y evaluación de mejoras sin regresiones. Cada fuente mantendrá
 procedencia y será contenido no confiable, nunca una autorización privilegiada.
-Nada de esta fase se implementa en 5.9B.1.
+Nada de esta fase se implementa en 5.9B.1 o 5.9B.2.
 
 ## Pos-MVP — Fase 8.0: rendimiento y evolución del motor
 
@@ -48,7 +48,7 @@ Antes de cualquier cambio: benchmarks de referencia, casos de equivalencia
 congelados, error numérico medido, semántica de ejecución verificada, resultados
 antiguos/nuevos comparados y riesgos de migración revisados. Mejorar eficiencia
 no permite cambiar silenciosamente resultados científicos. No se modifica el
-motor en 5.9B.1. Las fases 7.0 y 8.0 quedan detrás del MVP y requieren otro encargo.
+motor en 5.9B.1 o 5.9B.2. Las fases 7.0 y 8.0 quedan detrás del MVP y requieren otro encargo.
 
 ## Gates comunes
 
@@ -61,3 +61,5 @@ backtest o de una opinión IA. NO_DECISION y los holdouts CONSUMED se conservan.
 El [plan multiagente](agents/agent-test-plan-v1.md) define aceptación incremental;
 la [implementación del Investigador](agents/agent-01-researcher-implementation-v1.md)
 describe exclusivamente simulaciones y sus límites.
+La [implementación del Diseñador](agents/agent-02-designer-implementation-v1.md)
+añade únicamente transferencia local simulada y especificaciones para revisión.
