@@ -1,10 +1,17 @@
 # Estado actual del Trading Lab
 
-[Investigador V1, 5.9B.1](agents/agent-01-researcher-implementation-v1.md), implementación
-local simulada para revisión: dos contratos TLAgents estrictos, contexto por el perfil
-researcher de solo lectura, proveedor falso y recibos acotados en memoria. No hay
-recuperación entre reinicios ni capacidades operativas. Ensayos solo con fixtures;
-sin abrir catálogo/ledger reales, modelos API, Codex anidado o backtests.
+[Diseñador V1, 5.9B.2](agents/agent-02-designer-implementation-v1.md), implementación
+local simulada pendiente de revisión: StrategySpecification 1.0, transferencia desde
+el Investigador con revisión del host, catálogo por el perfil designer, capacidades
+inspeccionadas y mapeo TLAgents.semantic/1.0 al HypothesisManifest sin cambiar su
+contrato o fingerprint. Proveedor exclusivamente falso; ensayos con fixtures temporales.
+No se abre catálogo/ledger real ni se implementan estrategias o ejecutan backtests.
+
+[Investigador V1, 5.9B.1](agents/agent-01-researcher-implementation-v1.md), integrado
+por PR #10 en la base `0a713557ae19ee549a39bfbc46aa6472ee2bbd2e`: dos contratos
+TLAgents estrictos, contexto researcher de solo lectura y proveedor simulado.
+Ambos componentes mantienen recibos acotados en memoria, sin recuperación durable,
+modelos reales, permisos de ejecución, Codex anidado ni conexiones operativas.
 El [diseño multiagente 5.9B.0](agents/multiagent-master-v1.md) está integrado por PR #9.
 La [hoja de ruta central](ROADMAP.md) prioriza MVP hasta ambos flujos verificados;
 biblioteca/formación y evolución del motor quedan pos-MVP (7.0 y 8.0).
